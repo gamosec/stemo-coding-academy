@@ -382,11 +382,17 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-blue-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-blue-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('move_forward')">
                         🚶 Forward
                     </div>
+                    <div class="block-item bg-blue-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-blue-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('move_backward')">
+                        🔙 Back
+                    </div>
                     <div class="block-item bg-indigo-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-indigo-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('turn_left')">
                         ↩️ Left
                     </div>
                     <div class="block-item bg-indigo-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-indigo-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('turn_right')">
                         ↪️ Right
+                    </div>
+                    <div class="block-item bg-yellow-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-yellow-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_home')">
+                        🏠 Home
                     </div>
                     
                     <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🎨 Draw</div>
@@ -395,6 +401,9 @@ const htmlContent = `<!DOCTYPE html>
                     </div>
                     <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('set_color')">
                         🎨 Color
+                    </div>
+                    <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('set_pen_size')">
+                        🖌️ Size
                     </div>
                     
                     <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔁 Loop</div>
@@ -520,6 +529,7 @@ const htmlContent = `<!DOCTYPE html>
             angle: -90,
             penDown: true,
             penColor: '#6366f1',
+            penSize: 4,
             trails: []
         };
         
@@ -667,6 +677,18 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['move_backward'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔙 Back")
+                    .appendField(new Blockly.FieldNumber(1, 1, 100, 1), "STEPS")
+                    .appendField("steps");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(230);
+            }
+        };
+
         Blockly.Blocks['turn_left'] = {
             init: function() {
                 this.appendDummyInput()
@@ -713,6 +735,28 @@ const htmlContent = `<!DOCTYPE html>
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(330);
+            }
+        };
+
+        Blockly.Blocks['set_pen_size'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🖌️ Size")
+                    .appendField(new Blockly.FieldNumber(4, 1, 20, 1), "SIZE")
+                    .appendField("px");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(330);
+            }
+        };
+
+        Blockly.Blocks['go_home'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🏠 Go Home");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(60);
             }
         };
 
@@ -852,18 +896,28 @@ const htmlContent = `<!DOCTYPE html>
                     for (var i = 0; i < steps; i++) {
                         commands.push({ action: 'move', value: 20 });
                     }
+                } else if (type === 'move_backward') {
+                    var steps = parseInt(block.getFieldValue('STEPS'));
+                    for (var i = 0; i < steps; i++) {
+                        commands.push({ action: 'move', value: -20 });
+                    }
                 } else if (type === 'turn_left') {
                     var degrees = parseInt(block.getFieldValue('DEGREES'));
                     commands.push({ action: 'turn', value: -degrees });
                 } else if (type === 'turn_right') {
                     var degrees = parseInt(block.getFieldValue('DEGREES'));
                     commands.push({ action: 'turn', value: degrees });
+                } else if (type === 'go_home') {
+                    commands.push({ action: 'home' });
                 } else if (type === 'pen_control') {
                     var state = block.getFieldValue('STATE');
                     commands.push({ action: 'pen', value: state === 'DOWN' });
                 } else if (type === 'set_color') {
                     var color = block.getFieldValue('COLOR');
                     commands.push({ action: 'color', value: color });
+                } else if (type === 'set_pen_size') {
+                    var size = parseInt(block.getFieldValue('SIZE'));
+                    commands.push({ action: 'size', value: size });
                 } else if (type === 'repeat_times') {
                     var times = parseInt(block.getFieldValue('TIMES'));
                     var innerBlock = block.getInputTargetBlock('DO');
@@ -915,7 +969,8 @@ const htmlContent = `<!DOCTYPE html>
                     robot.trails.push({
                         x1: robot.x, y1: robot.y,
                         x2: newX, y2: newY,
-                        color: robot.penColor
+                        color: robot.penColor,
+                        size: robot.penSize
                     });
                 }
                 
@@ -923,10 +978,17 @@ const htmlContent = `<!DOCTYPE html>
                 robot.y = Math.max(25, Math.min(375, newY));
             } else if (cmd.action === 'turn') {
                 robot.angle += cmd.value;
+            } else if (cmd.action === 'home') {
+                // Go home without drawing
+                robot.x = 200;
+                robot.y = 200;
+                robot.angle = -90;
             } else if (cmd.action === 'pen') {
                 robot.penDown = cmd.value;
             } else if (cmd.action === 'color') {
                 robot.penColor = cmd.value;
+            } else if (cmd.action === 'size') {
+                robot.penSize = cmd.value;
             }
         }
 
@@ -960,7 +1022,7 @@ const htmlContent = `<!DOCTYPE html>
             robot.trails.forEach(function(trail) {
                 ctx.beginPath();
                 ctx.strokeStyle = trail.color;
-                ctx.lineWidth = 4;
+                ctx.lineWidth = trail.size || 4;
                 ctx.lineCap = 'round';
                 ctx.moveTo(trail.x1, trail.y1);
                 ctx.lineTo(trail.x2, trail.y2);
@@ -1029,6 +1091,7 @@ const htmlContent = `<!DOCTYPE html>
                 angle: -90,
                 penDown: true,
                 penColor: '#6366f1',
+                penSize: 4,
                 trails: []
             };
             drawRobot();
