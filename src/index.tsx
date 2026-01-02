@@ -1,14 +1,10 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { serveStatic } from 'hono/cloudflare-pages'
 
 const app = new Hono()
 
 // Enable CORS
 app.use('/api/*', cors())
-
-// Serve static files
-app.use('/static/*', serveStatic())
 
 // ============================================
 // CURRICULUM DATA - Lessons & Challenges
@@ -92,7 +88,7 @@ const curriculum = {
       difficulty: 'hard',
       xpReward: 300,
       objectives: ['Draw a 5-pointed star', 'Master complex angles'],
-      hint: 'Turn 144 degrees (that\'s 180-36) to make star points!',
+      hint: "Turn 144 degrees (that's 180-36) to make star points!",
       challenge: {
         goal: 'Draw a 5-pointed star',
         targetSteps: 2,
@@ -109,7 +105,7 @@ const badges = [
   { id: 'artist', name: 'Code Artist', description: 'Draw 10 shapes', icon: '🎨', xpRequired: 500 },
   { id: 'loop-master', name: 'Loop Master', description: 'Use loops 20 times', icon: '🔄', xpRequired: 750 },
   { id: 'star-coder', name: 'Star Coder', description: 'Earn 1000 XP', icon: '⭐', xpRequired: 1000 },
-  { id: 'robot-friend', name: 'Robot\'s Best Friend', description: 'Chat with STEMO 50 times', icon: '🤖', xpRequired: 1500 }
+  { id: 'robot-friend', name: "Robot's Best Friend", description: 'Chat with STEMO 50 times', icon: '🤖', xpRequired: 1500 }
 ]
 
 // ============================================
@@ -136,13 +132,10 @@ app.get('/api/badges', (c) => {
   return c.json(badges)
 })
 
-// AI Chat endpoint (simulated for demo - integrates with AI in production)
+// AI Chat endpoint
 app.post('/api/chat', async (c) => {
   const { message, context } = await c.req.json()
-  
-  // Simulated AI responses based on context
   const responses = generateAIResponse(message, context)
-  
   return c.json({ 
     response: responses,
     character: 'stemo'
@@ -153,77 +146,63 @@ app.post('/api/chat', async (c) => {
 function generateAIResponse(message: string, context: any): string {
   const lowerMessage = message.toLowerCase()
   
-  // Greeting responses
   if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
     return "🤖 Beep boop! Hi there, young coder! I'm STEMO, your robot coding buddy! Ready to create something amazing together? Let's make magic with code! ✨"
   }
   
-  // Help with moving
   if (lowerMessage.includes('move') || lowerMessage.includes('forward')) {
     return "🤖 Want to make me move? Just drag the 'Move Forward' block from the left side! Each block makes me take one step. Try stacking them to make me walk further! 🚶"
   }
   
-  // Help with turning
   if (lowerMessage.includes('turn') || lowerMessage.includes('rotate')) {
     return "🤖 Turning is easy! Use the 'Turn Left' or 'Turn Right' blocks. I'll spin 90 degrees - that's like turning at a corner! Try it and watch me spin! 🔄"
   }
   
-  // Help with drawing
   if (lowerMessage.includes('draw') || lowerMessage.includes('pen')) {
     return "🤖 I love drawing! Use 'Pen Down' to start my crayon, then move around. I'll leave a colorful trail behind me! Use 'Pen Up' when you're done. 🖍️"
   }
   
-  // Help with loops
   if (lowerMessage.includes('loop') || lowerMessage.includes('repeat')) {
     return "🤖 Loops are super cool! Instead of using the same block 4 times, put it inside a 'Repeat' block. It's like telling me 'do this 4 times' - way less work! 🔁"
   }
   
-  // Help with shapes
   if (lowerMessage.includes('square') || lowerMessage.includes('shape')) {
     return "🤖 A square has 4 equal sides and 4 corners! Try: Repeat 4 times → Move Forward + Turn Right. The turn makes me go around each corner! 📦"
   }
   
-  // Help with triangle
   if (lowerMessage.includes('triangle')) {
     return "🤖 Triangles are tricky but fun! They have 3 sides. The secret: turn 120 degrees (not 90!) between each side. Repeat 3 times → Move + Turn 120! 🔺"
   }
   
-  // Stuck or confused
   if (lowerMessage.includes('stuck') || lowerMessage.includes('help') || lowerMessage.includes("don't know")) {
     return "🤖 Don't worry, getting stuck is part of learning! Let me give you a hint: Start with just one block, click Run, and see what happens. Then add more blocks one at a time. Baby steps! 💪"
   }
   
-  // Error or wrong
   if (lowerMessage.includes('error') || lowerMessage.includes('wrong') || lowerMessage.includes('not working')) {
     return "🤖 Oops! Errors are just puzzles to solve! Check your blocks - are they connected properly? Try clicking the 🗑️ to clear and start fresh. I believe in you! 🌟"
   }
   
-  // What can you do
   if (lowerMessage.includes('what can you') || lowerMessage.includes('what do you')) {
     return "🤖 I can do lots of things! I can move around, turn, draw colorful patterns, and best of all - I can help you learn coding! Just tell me what you want to create, and we'll figure it out together! 🎨"
   }
   
-  // Encouragement
   if (lowerMessage.includes('hard') || lowerMessage.includes('difficult')) {
     return "🤖 Coding can feel hard at first, but guess what? You're already doing great by trying! Every expert was once a beginner. Take a deep breath, try one small step, and celebrate each win! 🎉"
   }
   
-  // Default response
   return "🤖 Beep boop! Great question! I'm here to help you code. Try dragging blocks from the left panel and clicking 'Run' to see what happens. If you get stuck, just ask me! We're a team! 🤝"
 }
 
 // Save progress
 app.post('/api/progress', async (c) => {
   const progress = await c.req.json()
-  // In production, this would save to D1 database
   return c.json({ success: true, message: 'Progress saved!' })
 })
 
 // ============================================
-// MAIN PAGE
+// MAIN PAGE - Using raw string to avoid escaping issues
 // ============================================
-app.get('/', (c) => {
-  return c.html(`<!DOCTYPE html>
+const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -242,70 +221,30 @@ app.get('/', (c) => {
             --robot-blue: #3b82f6;
         }
         
-        * {
-            font-family: 'Nunito', sans-serif;
-        }
+        * { font-family: 'Nunito', sans-serif; }
+        h1, h2, h3, .logo-text { font-family: 'Fredoka One', cursive; }
         
-        h1, h2, h3, .logo-text {
-            font-family: 'Fredoka One', cursive;
-        }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-shadow { box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .robot-glow { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5)); }
         
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .card-shadow {
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-        
-        .robot-glow {
-            filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
-        }
-        
-        .bounce-animation {
-            animation: bounce 2s infinite;
-        }
-        
+        .bounce-animation { animation: bounce 2s infinite; }
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
         
-        .pulse-ring {
-            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 1; }
-            80%, 100% { transform: scale(1.3); opacity: 0; }
-        }
-        
-        .sparkle {
-            animation: sparkle 1.5s ease-in-out infinite;
-        }
-        
+        .sparkle { animation: sparkle 1.5s ease-in-out infinite; }
         @keyframes sparkle {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.5; transform: scale(1.2); }
         }
         
-        /* Blockly customization */
-        .blocklyToolboxDiv {
-            background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-            border-radius: 0 16px 16px 0 !important;
-        }
-        
-        .blocklyTreeRow:hover {
-            background-color: #bae6fd !important;
-        }
-        
-        /* Canvas styles */
         #robotCanvas {
             border-radius: 16px;
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
         }
         
-        /* Chat bubble */
         .chat-bubble {
             position: relative;
             background: white;
@@ -313,79 +252,25 @@ app.get('/', (c) => {
             padding: 15px 20px;
         }
         
-        .chat-bubble::before {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 30px;
-            border-width: 10px;
-            border-style: solid;
-            border-color: white transparent transparent transparent;
-        }
-        
-        /* Progress bar */
-        .progress-fill {
-            background: linear-gradient(90deg, #22c55e, #86efac);
-            transition: width 0.5s ease;
-        }
-        
-        /* Lesson card hover */
-        .lesson-card {
-            transition: all 0.3s ease;
-        }
-        
+        .lesson-card { transition: all 0.3s ease; }
         .lesson-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         
-        /* Robot expressions */
-        .robot-happy .robot-mouth {
-            border-radius: 0 0 50% 50%;
-        }
-        
-        .robot-thinking .robot-eye {
-            animation: blink 0.5s ease infinite;
-        }
-        
-        @keyframes blink {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(0.1); }
-        }
-        
-        /* Tab styles */
         .tab-active {
             background: white;
             color: #6366f1;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+        .tab-inactive { background: transparent; color: white; }
         
-        .tab-inactive {
-            background: transparent;
-            color: white;
-        }
-        
-        /* XP popup */
-        .xp-popup {
-            animation: xp-float 2s ease forwards;
-        }
-        
+        .xp-popup { animation: xp-float 2s ease forwards; }
         @keyframes xp-float {
             0% { opacity: 0; transform: translateY(20px) scale(0.5); }
             20% { opacity: 1; transform: translateY(0) scale(1.2); }
             80% { opacity: 1; transform: translateY(-30px) scale(1); }
             100% { opacity: 0; transform: translateY(-50px) scale(0.8); }
-        }
-        
-        /* Badge unlock */
-        .badge-unlock {
-            animation: badge-pop 0.5s ease;
-        }
-        
-        @keyframes badge-pop {
-            0% { transform: scale(0) rotate(-180deg); }
-            50% { transform: scale(1.3) rotate(10deg); }
-            100% { transform: scale(1) rotate(0deg); }
         }
     </style>
 </head>
@@ -402,24 +287,17 @@ app.get('/', (c) => {
             </div>
             
             <div class="flex items-center gap-6">
-                <!-- XP Counter -->
                 <div class="flex items-center gap-2 bg-white/20 rounded-full px-4 py-2">
                     <span class="text-yellow-300 text-xl">⭐</span>
                     <span class="font-bold text-lg" id="xpCounter">0</span>
                     <span class="text-sm">XP</span>
                 </div>
-                
-                <!-- Level Badge -->
                 <div class="flex items-center gap-2 bg-white/20 rounded-full px-4 py-2">
                     <span class="text-2xl">🏆</span>
                     <span class="font-bold">Level <span id="levelCounter">1</span></span>
                 </div>
-                
-                <!-- Profile -->
-                <div class="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-xl">
-                        👦
-                    </div>
+                <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-xl cursor-pointer">
+                    👦
                 </div>
             </div>
         </div>
@@ -442,7 +320,6 @@ app.get('/', (c) => {
 
         <!-- Learn Tab -->
         <div id="learn-section" class="block">
-            <!-- Welcome Banner -->
             <div class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-8 mb-8 text-white relative overflow-hidden">
                 <div class="absolute right-0 top-0 opacity-20">
                     <svg width="300" height="200" viewBox="0 0 300 200">
@@ -462,96 +339,111 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Lesson Grid -->
             <h3 class="text-2xl font-bold text-gray-800 mb-4">
                 <i class="fas fa-book-open text-indigo-500 mr-2"></i>Beginner Lessons
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lessonsGrid">
-                <!-- Lessons will be populated by JS -->
-            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lessonsGrid"></div>
         </div>
 
-        <!-- Code Tab -->
+        <!-- Code Tab - MAXIMIZED WORKSPACE LAYOUT -->
         <div id="code-section" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Blockly Editor -->
-                <div class="lg:col-span-2 bg-white rounded-3xl card-shadow overflow-hidden">
-                    <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-puzzle-piece text-2xl"></i>
-                            <div>
-                                <h3 class="font-bold text-lg" id="currentLessonTitle">Code Playground</h3>
-                                <p class="text-sm text-purple-200" id="currentLessonDesc">Drag blocks to program STEMO!</p>
+            <!-- Top Bar with Run/Clear -->
+            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-2 rounded-t-2xl flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-puzzle-piece text-lg"></i>
+                    <div>
+                        <h3 class="font-bold text-sm" id="currentLessonTitle">Code Playground</h3>
+                        <p class="text-xs text-purple-200" id="currentLessonDesc">Click blocks to add • Click numbers to edit</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <!-- Toggle Robot Panel Button -->
+                    <button onclick="toggleRobotPanel()" id="toggleRobotBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
+                        <span id="robotPanelIcon">🤖</span>
+                        <span id="robotPanelText" class="hidden sm:inline">Hide Robot</span>
+                    </button>
+                    <button onclick="runCode()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full font-bold transition-all transform hover:scale-105 flex items-center gap-2 text-base">
+                        <i class="fas fa-play"></i> Run
+                    </button>
+                    <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button onclick="clearWorkspace()" class="bg-red-400 hover:bg-red-500 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Main Content Area - Balanced Layout -->
+            <div class="flex bg-white rounded-b-2xl card-shadow overflow-hidden" style="height: calc(100vh - 200px); min-height: 500px;">
+                <!-- Block Palette - Left Side -->
+                <div id="blockPalette" class="w-32 bg-gradient-to-b from-gray-50 to-gray-100 p-2 overflow-y-auto border-r-2 border-gray-200 flex-shrink-0">
+                    <div class="text-xs font-bold text-gray-500 mb-1 uppercase">🚶 Move</div>
+                    <div class="block-item bg-blue-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-blue-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('move_forward')">
+                        🚶 Forward
+                    </div>
+                    <div class="block-item bg-indigo-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-indigo-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('turn_left')">
+                        ↩️ Left
+                    </div>
+                    <div class="block-item bg-indigo-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-indigo-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('turn_right')">
+                        ↪️ Right
+                    </div>
+                    
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🎨 Draw</div>
+                    <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('pen_control')">
+                        🖍️ Pen
+                    </div>
+                    <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('set_color')">
+                        🎨 Color
+                    </div>
+                    
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔁 Loop</div>
+                    <div class="block-item bg-green-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-green-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('repeat_times')">
+                        🔁 Repeat
+                    </div>
+                </div>
+                
+                <!-- Blockly Workspace - Center -->
+                <div id="blocklyDiv" class="flex-1 min-w-0"></div>
+                
+                <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
+                <div id="robotPanel" class="w-96 bg-gradient-to-b from-cyan-50 to-blue-50 border-l-2 border-gray-200 flex flex-col flex-shrink-0 transition-all duration-300">
+                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center gap-2">
+                        <span class="text-xl">🤖</span>
+                        <span class="font-bold">STEMO's World</span>
+                    </div>
+                    <div class="flex-1 p-3 flex items-center justify-center overflow-hidden">
+                        <canvas id="robotCanvas" width="350" height="350" class="rounded-xl shadow-lg"></canvas>
+                    </div>
+                    
+                    <!-- Chat Area - Bigger -->
+                    <div class="border-t-2 border-gray-200 bg-white p-3">
+                        <div id="chatMessages" class="h-24 overflow-y-auto mb-2 space-y-1 text-sm">
+                            <div class="flex items-start gap-2">
+                                <span class="text-xl">🤖</span>
+                                <div class="bg-blue-100 rounded-lg p-2 text-sm">
+                                    Click blocks to build your program, then press Run!
+                                </div>
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="runCode()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-full font-bold transition-all transform hover:scale-105 flex items-center gap-2">
-                                <i class="fas fa-play"></i> Run
+                            <input type="text" id="chatInput" placeholder="Ask STEMO for help..." 
+                                class="flex-1 border-2 border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                                onkeypress="handleChatKeypress(event)">
+                            <button onclick="sendChat()" class="bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 rounded-full transition-all flex items-center justify-center">
+                                <i class="fas fa-paper-plane"></i>
                             </button>
-                            <button onclick="clearWorkspace()" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-full font-bold transition-all">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="blocklyDiv" style="height: 450px;"></div>
-                </div>
-
-                <!-- Robot Canvas & Chat -->
-                <div class="space-y-6">
-                    <!-- Robot Canvas -->
-                    <div class="bg-white rounded-3xl card-shadow overflow-hidden">
-                        <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-3 flex items-center gap-2">
-                            <span class="text-xl">🤖</span>
-                            <span class="font-bold">STEMO's World</span>
-                        </div>
-                        <div class="p-4">
-                            <canvas id="robotCanvas" width="400" height="350" class="w-full"></canvas>
-                            <div class="flex justify-center gap-3 mt-3">
-                                <button onclick="resetRobot()" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-full text-sm font-bold transition-all">
-                                    <i class="fas fa-undo mr-1"></i> Reset
-                                </button>
-                                <button onclick="togglePenColor()" class="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold transition-all">
-                                    <i class="fas fa-palette mr-1"></i> Color
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- STEMO Chat -->
-                    <div class="bg-white rounded-3xl card-shadow overflow-hidden">
-                        <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-3 flex items-center gap-2">
-                            <span class="text-xl sparkle">💬</span>
-                            <span class="font-bold">Chat with STEMO</span>
-                        </div>
-                        <div class="p-4">
-                            <div id="chatMessages" class="h-40 overflow-y-auto mb-3 space-y-3">
-                                <div class="flex items-start gap-2">
-                                    <span class="text-2xl">🤖</span>
-                                    <div class="chat-bubble bg-blue-100 text-sm">
-                                        Hi! I'm STEMO! Need help? Just ask me anything about coding! 
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <input type="text" id="chatInput" placeholder="Ask STEMO for help..." 
-                                    class="flex-1 border-2 border-gray-200 rounded-full px-4 py-2 focus:outline-none focus:border-indigo-400"
-                                    onkeypress="if(event.key==='Enter')sendChat()">
-                                <button onclick="sendChat()" class="bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 rounded-full transition-all">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Hint Panel -->
-            <div id="hintPanel" class="mt-6 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-2xl p-5 border-2 border-yellow-300 hidden">
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">💡</span>
+            <div id="hintPanel" class="mt-2 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-xl p-3 border-2 border-yellow-300 hidden">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">💡</span>
                     <div>
-                        <h4 class="font-bold text-amber-800">Hint from STEMO:</h4>
-                        <p id="hintText" class="text-amber-700"></p>
+                        <h4 class="font-bold text-amber-800 text-xs">Hint:</h4>
+                        <p id="hintText" class="text-amber-700 text-xs"></p>
                     </div>
                 </div>
             </div>
@@ -559,7 +451,6 @@ app.get('/', (c) => {
 
         <!-- Achievements Tab -->
         <div id="achievements-section" class="hidden">
-            <!-- Progress Overview -->
             <div class="bg-white rounded-3xl card-shadow p-6 mb-8">
                 <h3 class="text-2xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-chart-line text-indigo-500 mr-2"></i>Your Progress
@@ -588,13 +479,10 @@ app.get('/', (c) => {
                 </div>
             </div>
 
-            <!-- Badges Grid -->
             <h3 class="text-2xl font-bold text-gray-800 mb-4">
                 <i class="fas fa-medal text-yellow-500 mr-2"></i>Badges Collection
             </h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="badgesGrid">
-                <!-- Badges populated by JS -->
-            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="badgesGrid"></div>
         </div>
     </div>
 
@@ -618,694 +506,711 @@ app.get('/', (c) => {
         // ============================================
         // STEMO STATE MANAGEMENT
         // ============================================
-        let stemo = {
+        var stemo = {
             xp: parseInt(localStorage.getItem('stemo_xp') || '0'),
             level: parseInt(localStorage.getItem('stemo_level') || '1'),
             completedLessons: JSON.parse(localStorage.getItem('stemo_completed') || '[]'),
             badges: JSON.parse(localStorage.getItem('stemo_badges') || '[]'),
             streak: parseInt(localStorage.getItem('stemo_streak') || '1')
-        }
+        };
 
-        // Robot state
-        let robot = {
-            x: 200,
+        var robot = {
+            x: 175,
             y: 175,
-            angle: 0,
-            penDown: false,
+            angle: -90,
+            penDown: true,
             penColor: '#6366f1',
-            trails: [],
-            expression: 'happy'
-        }
+            trails: []
+        };
+        
+        var robotPanelVisible = true;
 
-        const penColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6']
-        let currentColorIndex = 0
-        let currentLesson = null
-        let workspace = null
+        var penColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'];
+        var currentColorIndex = 0;
+        var currentLesson = null;
+        var workspace = null;
 
         // ============================================
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            updateUI()
-            loadLessons()
-            loadBadges()
-            initBlockly()
-            drawRobot()
-        })
+            console.log('STEMO initializing...');
+            updateUI();
+            loadLessons();
+            loadBadges();
+            initBlockly();
+            drawRobot();
+            console.log('STEMO ready!');
+        });
 
         function updateUI() {
-            document.getElementById('xpCounter').textContent = stemo.xp
-            document.getElementById('levelCounter').textContent = stemo.level
-            document.getElementById('totalXP').textContent = stemo.xp
-            document.getElementById('lessonsCompleted').textContent = stemo.completedLessons.length
-            document.getElementById('streakDays').textContent = stemo.streak
-            document.getElementById('badgesEarned').textContent = stemo.badges.length
+            document.getElementById('xpCounter').textContent = stemo.xp;
+            document.getElementById('levelCounter').textContent = stemo.level;
+            document.getElementById('totalXP').textContent = stemo.xp;
+            document.getElementById('lessonsCompleted').textContent = stemo.completedLessons.length;
+            document.getElementById('streakDays').textContent = stemo.streak;
+            document.getElementById('badgesEarned').textContent = stemo.badges.length;
         }
 
         function saveProgress() {
-            localStorage.setItem('stemo_xp', stemo.xp)
-            localStorage.setItem('stemo_level', stemo.level)
-            localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons))
-            localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges))
-            localStorage.setItem('stemo_streak', stemo.streak)
+            localStorage.setItem('stemo_xp', stemo.xp);
+            localStorage.setItem('stemo_level', stemo.level);
+            localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
+            localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
+            localStorage.setItem('stemo_streak', stemo.streak);
         }
 
         // ============================================
         // LESSONS
         // ============================================
-        async function loadLessons() {
-            const response = await fetch('/api/curriculum')
-            const data = await response.json()
-            const grid = document.getElementById('lessonsGrid')
-            
-            grid.innerHTML = data.beginner.map((lesson, index) => {
-                const isCompleted = stemo.completedLessons.includes(lesson.id)
-                const isLocked = index > 0 && !stemo.completedLessons.includes(data.beginner[index-1].id)
-                
-                return \`
-                    <div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer \${isLocked ? 'opacity-60' : ''}"
-                        onclick="\${isLocked ? '' : \`selectLesson('\${lesson.id}')\`}">
-                        <div class="h-3 bg-gradient-to-r \${getDifficultyGradient(lesson.difficulty)}"></div>
-                        <div class="p-5">
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-3xl">\${isCompleted ? '✅' : isLocked ? '🔒' : getLessonIcon(index)}</span>
-                                <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">
-                                    +\${lesson.xpReward} XP
-                                </span>
-                            </div>
-                            <h4 class="font-bold text-lg text-gray-800 mb-1">\${lesson.title}</h4>
-                            <p class="text-gray-500 text-sm mb-3">\${lesson.description}</p>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-1 rounded-full \${getDifficultyClass(lesson.difficulty)}">\${lesson.difficulty}</span>
-                                \${isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                \`
-            }).join('')
+        function loadLessons() {
+            fetch('/api/curriculum')
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    var grid = document.getElementById('lessonsGrid');
+                    var html = '';
+                    
+                    data.beginner.forEach(function(lesson, index) {
+                        var isCompleted = stemo.completedLessons.includes(lesson.id);
+                        var isLocked = index > 0 && !stemo.completedLessons.includes(data.beginner[index-1].id);
+                        var icons = ['🎯', '🔄', '🖍️', '🔁', '🔺', '⭐'];
+                        var icon = isCompleted ? '✅' : (isLocked ? '🔒' : icons[index]);
+                        
+                        var diffGradient = lesson.difficulty === 'easy' ? 'from-green-400 to-emerald-500' : 
+                                          (lesson.difficulty === 'medium' ? 'from-yellow-400 to-orange-500' : 'from-red-400 to-pink-500');
+                        var diffClass = lesson.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                                       (lesson.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700');
+                        
+                        html += '<div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer ' + (isLocked ? 'opacity-60' : '') + '" ' +
+                                (isLocked ? '' : 'onclick="selectLesson(\\'' + lesson.id + '\\')"') + '>' +
+                                '<div class="h-3 bg-gradient-to-r ' + diffGradient + '"></div>' +
+                                '<div class="p-5">' +
+                                '<div class="flex items-center justify-between mb-3">' +
+                                '<span class="text-3xl">' + icon + '</span>' +
+                                '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">+' + lesson.xpReward + ' XP</span>' +
+                                '</div>' +
+                                '<h4 class="font-bold text-lg text-gray-800 mb-1">' + lesson.title + '</h4>' +
+                                '<p class="text-gray-500 text-sm mb-3">' + lesson.description + '</p>' +
+                                '<div class="flex items-center gap-2">' +
+                                '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
+                                (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
+                                '</div></div></div>';
+                    });
+                    
+                    grid.innerHTML = html;
+                });
         }
 
-        function getLessonIcon(index) {
-            const icons = ['🎯', '🔄', '🖍️', '🔁', '🔺', '⭐']
-            return icons[index] || '📚'
-        }
-
-        function getDifficultyGradient(difficulty) {
-            const gradients = {
-                easy: 'from-green-400 to-emerald-500',
-                medium: 'from-yellow-400 to-orange-500',
-                hard: 'from-red-400 to-pink-500'
-            }
-            return gradients[difficulty] || gradients.easy
-        }
-
-        function getDifficultyClass(difficulty) {
-            const classes = {
-                easy: 'bg-green-100 text-green-700',
-                medium: 'bg-yellow-100 text-yellow-700',
-                hard: 'bg-red-100 text-red-700'
-            }
-            return classes[difficulty] || classes.easy
-        }
-
-        async function selectLesson(lessonId) {
-            const response = await fetch(\`/api/lesson/\${lessonId}\`)
-            currentLesson = await response.json()
-            
-            document.getElementById('currentLessonTitle').textContent = currentLesson.title
-            document.getElementById('currentLessonDesc').textContent = currentLesson.description
-            document.getElementById('hintText').textContent = currentLesson.hint
-            document.getElementById('hintPanel').classList.remove('hidden')
-            
-            switchTab('code')
-            resetRobot()
+        function selectLesson(lessonId) {
+            fetch('/api/lesson/' + lessonId)
+                .then(function(response) { return response.json(); })
+                .then(function(lesson) {
+                    currentLesson = lesson;
+                    document.getElementById('currentLessonTitle').textContent = lesson.title;
+                    document.getElementById('currentLessonDesc').textContent = lesson.description;
+                    document.getElementById('hintText').textContent = lesson.hint;
+                    document.getElementById('hintPanel').classList.remove('hidden');
+                    switchTab('code');
+                    resetRobot();
+                });
         }
 
         function startFirstLesson() {
-            selectLesson('lesson-1')
+            selectLesson('lesson-1');
         }
 
         // ============================================
         // BADGES
         // ============================================
-        async function loadBadges() {
-            const response = await fetch('/api/badges')
-            const badges = await response.json()
-            const grid = document.getElementById('badgesGrid')
-            
-            grid.innerHTML = badges.map(badge => {
-                const isEarned = stemo.badges.includes(badge.id) || stemo.xp >= badge.xpRequired
-                
-                if (isEarned && !stemo.badges.includes(badge.id)) {
-                    stemo.badges.push(badge.id)
-                    saveProgress()
-                }
-                
-                return \`
-                    <div class="bg-white rounded-2xl card-shadow p-4 text-center \${isEarned ? '' : 'opacity-50 grayscale'}">
-                        <div class="text-4xl mb-2 \${isEarned ? 'badge-unlock' : ''}">\${badge.icon}</div>
-                        <h4 class="font-bold text-sm text-gray-800">\${badge.name}</h4>
-                        <p class="text-xs text-gray-500 mt-1">\${badge.description}</p>
-                        <div class="text-xs text-indigo-600 mt-2">\${badge.xpRequired} XP</div>
-                    </div>
-                \`
-            }).join('')
+        function loadBadges() {
+            fetch('/api/badges')
+                .then(function(response) { return response.json(); })
+                .then(function(badges) {
+                    var grid = document.getElementById('badgesGrid');
+                    var html = '';
+                    
+                    badges.forEach(function(badge) {
+                        var isEarned = stemo.badges.includes(badge.id) || stemo.xp >= badge.xpRequired;
+                        
+                        if (isEarned && !stemo.badges.includes(badge.id)) {
+                            stemo.badges.push(badge.id);
+                            saveProgress();
+                        }
+                        
+                        html += '<div class="bg-white rounded-2xl card-shadow p-4 text-center ' + (isEarned ? '' : 'opacity-50 grayscale') + '">' +
+                                '<div class="text-4xl mb-2">' + badge.icon + '</div>' +
+                                '<h4 class="font-bold text-sm text-gray-800">' + badge.name + '</h4>' +
+                                '<p class="text-xs text-gray-500 mt-1">' + badge.description + '</p>' +
+                                '<div class="text-xs text-indigo-600 mt-2">' + badge.xpRequired + ' XP</div>' +
+                                '</div>';
+                    });
+                    
+                    grid.innerHTML = html;
+                });
         }
 
         // ============================================
-        // BLOCKLY SETUP
+        // BLOCKLY SETUP - Define blocks immediately when script loads
         // ============================================
+        
+        // Define all blocks immediately (not waiting for DOM)
+        // Using FieldNumber for editable numbers instead of dropdowns
+        Blockly.Blocks['move_forward'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🚶 Move")
+                    .appendField(new Blockly.FieldNumber(1, 1, 100, 1), "STEPS")
+                    .appendField("steps");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(230);
+            }
+        };
+
+        Blockly.Blocks['turn_left'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("↩️ Left")
+                    .appendField(new Blockly.FieldNumber(90, 1, 360, 1), "DEGREES")
+                    .appendField("°");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(160);
+            }
+        };
+
+        Blockly.Blocks['turn_right'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("↪️ Right")
+                    .appendField(new Blockly.FieldNumber(90, 1, 360, 1), "DEGREES")
+                    .appendField("°");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(160);
+            }
+        };
+
+        Blockly.Blocks['pen_control'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🖍️ Pen")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["Down ✏️", "DOWN"],
+                        ["Up ✋", "UP"]
+                    ]), "STATE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(330);
+            }
+        };
+
+        Blockly.Blocks['set_color'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🎨 Color")
+                    .appendField(new Blockly.FieldColour('#6366f1'), "COLOR");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(330);
+            }
+        };
+
+        Blockly.Blocks['repeat_times'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔁 Repeat")
+                    .appendField(new Blockly.FieldNumber(4, 1, 100, 1), "TIMES")
+                    .appendField("times");
+                this.appendStatementInput("DO")
+                    .appendField("do");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(120);
+            }
+        };
+        
         function initBlockly() {
-            // Define custom blocks
-            Blockly.Blocks['move_forward'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("🚶 Move Forward")
-                        .appendField(new Blockly.FieldNumber(1, 1, 10), "STEPS")
-                        .appendField("steps")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(230)
-                    this.setTooltip("Move STEMO forward")
-                }
-            }
-
-            Blockly.Blocks['turn_left'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("↩️ Turn Left")
-                        .appendField(new Blockly.FieldNumber(90, 1, 360), "DEGREES")
-                        .appendField("°")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(160)
-                    this.setTooltip("Turn STEMO left")
-                }
-            }
-
-            Blockly.Blocks['turn_right'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("↪️ Turn Right")
-                        .appendField(new Blockly.FieldNumber(90, 1, 360), "DEGREES")
-                        .appendField("°")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(160)
-                    this.setTooltip("Turn STEMO right")
-                }
-            }
-
-            Blockly.Blocks['pen_down'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("🖍️ Pen Down")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(330)
-                    this.setTooltip("Start drawing")
-                }
-            }
-
-            Blockly.Blocks['pen_up'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("✏️ Pen Up")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(330)
-                    this.setTooltip("Stop drawing")
-                }
-            }
-
-            Blockly.Blocks['set_color'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("🎨 Set Color")
-                        .appendField(new Blockly.FieldColour('#6366f1'), "COLOR")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(330)
-                    this.setTooltip("Change pen color")
-                }
-            }
-
-            Blockly.Blocks['repeat_times'] = {
-                init: function() {
-                    this.appendDummyInput()
-                        .appendField("🔁 Repeat")
-                        .appendField(new Blockly.FieldNumber(4, 1, 100), "TIMES")
-                        .appendField("times")
-                    this.appendStatementInput("DO")
-                        .appendField("do")
-                    this.setPreviousStatement(true, null)
-                    this.setNextStatement(true, null)
-                    this.setColour(120)
-                    this.setTooltip("Repeat blocks multiple times")
-                }
-            }
-
-            // Define toolbox
-            const toolbox = {
-                kind: 'categoryToolbox',
-                contents: [
-                    {
-                        kind: 'category',
-                        name: '🚶 Movement',
-                        colour: 230,
-                        contents: [
-                            { kind: 'block', type: 'move_forward' },
-                            { kind: 'block', type: 'turn_left' },
-                            { kind: 'block', type: 'turn_right' }
-                        ]
-                    },
-                    {
-                        kind: 'category',
-                        name: '🎨 Drawing',
-                        colour: 330,
-                        contents: [
-                            { kind: 'block', type: 'pen_down' },
-                            { kind: 'block', type: 'pen_up' },
-                            { kind: 'block', type: 'set_color' }
-                        ]
-                    },
-                    {
-                        kind: 'category',
-                        name: '🔁 Loops',
-                        colour: 120,
-                        contents: [
-                            { kind: 'block', type: 'repeat_times' }
-                        ]
-                    }
-                ]
-            }
-
-            // Initialize workspace
+            // Initialize workspace WITHOUT toolbox - we use our custom palette
             workspace = Blockly.inject('blocklyDiv', {
-                toolbox: toolbox,
                 scrollbars: true,
                 trashcan: true,
                 zoom: {
                     controls: true,
                     wheel: true,
-                    startScale: 1.0,
+                    startScale: 0.85,
                     maxScale: 2,
                     minScale: 0.5
                 },
                 grid: {
                     spacing: 20,
                     length: 3,
-                    colour: '#ccc',
+                    colour: '#ddd',
                     snap: true
+                },
+                move: {
+                    scrollbars: true,
+                    drag: true,
+                    wheel: true
                 }
-            })
+            });
+            
+            console.log('Blockly workspace initialized');
+        }
+        
+        // Add block to workspace - called from palette buttons
+        function addBlock(blockType) {
+            if (!workspace) {
+                console.error('Workspace not ready');
+                return;
+            }
+            
+            // Create a new block
+            var newBlock = workspace.newBlock(blockType);
+            newBlock.initSvg();
+            newBlock.render();
+            
+            // Find position - stack below existing blocks or place at top
+            var topBlocks = workspace.getTopBlocks(false);
+            var yPos = 30;
+            
+            if (topBlocks.length > 0) {
+                // Find the last block and connect to it
+                var lastBlock = topBlocks[0];
+                while (lastBlock.getNextBlock()) {
+                    lastBlock = lastBlock.getNextBlock();
+                }
+                
+                // Connect new block to the last one
+                var connection = lastBlock.nextConnection;
+                if (connection && newBlock.previousConnection) {
+                    connection.connect(newBlock.previousConnection);
+                } else {
+                    // If can't connect, place below
+                    var lastBlockXY = lastBlock.getRelativeToSurfaceXY();
+                    newBlock.moveBy(lastBlockXY.x, lastBlockXY.y + 50);
+                }
+            } else {
+                // First block - place at top
+                newBlock.moveBy(30, yPos);
+            }
+            
+            // Visual feedback
+            newBlock.select();
+            
+            console.log('Added block:', blockType);
         }
 
         // ============================================
         // CODE EXECUTION
         // ============================================
-        async function runCode() {
-            const blocks = workspace.getTopBlocks(true)
+        function runCode() {
+            console.log('Running code...');
+            
+            if (!workspace) {
+                console.error('Workspace not initialized');
+                addChatMessage('stemo', "🤖 Oops! Something went wrong. Please refresh the page.");
+                return;
+            }
+            
+            var blocks = workspace.getTopBlocks(true);
+            console.log('Found blocks:', blocks.length);
+            
             if (blocks.length === 0) {
-                addChatMessage('stemo', "🤖 Drag some blocks into the workspace first, then click Run!")
-                return
+                addChatMessage('stemo', "🤖 Drag some blocks into the workspace first, then click Run!");
+                return;
             }
 
-            resetRobot()
-            const commands = parseBlocks(blocks[0])
-            await executeCommands(commands)
+            // Reset robot before running
+            robot.x = 175;
+            robot.y = 175;
+            robot.angle = -90;
+            robot.penDown = true;
+            robot.trails = [];
+            drawRobot();
+            
+            // Parse and execute blocks
+            var commands = [];
+            parseBlocks(blocks[0], commands);
+            console.log('Commands to execute:', commands);
+            
+            if (commands.length === 0) {
+                addChatMessage('stemo', "🤖 I see your blocks! Make sure they're connected properly. Try dragging a Move Forward block into the workspace.");
+                return;
+            }
+            
+            executeCommands(commands);
         }
 
-        function parseBlocks(block, commands = []) {
+        function parseBlocks(block, commands) {
             while (block) {
-                const type = block.type
+                var type = block.type;
+                console.log('Parsing block:', type);
                 
-                switch(type) {
-                    case 'move_forward':
-                        const steps = block.getFieldValue('STEPS')
-                        for (let i = 0; i < steps; i++) {
-                            commands.push({ action: 'move', value: 30 })
+                if (type === 'move_forward') {
+                    var steps = parseInt(block.getFieldValue('STEPS'));
+                    for (var i = 0; i < steps; i++) {
+                        commands.push({ action: 'move', value: 30 });
+                    }
+                } else if (type === 'turn_left') {
+                    var degrees = parseInt(block.getFieldValue('DEGREES'));
+                    commands.push({ action: 'turn', value: -degrees });
+                } else if (type === 'turn_right') {
+                    var degrees = parseInt(block.getFieldValue('DEGREES'));
+                    commands.push({ action: 'turn', value: degrees });
+                } else if (type === 'pen_control') {
+                    var state = block.getFieldValue('STATE');
+                    commands.push({ action: 'pen', value: state === 'DOWN' });
+                } else if (type === 'set_color') {
+                    var color = block.getFieldValue('COLOR');
+                    commands.push({ action: 'color', value: color });
+                } else if (type === 'repeat_times') {
+                    var times = parseInt(block.getFieldValue('TIMES'));
+                    var innerBlock = block.getInputTargetBlock('DO');
+                    for (var j = 0; j < times; j++) {
+                        if (innerBlock) {
+                            parseBlocks(innerBlock, commands);
                         }
-                        break
-                    case 'turn_left':
-                        commands.push({ action: 'turn', value: -block.getFieldValue('DEGREES') })
-                        break
-                    case 'turn_right':
-                        commands.push({ action: 'turn', value: block.getFieldValue('DEGREES') })
-                        break
-                    case 'pen_down':
-                        commands.push({ action: 'pen', value: true })
-                        break
-                    case 'pen_up':
-                        commands.push({ action: 'pen', value: false })
-                        break
-                    case 'set_color':
-                        commands.push({ action: 'color', value: block.getFieldValue('COLOR') })
-                        break
-                    case 'repeat_times':
-                        const times = block.getFieldValue('TIMES')
-                        const innerBlock = block.getInputTargetBlock('DO')
-                        for (let i = 0; i < times; i++) {
-                            if (innerBlock) {
-                                parseBlocks(innerBlock, commands)
-                            }
-                        }
-                        break
+                    }
                 }
                 
-                block = block.getNextBlock()
+                block = block.getNextBlock();
             }
-            return commands
         }
 
-        async function executeCommands(commands) {
-            for (const cmd of commands) {
-                await executeCommand(cmd)
-                await sleep(150)
-            }
+        function executeCommands(commands) {
+            var index = 0;
             
-            // Check if lesson completed
-            if (currentLesson) {
-                checkLessonCompletion()
-            }
-        }
-
-        async function executeCommand(cmd) {
-            const canvas = document.getElementById('robotCanvas')
-            const ctx = canvas.getContext('2d')
-
-            switch(cmd.action) {
-                case 'move':
-                    const rad = robot.angle * Math.PI / 180
-                    const newX = robot.x + Math.cos(rad) * cmd.value
-                    const newY = robot.y + Math.sin(rad) * cmd.value
+            function executeNext() {
+                if (index >= commands.length) {
+                    console.log('Execution complete!');
+                    addChatMessage('stemo', "🤖 Great job! I finished running your code! " + (robot.trails.length > 0 ? "Look at that beautiful drawing! 🎨" : "Try adding more blocks to make me do cool things! ✨"));
                     
-                    if (robot.penDown) {
-                        robot.trails.push({
-                            x1: robot.x, y1: robot.y,
-                            x2: newX, y2: newY,
-                            color: robot.penColor
-                        })
+                    if (currentLesson) {
+                        checkLessonCompletion();
                     }
-                    
-                    robot.x = Math.max(30, Math.min(370, newX))
-                    robot.y = Math.max(30, Math.min(320, newY))
-                    break
-                    
-                case 'turn':
-                    robot.angle += cmd.value
-                    break
-                    
-                case 'pen':
-                    robot.penDown = cmd.value
-                    break
-                    
-                case 'color':
-                    robot.penColor = cmd.value
-                    break
+                    return;
+                }
+                
+                var cmd = commands[index];
+                executeCommand(cmd);
+                drawRobot();
+                index++;
+                
+                setTimeout(executeNext, 200);
             }
             
-            drawRobot()
+            executeNext();
         }
 
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms))
+        function executeCommand(cmd) {
+            console.log('Executing:', cmd);
+            
+            if (cmd.action === 'move') {
+                var rad = robot.angle * Math.PI / 180;
+                var newX = robot.x + Math.cos(rad) * cmd.value;
+                var newY = robot.y + Math.sin(rad) * cmd.value;
+                
+                if (robot.penDown) {
+                    robot.trails.push({
+                        x1: robot.x, y1: robot.y,
+                        x2: newX, y2: newY,
+                        color: robot.penColor
+                    });
+                }
+                
+                robot.x = Math.max(25, Math.min(325, newX));
+                robot.y = Math.max(25, Math.min(325, newY));
+            } else if (cmd.action === 'turn') {
+                robot.angle += cmd.value;
+            } else if (cmd.action === 'pen') {
+                robot.penDown = cmd.value;
+            } else if (cmd.action === 'color') {
+                robot.penColor = cmd.value;
+            }
         }
 
         // ============================================
         // ROBOT DRAWING
         // ============================================
         function drawRobot() {
-            const canvas = document.getElementById('robotCanvas')
-            const ctx = canvas.getContext('2d')
+            var canvas = document.getElementById('robotCanvas');
+            var ctx = canvas.getContext('2d');
             
             // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw background grid
-            ctx.strokeStyle = '#e5e7eb'
-            ctx.lineWidth = 1
-            for (let i = 0; i < canvas.width; i += 40) {
-                ctx.beginPath()
-                ctx.moveTo(i, 0)
-                ctx.lineTo(i, canvas.height)
-                ctx.stroke()
+            // Draw grid
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            for (var i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
             }
-            for (let i = 0; i < canvas.height; i += 40) {
-                ctx.beginPath()
-                ctx.moveTo(0, i)
-                ctx.lineTo(canvas.width, i)
-                ctx.stroke()
+            for (var j = 0; j < canvas.height; j += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, j);
+                ctx.lineTo(canvas.width, j);
+                ctx.stroke();
             }
             
             // Draw trails
-            robot.trails.forEach(trail => {
-                ctx.beginPath()
-                ctx.strokeStyle = trail.color
-                ctx.lineWidth = 4
-                ctx.lineCap = 'round'
-                ctx.moveTo(trail.x1, trail.y1)
-                ctx.lineTo(trail.x2, trail.y2)
-                ctx.stroke()
-            })
-            
-            // Draw target star if in lesson
-            if (currentLesson && currentLesson.challenge) {
-                const star = currentLesson.challenge.starPosition
-                drawStar(ctx, star.x, star.y, 20, 5, 0.5)
-            }
+            robot.trails.forEach(function(trail) {
+                ctx.beginPath();
+                ctx.strokeStyle = trail.color;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.moveTo(trail.x1, trail.y1);
+                ctx.lineTo(trail.x2, trail.y2);
+                ctx.stroke();
+            });
             
             // Draw robot
-            ctx.save()
-            ctx.translate(robot.x, robot.y)
-            ctx.rotate((robot.angle - 90) * Math.PI / 180)
+            ctx.save();
+            ctx.translate(robot.x, robot.y);
+            ctx.rotate((robot.angle + 90) * Math.PI / 180);
             
-            // Robot body
-            ctx.fillStyle = '#3b82f6'
-            ctx.beginPath()
-            ctx.roundRect(-20, -25, 40, 50, 8)
-            ctx.fill()
+            // Body
+            ctx.fillStyle = '#3b82f6';
+            ctx.beginPath();
+            ctx.roundRect(-20, -25, 40, 50, 8);
+            ctx.fill();
             
-            // Robot head
-            ctx.fillStyle = '#60a5fa'
-            ctx.beginPath()
-            ctx.arc(0, -15, 15, 0, Math.PI * 2)
-            ctx.fill()
+            // Head
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.arc(0, -15, 15, 0, Math.PI * 2);
+            ctx.fill();
             
             // Eyes
-            ctx.fillStyle = 'white'
-            ctx.beginPath()
-            ctx.arc(-6, -18, 5, 0, Math.PI * 2)
-            ctx.arc(6, -18, 5, 0, Math.PI * 2)
-            ctx.fill()
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(-6, -18, 5, 0, Math.PI * 2);
+            ctx.arc(6, -18, 5, 0, Math.PI * 2);
+            ctx.fill();
             
             // Pupils
-            ctx.fillStyle = '#1e3a5f'
-            ctx.beginPath()
-            ctx.arc(-5, -17, 2, 0, Math.PI * 2)
-            ctx.arc(7, -17, 2, 0, Math.PI * 2)
-            ctx.fill()
+            ctx.fillStyle = '#1e3a5f';
+            ctx.beginPath();
+            ctx.arc(-5, -17, 2, 0, Math.PI * 2);
+            ctx.arc(7, -17, 2, 0, Math.PI * 2);
+            ctx.fill();
             
             // Antenna
-            ctx.strokeStyle = '#fbbf24'
-            ctx.lineWidth = 3
-            ctx.beginPath()
-            ctx.moveTo(0, -30)
-            ctx.lineTo(0, -40)
-            ctx.stroke()
-            ctx.fillStyle = '#fbbf24'
-            ctx.beginPath()
-            ctx.arc(0, -42, 4, 0, Math.PI * 2)
-            ctx.fill()
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, -30);
+            ctx.lineTo(0, -40);
+            ctx.stroke();
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(0, -42, 4, 0, Math.PI * 2);
+            ctx.fill();
             
-            // Direction indicator
-            ctx.fillStyle = '#22c55e'
-            ctx.beginPath()
-            ctx.moveTo(0, -25)
-            ctx.lineTo(-8, -10)
-            ctx.lineTo(8, -10)
-            ctx.closePath()
-            ctx.fill()
+            // Direction arrow
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.moveTo(0, -25);
+            ctx.lineTo(-8, -10);
+            ctx.lineTo(8, -10);
+            ctx.closePath();
+            ctx.fill();
             
-            ctx.restore()
-        }
-
-        function drawStar(ctx, cx, cy, outerRadius, points, innerRatio) {
-            ctx.save()
-            ctx.fillStyle = '#fbbf24'
-            ctx.beginPath()
-            
-            for (let i = 0; i < points * 2; i++) {
-                const radius = i % 2 === 0 ? outerRadius : outerRadius * innerRatio
-                const angle = (i * Math.PI / points) - Math.PI / 2
-                const x = cx + radius * Math.cos(angle)
-                const y = cy + radius * Math.sin(angle)
-                
-                if (i === 0) ctx.moveTo(x, y)
-                else ctx.lineTo(x, y)
-            }
-            
-            ctx.closePath()
-            ctx.fill()
-            
-            // Glow effect
-            ctx.shadowColor = '#fbbf24'
-            ctx.shadowBlur = 15
-            ctx.fill()
-            
-            ctx.restore()
+            ctx.restore();
         }
 
         function resetRobot() {
             robot = {
-                x: 200,
+                x: 175,
                 y: 175,
-                angle: 0,
-                penDown: false,
+                angle: -90,
+                penDown: true,
                 penColor: '#6366f1',
-                trails: [],
-                expression: 'happy'
-            }
-            drawRobot()
+                trails: []
+            };
+            drawRobot();
+            addChatMessage('stemo', "🤖 Ready!");
         }
 
         function togglePenColor() {
-            currentColorIndex = (currentColorIndex + 1) % penColors.length
-            robot.penColor = penColors[currentColorIndex]
-            addChatMessage('stemo', \`🤖 Color changed to \${robot.penColor}! Looking good! 🎨\`)
+            currentColorIndex = (currentColorIndex + 1) % penColors.length;
+            robot.penColor = penColors[currentColorIndex];
+            addChatMessage('stemo', "🤖 Color changed! Looking good! 🎨");
         }
 
         function clearWorkspace() {
-            workspace.clear()
-            resetRobot()
+            if (workspace) {
+                workspace.clear();
+            }
+            resetRobot();
         }
 
         // ============================================
         // LESSON COMPLETION
         // ============================================
         function checkLessonCompletion() {
-            if (!currentLesson) return
+            if (!currentLesson) return;
             
-            // Simple completion check - robot moved
-            if (robot.trails.length > 0 || robot.x !== 200 || robot.y !== 175) {
+            if (robot.trails.length > 0 || robot.x !== 175 || robot.y !== 175) {
                 if (!stemo.completedLessons.includes(currentLesson.id)) {
-                    completeLesson(currentLesson)
+                    completeLesson(currentLesson);
                 }
             }
         }
 
         function completeLesson(lesson) {
-            stemo.completedLessons.push(lesson.id)
-            stemo.xp += lesson.xpReward
+            stemo.completedLessons.push(lesson.id);
+            stemo.xp += lesson.xpReward;
             
-            // Level up check
-            const newLevel = Math.floor(stemo.xp / 500) + 1
+            var newLevel = Math.floor(stemo.xp / 500) + 1;
             if (newLevel > stemo.level) {
-                stemo.level = newLevel
+                stemo.level = newLevel;
             }
             
-            saveProgress()
-            updateUI()
-            loadLessons()
-            loadBadges()
+            saveProgress();
+            updateUI();
+            loadLessons();
+            loadBadges();
             
-            showSuccessModal(lesson.xpReward)
+            showSuccessModal(lesson.xpReward);
         }
 
         function showSuccessModal(xp) {
-            const modal = document.getElementById('successModal')
-            const content = document.getElementById('successModalContent')
-            document.getElementById('xpEarned').textContent = \`+\${xp} XP\`
+            var modal = document.getElementById('successModal');
+            var content = document.getElementById('successModalContent');
+            document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
             
-            modal.classList.remove('hidden')
-            setTimeout(() => {
-                content.style.transform = 'scale(1)'
-            }, 50)
+            modal.classList.remove('hidden');
+            setTimeout(function() {
+                content.style.transform = 'scale(1)';
+            }, 50);
         }
 
         function closeSuccessModal() {
-            const modal = document.getElementById('successModal')
-            const content = document.getElementById('successModalContent')
-            content.style.transform = 'scale(0)'
-            setTimeout(() => {
-                modal.classList.add('hidden')
-            }, 300)
+            var modal = document.getElementById('successModal');
+            var content = document.getElementById('successModalContent');
+            content.style.transform = 'scale(0)';
+            setTimeout(function() {
+                modal.classList.add('hidden');
+            }, 300);
         }
 
         // ============================================
         // CHAT FUNCTIONALITY
         // ============================================
-        async function sendChat() {
-            const input = document.getElementById('chatInput')
-            const message = input.value.trim()
-            if (!message) return
-            
-            // Add user message
-            addChatMessage('user', message)
-            input.value = ''
-            
-            // Get AI response
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message, 
-                        context: { 
-                            currentLesson: currentLesson?.id,
-                            xp: stemo.xp
-                        }
-                    })
-                })
-                const data = await response.json()
-                addChatMessage('stemo', data.response)
-            } catch (err) {
-                addChatMessage('stemo', "🤖 Oops! I'm thinking too hard. Try again!")
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChat();
             }
+        }
+        
+        function sendChat() {
+            var input = document.getElementById('chatInput');
+            var message = input.value.trim();
+            if (!message) return;
+            
+            addChatMessage('user', message);
+            input.value = '';
+            
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: message, 
+                    context: { 
+                        currentLesson: currentLesson ? currentLesson.id : null,
+                        xp: stemo.xp
+                    }
+                })
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                addChatMessage('stemo', data.response);
+            })
+            .catch(function(err) {
+                addChatMessage('stemo', "🤖 Oops! I'm thinking too hard. Try again!");
+            });
         }
 
         function addChatMessage(sender, message) {
-            const container = document.getElementById('chatMessages')
-            const div = document.createElement('div')
-            div.className = 'flex items-start gap-2'
+            var container = document.getElementById('chatMessages');
+            var div = document.createElement('div');
+            div.className = 'flex items-start gap-2';
             
             if (sender === 'stemo') {
-                div.innerHTML = \`
-                    <span class="text-2xl">🤖</span>
-                    <div class="chat-bubble bg-blue-100 text-sm">\${message}</div>
-                \`
+                div.innerHTML = '<span class="text-2xl">🤖</span><div class="chat-bubble bg-blue-100 text-sm">' + message + '</div>';
             } else {
-                div.innerHTML = \`
-                    <div class="chat-bubble bg-indigo-100 text-sm ml-auto">\${message}</div>
-                    <span class="text-2xl">👦</span>
-                \`
+                div.innerHTML = '<div class="chat-bubble bg-indigo-100 text-sm ml-auto">' + message + '</div><span class="text-2xl">👦</span>';
             }
             
-            container.appendChild(div)
-            container.scrollTop = container.scrollHeight
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         }
 
         // ============================================
         // TAB NAVIGATION
         // ============================================
         function switchTab(tab) {
-            // Hide all sections
-            document.getElementById('learn-section').classList.add('hidden')
-            document.getElementById('code-section').classList.add('hidden')
-            document.getElementById('achievements-section').classList.add('hidden')
+            document.getElementById('learn-section').classList.add('hidden');
+            document.getElementById('code-section').classList.add('hidden');
+            document.getElementById('achievements-section').classList.add('hidden');
             
-            // Reset tab styles
-            document.getElementById('tab-learn').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all'
-            document.getElementById('tab-code').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all'
-            document.getElementById('tab-achievements').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all'
+            document.getElementById('tab-learn').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
+            document.getElementById('tab-code').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
+            document.getElementById('tab-achievements').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
             
-            // Show selected section
-            document.getElementById(tab + '-section').classList.remove('hidden')
-            document.getElementById('tab-' + tab).className = 'tab-active px-6 py-2 rounded-full font-bold transition-all'
+            document.getElementById(tab + '-section').classList.remove('hidden');
+            document.getElementById('tab-' + tab).className = 'tab-active px-6 py-2 rounded-full font-bold transition-all';
+            
+            // Resize Blockly when switching to code tab
+            if (tab === 'code' && workspace) {
+                setTimeout(function() {
+                    Blockly.svgResize(workspace);
+                }, 100);
+            }
+        }
+        
+        // Toggle Robot Panel to maximize workspace
+        function toggleRobotPanel() {
+            var panel = document.getElementById('robotPanel');
+            var btn = document.getElementById('toggleRobotBtn');
+            var icon = document.getElementById('robotPanelIcon');
+            var text = document.getElementById('robotPanelText');
+            
+            robotPanelVisible = !robotPanelVisible;
+            
+            if (robotPanelVisible) {
+                panel.classList.remove('w-0', 'overflow-hidden', 'border-l-0');
+                panel.classList.add('w-96', 'border-l-2');
+                icon.textContent = '🤖';
+                text.textContent = 'Hide Robot';
+                btn.classList.remove('bg-gray-500');
+                btn.classList.add('bg-cyan-500', 'hover:bg-cyan-600');
+            } else {
+                panel.classList.remove('w-96', 'border-l-2');
+                panel.classList.add('w-0', 'overflow-hidden', 'border-l-0');
+                icon.textContent = '👁️';
+                text.textContent = 'Show Robot';
+                btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-600');
+                btn.classList.add('bg-gray-500');
+            }
+            
+            // Resize Blockly workspace after panel toggle
+            if (workspace) {
+                setTimeout(function() {
+                    Blockly.svgResize(workspace);
+                }, 350);
+            }
         }
     </script>
 </body>
-</html>`)
+</html>`;
+
+app.get('/', (c) => {
+  return c.html(htmlContent)
 })
 
 export default app
