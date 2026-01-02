@@ -407,13 +407,13 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="w-96 bg-gradient-to-b from-cyan-50 to-blue-50 border-l-2 border-gray-200 flex flex-col flex-shrink-0 transition-all duration-300">
+                <div id="robotPanel" class="bg-gradient-to-b from-cyan-50 to-blue-50 border-l-2 border-gray-200 flex flex-col flex-shrink-0 transition-all duration-300" style="width: 430px;">
                     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center gap-2">
                         <span class="text-xl">🤖</span>
                         <span class="font-bold">STEMO's World</span>
                     </div>
-                    <div class="flex-1 p-3 flex items-center justify-center overflow-hidden">
-                        <canvas id="robotCanvas" width="350" height="350" class="rounded-xl shadow-lg"></canvas>
+                    <div class="flex-1 p-2 flex items-center justify-center overflow-hidden">
+                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg"></canvas>
                     </div>
                     
                     <!-- Chat Area - Bigger -->
@@ -515,8 +515,8 @@ const htmlContent = `<!DOCTYPE html>
         };
 
         var robot = {
-            x: 175,
-            y: 175,
+            x: 200,
+            y: 200,
             angle: -90,
             penDown: true,
             penColor: '#6366f1',
@@ -822,8 +822,8 @@ const htmlContent = `<!DOCTYPE html>
             }
 
             // Reset robot before running
-            robot.x = 175;
-            robot.y = 175;
+            robot.x = 200;
+            robot.y = 200;
             robot.angle = -90;
             robot.penDown = true;
             robot.trails = [];
@@ -850,7 +850,7 @@ const htmlContent = `<!DOCTYPE html>
                 if (type === 'move_forward') {
                     var steps = parseInt(block.getFieldValue('STEPS'));
                     for (var i = 0; i < steps; i++) {
-                        commands.push({ action: 'move', value: 30 });
+                        commands.push({ action: 'move', value: 20 });
                     }
                 } else if (type === 'turn_left') {
                     var degrees = parseInt(block.getFieldValue('DEGREES'));
@@ -919,8 +919,8 @@ const htmlContent = `<!DOCTYPE html>
                     });
                 }
                 
-                robot.x = Math.max(25, Math.min(325, newX));
-                robot.y = Math.max(25, Math.min(325, newY));
+                robot.x = Math.max(25, Math.min(375, newX));
+                robot.y = Math.max(25, Math.min(375, newY));
             } else if (cmd.action === 'turn') {
                 robot.angle += cmd.value;
             } else if (cmd.action === 'pen') {
@@ -1024,8 +1024,8 @@ const htmlContent = `<!DOCTYPE html>
 
         function resetRobot() {
             robot = {
-                x: 175,
-                y: 175,
+                x: 200,
+                y: 200,
                 angle: -90,
                 penDown: true,
                 penColor: '#6366f1',
@@ -1054,7 +1054,7 @@ const htmlContent = `<!DOCTYPE html>
         function checkLessonCompletion() {
             if (!currentLesson) return;
             
-            if (robot.trails.length > 0 || robot.x !== 175 || robot.y !== 175) {
+            if (robot.trails.length > 0 || robot.x !== 200 || robot.y !== 200) {
                 if (!stemo.completedLessons.includes(currentLesson.id)) {
                     completeLesson(currentLesson);
                 }
@@ -1183,15 +1183,17 @@ const htmlContent = `<!DOCTYPE html>
             robotPanelVisible = !robotPanelVisible;
             
             if (robotPanelVisible) {
-                panel.classList.remove('w-0', 'overflow-hidden', 'border-l-0');
-                panel.classList.add('w-96', 'border-l-2');
+                panel.style.width = '430px';
+                panel.classList.remove('overflow-hidden', 'border-l-0');
+                panel.classList.add('border-l-2');
                 icon.textContent = '🤖';
                 text.textContent = 'Hide Robot';
                 btn.classList.remove('bg-gray-500');
                 btn.classList.add('bg-cyan-500', 'hover:bg-cyan-600');
             } else {
-                panel.classList.remove('w-96', 'border-l-2');
-                panel.classList.add('w-0', 'overflow-hidden', 'border-l-0');
+                panel.style.width = '0';
+                panel.classList.remove('border-l-2');
+                panel.classList.add('overflow-hidden', 'border-l-0');
                 icon.textContent = '👁️';
                 text.textContent = 'Show Robot';
                 btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-600');
