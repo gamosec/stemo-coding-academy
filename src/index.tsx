@@ -394,6 +394,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-yellow-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-yellow-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_home')">
                         🏠 Home
                     </div>
+                    <div class="block-item bg-gray-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-gray-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('hide_stemo')">
+                        👻 Hide
+                    </div>
                     
                     <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🎨 Draw</div>
                     <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('pen_control')">
@@ -530,7 +533,8 @@ const htmlContent = `<!DOCTYPE html>
             penDown: true,
             penColor: '#6366f1',
             penSize: 4,
-            trails: []
+            trails: [],
+            visible: true
         };
         
         var robotPanelVisible = true;
@@ -760,6 +764,20 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['hide_stemo'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("👻 Hide")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["Hide 🙈", "HIDE"],
+                        ["Show 👀", "SHOW"]
+                    ]), "STATE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(60);
+            }
+        };
+
         Blockly.Blocks['repeat_times'] = {
             init: function() {
                 this.appendDummyInput()
@@ -909,6 +927,9 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'turn', value: degrees });
                 } else if (type === 'go_home') {
                     commands.push({ action: 'home' });
+                } else if (type === 'hide_stemo') {
+                    var state = block.getFieldValue('STATE');
+                    commands.push({ action: 'visibility', value: state === 'SHOW' });
                 } else if (type === 'pen_control') {
                     var state = block.getFieldValue('STATE');
                     commands.push({ action: 'pen', value: state === 'DOWN' });
@@ -989,6 +1010,8 @@ const htmlContent = `<!DOCTYPE html>
                 robot.penColor = cmd.value;
             } else if (cmd.action === 'size') {
                 robot.penSize = cmd.value;
+            } else if (cmd.action === 'visibility') {
+                robot.visible = cmd.value;
             }
         }
 
@@ -1029,59 +1052,61 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.stroke();
             });
             
-            // Draw robot
-            ctx.save();
-            ctx.translate(robot.x, robot.y);
-            ctx.rotate((robot.angle + 90) * Math.PI / 180);
+            // Draw robot (only if visible)
+            if (robot.visible) {
+                ctx.save();
+                ctx.translate(robot.x, robot.y);
+                ctx.rotate((robot.angle + 90) * Math.PI / 180);
+                
+                // Body
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath();
+                ctx.roundRect(-20, -25, 40, 50, 8);
+                ctx.fill();
             
-            // Body
-            ctx.fillStyle = '#3b82f6';
-            ctx.beginPath();
-            ctx.roundRect(-20, -25, 40, 50, 8);
-            ctx.fill();
+                // Head
+                ctx.fillStyle = '#60a5fa';
+                ctx.beginPath();
+                ctx.arc(0, -15, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(-6, -18, 5, 0, Math.PI * 2);
+                ctx.arc(6, -18, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Pupils
+                ctx.fillStyle = '#1e3a5f';
+                ctx.beginPath();
+                ctx.arc(-5, -17, 2, 0, Math.PI * 2);
+                ctx.arc(7, -17, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Antenna
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(0, -30);
+                ctx.lineTo(0, -40);
+                ctx.stroke();
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(0, -42, 4, 0, Math.PI * 2);
+                ctx.fill();
             
-            // Head
-            ctx.fillStyle = '#60a5fa';
-            ctx.beginPath();
-            ctx.arc(0, -15, 15, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Eyes
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(-6, -18, 5, 0, Math.PI * 2);
-            ctx.arc(6, -18, 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Pupils
-            ctx.fillStyle = '#1e3a5f';
-            ctx.beginPath();
-            ctx.arc(-5, -17, 2, 0, Math.PI * 2);
-            ctx.arc(7, -17, 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Antenna
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, -30);
-            ctx.lineTo(0, -40);
-            ctx.stroke();
-            ctx.fillStyle = '#fbbf24';
-            ctx.beginPath();
-            ctx.arc(0, -42, 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Direction arrow
-            ctx.fillStyle = '#22c55e';
-            ctx.beginPath();
-            ctx.moveTo(0, -25);
-            ctx.lineTo(-8, -10);
-            ctx.lineTo(8, -10);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.restore();
+                // Direction arrow
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.moveTo(0, -25);
+                ctx.lineTo(-8, -10);
+                ctx.lineTo(8, -10);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
         }
 
         function resetRobot() {
@@ -1092,7 +1117,8 @@ const htmlContent = `<!DOCTYPE html>
                 penDown: true,
                 penColor: '#6366f1',
                 penSize: 4,
-                trails: []
+                trails: [],
+                visible: true
             };
             drawRobot();
             addChatMessage('stemo', "🤖 Ready!");
