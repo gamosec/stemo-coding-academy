@@ -14,86 +14,86 @@ const curriculum = {
     {
       id: 'lesson-1',
       title: 'Meet STEMO!',
-      description: 'Learn to make STEMO move forward',
+      description: 'Discover coding blocks and understand the concept',
       difficulty: 'easy',
       xpReward: 50,
-      objectives: ['Move STEMO forward', 'Understand basic commands'],
-      hint: 'Use the MOVE FORWARD block to make STEMO take a step!',
+      objectives: ['Click on blocks to add them', 'Click Run to execute', 'Watch STEMO move!'],
+      hint: 'Click the Forward block on the left, then click the green Run button!',
       challenge: {
-        goal: 'Move STEMO to the star',
-        targetSteps: 3,
-        starPosition: { x: 400, y: 300 }
-      }
+        goal: 'Make STEMO move forward at least 1 step',
+        type: 'intro'
+      },
+      nextLesson: 'lesson-2'
     },
     {
       id: 'lesson-2',
-      title: 'Turn Around!',
-      description: 'Learn to turn STEMO left and right',
+      title: 'Movement Master',
+      description: 'Learn all movement: Forward, Back, Left, Right, Home',
       difficulty: 'easy',
-      xpReward: 75,
-      objectives: ['Turn STEMO left', 'Turn STEMO right', 'Combine moves and turns'],
-      hint: 'Use TURN blocks to change direction, then MOVE to go that way!',
+      xpReward: 100,
+      objectives: ['Move STEMO forward', 'Turn left and right', 'Move backward', 'Use Go Home'],
+      hint: 'Try: Forward 3, Right 90, Forward 2. STEMO will walk in an L shape!',
       challenge: {
-        goal: 'Navigate STEMO around the obstacle',
-        targetSteps: 5,
-        starPosition: { x: 500, y: 200 }
-      }
+        goal: 'Move STEMO using at least 3 different movement blocks',
+        type: 'movement'
+      },
+      nextLesson: 'lesson-3'
     },
     {
       id: 'lesson-3',
-      title: 'Draw a Line',
-      description: 'Make STEMO draw while moving',
+      title: 'Start Drawing!',
+      description: 'Use Pen Down to draw lines and change colors',
       difficulty: 'easy',
       xpReward: 100,
-      objectives: ['Enable pen down', 'Draw a straight line', 'Change pen color'],
-      hint: 'Use PEN DOWN before moving to draw a trail!',
+      objectives: ['Use Pen Down to start drawing', 'Move to create a line', 'Change pen color'],
+      hint: 'First add Pen Down, then Forward. STEMO will draw a line! Try Color to change it.',
       challenge: {
-        goal: 'Draw a line from start to finish',
-        targetSteps: 4,
-        starPosition: { x: 550, y: 300 }
-      }
+        goal: 'Draw a colored line using Pen Down',
+        type: 'drawing'
+      },
+      nextLesson: 'lesson-4'
     },
     {
       id: 'lesson-4',
-      title: 'Repeat Magic',
-      description: 'Use loops to repeat actions',
+      title: 'Loop Power!',
+      description: 'Use Repeat to do actions multiple times',
       difficulty: 'medium',
       xpReward: 150,
-      objectives: ['Use the REPEAT block', 'Draw a square using loops'],
-      hint: 'A square has 4 sides - use REPEAT 4 TIMES!',
+      objectives: ['Use the Repeat block', 'Put blocks inside the loop', 'Draw a square'],
+      hint: 'Repeat 4 times: Forward 4, Right 90. This draws a square!',
       challenge: {
-        goal: 'Draw a square using a loop',
-        targetSteps: 2,
-        starPosition: { x: 400, y: 300 }
-      }
+        goal: 'Draw a square using Repeat',
+        type: 'loop'
+      },
+      nextLesson: 'lesson-5'
     },
     {
       id: 'lesson-5',
       title: 'Shape Artist',
-      description: 'Create triangles and other shapes',
+      description: 'Create triangles, hexagons and more!',
       difficulty: 'medium',
       xpReward: 200,
-      objectives: ['Draw a triangle', 'Understand angles', 'Combine shapes'],
-      hint: 'A triangle has 3 sides - turn 120 degrees between each side!',
+      objectives: ['Draw a triangle (Repeat 3, turn 120°)', 'Draw a hexagon (Repeat 6, turn 60°)'],
+      hint: 'Triangle: Repeat 3 → Forward 5, Right 120. Hexagon: Repeat 6 → Forward 4, Right 60.',
       challenge: {
-        goal: 'Draw a triangle',
-        targetSteps: 2,
-        starPosition: { x: 400, y: 300 }
-      }
+        goal: 'Draw a triangle or hexagon',
+        type: 'shapes'
+      },
+      nextLesson: 'lesson-6'
     },
     {
       id: 'lesson-6',
-      title: 'Star Power',
-      description: 'Draw a beautiful star pattern',
+      title: 'Star Power!',
+      description: 'Draw a beautiful 5-pointed star',
       difficulty: 'hard',
       xpReward: 300,
-      objectives: ['Draw a 5-pointed star', 'Master complex angles'],
-      hint: "Turn 144 degrees (that's 180-36) to make star points!",
+      objectives: ['Draw a 5-pointed star', 'Use Hide to see your art clearly'],
+      hint: 'Repeat 5 times: Forward 8, Right 144. Then add Hide at the end!',
       challenge: {
-        goal: 'Draw a 5-pointed star',
-        targetSteps: 2,
-        starPosition: { x: 400, y: 300 }
-      }
+        goal: 'Draw a star and hide STEMO',
+        type: 'star'
+      },
+      nextLesson: null
     }
   ]
 }
@@ -508,9 +508,14 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="text-white font-bold text-lg">You earned</div>
                 <div class="text-4xl font-bold text-white" id="xpEarned">+50 XP</div>
             </div>
-            <button onclick="closeSuccessModal()" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-full font-bold hover:opacity-90 transition-all">
-                Continue Learning!
-            </button>
+            <div class="flex gap-3 justify-center">
+                <button onclick="goToLessons()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold transition-all">
+                    <i class="fas fa-home mr-2"></i>All Lessons
+                </button>
+                <button onclick="goToNextLesson()" id="nextLessonBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition-all">
+                    Next Lesson <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -530,7 +535,7 @@ const htmlContent = `<!DOCTYPE html>
             x: 200,
             y: 200,
             angle: -90,
-            penDown: true,
+            penDown: false,
             penColor: '#6366f1',
             penSize: 4,
             trails: [],
@@ -887,7 +892,9 @@ const htmlContent = `<!DOCTYPE html>
             robot.x = 200;
             robot.y = 200;
             robot.angle = -90;
-            robot.penDown = true;
+            robot.penDown = false;
+            robot.penSize = 4;
+            robot.visible = true;
             robot.trails = [];
             drawRobot();
             
@@ -1114,14 +1121,14 @@ const htmlContent = `<!DOCTYPE html>
                 x: 200,
                 y: 200,
                 angle: -90,
-                penDown: true,
+                penDown: false,
                 penColor: '#6366f1',
                 penSize: 4,
                 trails: [],
                 visible: true
             };
             drawRobot();
-            addChatMessage('stemo', "🤖 Ready!");
+            addChatMessage('stemo', "🤖 Ready! Use Pen Down to start drawing!");
         }
 
         function togglePenColor() {
@@ -1143,7 +1150,11 @@ const htmlContent = `<!DOCTYPE html>
         function checkLessonCompletion() {
             if (!currentLesson) return;
             
-            if (robot.trails.length > 0 || robot.x !== 200 || robot.y !== 200) {
+            // Complete lesson if robot moved or drew anything
+            var robotMoved = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90;
+            var robotDrew = robot.trails.length > 0;
+            
+            if (robotMoved || robotDrew) {
                 if (!stemo.completedLessons.includes(currentLesson.id)) {
                     completeLesson(currentLesson);
                 }
@@ -1170,7 +1181,15 @@ const htmlContent = `<!DOCTYPE html>
         function showSuccessModal(xp) {
             var modal = document.getElementById('successModal');
             var content = document.getElementById('successModalContent');
+            var nextBtn = document.getElementById('nextLessonBtn');
             document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
+            
+            // Show/hide next lesson button based on whether there's a next lesson
+            if (currentLesson && currentLesson.nextLesson) {
+                nextBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'none';
+            }
             
             modal.classList.remove('hidden');
             setTimeout(function() {
@@ -1185,6 +1204,26 @@ const htmlContent = `<!DOCTYPE html>
             setTimeout(function() {
                 modal.classList.add('hidden');
             }, 300);
+        }
+        
+        function goToLessons() {
+            closeSuccessModal();
+            setTimeout(function() {
+                switchTab('learn');
+                currentLesson = null;
+            }, 300);
+        }
+        
+        function goToNextLesson() {
+            if (currentLesson && currentLesson.nextLesson) {
+                var nextLessonId = currentLesson.nextLesson;
+                closeSuccessModal();
+                setTimeout(function() {
+                    selectLesson(nextLessonId);
+                }, 300);
+            } else {
+                goToLessons();
+            }
         }
 
         // ============================================
