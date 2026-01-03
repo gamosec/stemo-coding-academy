@@ -17,40 +17,48 @@ const curriculum = {
       description: 'Discover coding blocks and understand the concept',
       difficulty: 'easy',
       xpReward: 50,
-      objectives: ['Click on blocks to add them', 'Click Run to execute', 'Watch STEMO move!'],
+      icon: '👋',
+      introduction: "Hello! I am STEMO, your robot coding buddy! 🤖 I can help you learn programming in a fun way. On the left side you will see colorful blocks - these are commands that tell me what to do. On the right is my world where I move around. Let's start with a simple command!",
+      tasks: [
+        { id: 't1', text: 'Click the "Forward" block on the left panel', completed: false },
+        { id: 't2', text: 'Click the green "Run" button to make me move', completed: false },
+        { id: 't3', text: 'Watch me move forward! 🎉', completed: false }
+      ],
       hint: 'Click the Forward block on the left, then click the green Run button!',
-      challenge: {
-        goal: 'Make STEMO move forward at least 1 step',
-        type: 'intro'
-      },
       nextLesson: 'lesson-2'
     },
     {
       id: 'lesson-2',
       title: 'Movement Master',
-      description: 'Learn all movement: Forward, Back, Left, Right, Home',
+      description: 'Learn all movement: Forward, Back, Left, Right',
       difficulty: 'easy',
       xpReward: 100,
-      objectives: ['Move STEMO forward', 'Turn left and right', 'Move backward', 'Use Go Home'],
-      hint: 'Try: Forward 3, Right 90, Forward 2. STEMO will walk in an L shape!',
-      challenge: {
-        goal: 'Move STEMO using at least 3 different movement blocks',
-        type: 'movement'
-      },
+      icon: '🚶',
+      introduction: "Great job on your first lesson! Now let's learn all the ways I can move. I can go Forward, Backward, turn Left, turn Right, and even go back Home! The number on each block tells me how much to move or turn. Try clicking on the number to change it!",
+      tasks: [
+        { id: 't1', text: 'Add a "Forward" block and change the number to 3', completed: false },
+        { id: 't2', text: 'Add a "Right" block (turn 90 degrees)', completed: false },
+        { id: 't3', text: 'Add another "Forward" block with 2 steps', completed: false },
+        { id: 't4', text: 'Click Run to see me walk in an L shape!', completed: false }
+      ],
+      hint: 'Try: Forward 3 → Right 90 → Forward 2. I will walk in an L shape!',
       nextLesson: 'lesson-3'
     },
     {
       id: 'lesson-3',
       title: 'Start Drawing!',
-      description: 'Use Pen Down to draw lines and change colors',
+      description: 'Use Pen to draw lines and change colors',
       difficulty: 'easy',
       xpReward: 100,
-      objectives: ['Use Pen Down to start drawing', 'Move to create a line', 'Change pen color'],
-      hint: 'First add Pen Down, then Forward. STEMO will draw a line! Try Color to change it.',
-      challenge: {
-        goal: 'Draw a colored line using Pen Down',
-        type: 'drawing'
-      },
+      icon: '🎨',
+      introduction: "Now for the fun part - drawing! 🖍️ By default, my pen is UP so I don't draw when I move. To start drawing, you need to put my pen DOWN first. Then when I move, I leave a colorful trail behind me! You can also change the color and size of my pen.",
+      tasks: [
+        { id: 't1', text: 'Add a "Pen" block and select "Down ✏️"', completed: false },
+        { id: 't2', text: 'Add a "Forward" block with 5 steps', completed: false },
+        { id: 't3', text: 'Click Run to draw a line!', completed: false },
+        { id: 't4', text: 'Try adding a "Color" block before Pen Down to change the color', completed: false }
+      ],
+      hint: 'First add Pen Down, then Forward. I will draw a line! Try Color to change it.',
       nextLesson: 'lesson-4'
     },
     {
@@ -59,12 +67,15 @@ const curriculum = {
       description: 'Use Repeat to do actions multiple times',
       difficulty: 'medium',
       xpReward: 150,
-      objectives: ['Use the Repeat block', 'Put blocks inside the loop', 'Draw a square'],
+      icon: '🔁',
+      introduction: "What if you want me to do the same thing many times? Instead of adding the same blocks over and over, you can use the magic REPEAT block! 🔁 Put blocks inside it, and I will do them as many times as you say. This is called a LOOP - one of the most powerful ideas in programming!",
+      tasks: [
+        { id: 't1', text: 'Add a "Pen Down" block first', completed: false },
+        { id: 't2', text: 'Add a "Repeat" block and set it to 4 times', completed: false },
+        { id: 't3', text: 'Inside the Repeat, add "Forward 4" and "Right 90"', completed: false },
+        { id: 't4', text: 'Click Run to draw a perfect square! ⬛', completed: false }
+      ],
       hint: 'Repeat 4 times: Forward 4, Right 90. This draws a square!',
-      challenge: {
-        goal: 'Draw a square using Repeat',
-        type: 'loop'
-      },
       nextLesson: 'lesson-5'
     },
     {
@@ -73,12 +84,14 @@ const curriculum = {
       description: 'Create triangles, hexagons and more!',
       difficulty: 'medium',
       xpReward: 200,
-      objectives: ['Draw a triangle (Repeat 3, turn 120°)', 'Draw a hexagon (Repeat 6, turn 60°)'],
-      hint: 'Triangle: Repeat 3 → Forward 5, Right 120. Hexagon: Repeat 6 → Forward 4, Right 60.',
-      challenge: {
-        goal: 'Draw a triangle or hexagon',
-        type: 'shapes'
-      },
+      icon: '📐',
+      introduction: "You are becoming a shape master! 🎯 The secret to drawing any shape is knowing how much to turn. For a square, we turn 90° (because 360÷4=90). For a triangle, we turn 120° (because 360÷3=120). For a hexagon, we turn 60° (because 360÷6=60). Let's try!",
+      tasks: [
+        { id: 't1', text: 'Draw a Triangle: Repeat 3 times → Forward 5, Right 120°', completed: false },
+        { id: 't2', text: 'Clear and try a Hexagon: Repeat 6 times → Forward 4, Right 60°', completed: false },
+        { id: 't3', text: 'Experiment with different colors and sizes!', completed: false }
+      ],
+      hint: 'Formula: Turn angle = 360 ÷ number of sides. Triangle=120°, Hexagon=60°',
       nextLesson: 'lesson-6'
     },
     {
@@ -87,12 +100,16 @@ const curriculum = {
       description: 'Draw a beautiful 5-pointed star',
       difficulty: 'hard',
       xpReward: 300,
-      objectives: ['Draw a 5-pointed star', 'Use Hide to see your art clearly'],
-      hint: 'Repeat 5 times: Forward 8, Right 144. Then add Hide at the end!',
-      challenge: {
-        goal: 'Draw a star and hide STEMO',
-        type: 'star'
-      },
+      icon: '⭐',
+      introduction: "The final challenge! ⭐ Drawing a star is special because we don't turn the normal amount - we turn MORE! For a 5-pointed star, we turn 144° (that's 180° minus 36°). This makes the lines cross over each other to create the star shape. At the end, use Hide to see your masterpiece!",
+      tasks: [
+        { id: 't1', text: 'Add "Pen Down" to start drawing', completed: false },
+        { id: 't2', text: 'Add "Repeat 5 times"', completed: false },
+        { id: 't3', text: 'Inside: "Forward 8" and "Right 144"', completed: false },
+        { id: 't4', text: 'Add "Hide" at the end to see your star clearly!', completed: false },
+        { id: 't5', text: 'Click Run and celebrate! 🎉', completed: false }
+      ],
+      hint: 'Star secret: Turn 144° (not 72°). Repeat 5 → Forward 8, Right 144, then Hide!',
       nextLesson: null
     }
   ]
@@ -343,6 +360,67 @@ const htmlContent = `<!DOCTYPE html>
                 <i class="fas fa-book-open text-indigo-500 mr-2"></i>Beginner Lessons
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lessonsGrid"></div>
+            
+            <!-- Lesson Detail Panel (shown when a lesson is selected) -->
+            <div id="lessonDetailPanel" class="hidden mt-6">
+                <div class="bg-white rounded-3xl card-shadow overflow-hidden">
+                    <!-- Lesson Header -->
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6">
+                        <div class="flex items-center gap-4">
+                            <div class="text-5xl" id="lessonIcon">👋</div>
+                            <div class="flex-1">
+                                <h2 class="text-2xl font-bold" id="lessonDetailTitle">Lesson Title</h2>
+                                <p class="text-purple-200" id="lessonDetailDesc">Description</p>
+                            </div>
+                            <div class="bg-white/20 rounded-full px-4 py-2">
+                                <span class="text-yellow-300">⭐</span>
+                                <span class="font-bold" id="lessonXP">+50 XP</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Introduction -->
+                    <div class="p-6 border-b border-gray-100">
+                        <div class="flex items-start gap-4">
+                            <div class="text-4xl">🤖</div>
+                            <div class="flex-1 bg-blue-50 rounded-2xl p-4">
+                                <p class="text-gray-700 leading-relaxed" id="lessonIntro">Introduction text...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tasks -->
+                    <div class="p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">
+                            <i class="fas fa-tasks text-indigo-500 mr-2"></i>Your Tasks:
+                        </h3>
+                        <div id="lessonTasks" class="space-y-3">
+                            <!-- Tasks will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Hint Section -->
+                    <div class="px-6 pb-4">
+                        <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xl">💡</span>
+                                <span class="font-bold text-amber-800">Hint</span>
+                            </div>
+                            <p class="text-amber-700 text-sm" id="lessonHintText">Hint text...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="p-6 bg-gray-50 flex gap-4">
+                        <button onclick="hideLessonDetail()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-full font-bold transition-all">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Lessons
+                        </button>
+                        <button onclick="startLessonFromDetail()" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90 text-white py-3 rounded-full font-bold transition-all">
+                            <i class="fas fa-play mr-2"></i>Start Coding!
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Code Tab - MAXIMIZED WORKSPACE LAYOUT -->
@@ -592,8 +670,8 @@ const htmlContent = `<!DOCTYPE html>
                     data.beginner.forEach(function(lesson, index) {
                         var isCompleted = stemo.completedLessons.includes(lesson.id);
                         var isLocked = index > 0 && !stemo.completedLessons.includes(data.beginner[index-1].id);
-                        var icons = ['🎯', '🔄', '🖍️', '🔁', '🔺', '⭐'];
-                        var icon = isCompleted ? '✅' : (isLocked ? '🔒' : icons[index]);
+                        var lessonIcon = lesson.icon || '📚';
+                        var icon = isCompleted ? '✅' : (isLocked ? '🔒' : lessonIcon);
                         
                         var diffGradient = lesson.difficulty === 'easy' ? 'from-green-400 to-emerald-500' : 
                                           (lesson.difficulty === 'medium' ? 'from-yellow-400 to-orange-500' : 'from-red-400 to-pink-500');
@@ -625,13 +703,61 @@ const htmlContent = `<!DOCTYPE html>
                 .then(function(response) { return response.json(); })
                 .then(function(lesson) {
                     currentLesson = lesson;
-                    document.getElementById('currentLessonTitle').textContent = lesson.title;
-                    document.getElementById('currentLessonDesc').textContent = lesson.description;
-                    document.getElementById('hintText').textContent = lesson.hint;
-                    document.getElementById('hintPanel').classList.remove('hidden');
-                    switchTab('code');
-                    resetRobot();
+                    showLessonDetail(lesson);
                 });
+        }
+        
+        function showLessonDetail(lesson) {
+            // Hide lessons grid, show detail panel
+            document.getElementById('lessonsGrid').style.display = 'none';
+            document.getElementById('lessonDetailPanel').classList.remove('hidden');
+            
+            // Fill in lesson details
+            document.getElementById('lessonIcon').textContent = lesson.icon || '📚';
+            document.getElementById('lessonDetailTitle').textContent = lesson.title;
+            document.getElementById('lessonDetailDesc').textContent = lesson.description;
+            document.getElementById('lessonXP').textContent = '+' + lesson.xpReward + ' XP';
+            document.getElementById('lessonIntro').textContent = lesson.introduction || lesson.hint;
+            document.getElementById('lessonHintText').textContent = lesson.hint;
+            
+            // Render tasks
+            var tasksContainer = document.getElementById('lessonTasks');
+            var tasksHtml = '';
+            
+            if (lesson.tasks && lesson.tasks.length > 0) {
+                lesson.tasks.forEach(function(task, index) {
+                    tasksHtml += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">' +
+                        '<div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div>' +
+                        '<span class="text-gray-700">' + task.text + '</span>' +
+                        '</div>';
+                });
+            }
+            
+            tasksContainer.innerHTML = tasksHtml;
+        }
+        
+        function hideLessonDetail() {
+            document.getElementById('lessonsGrid').style.display = 'grid';
+            document.getElementById('lessonDetailPanel').classList.add('hidden');
+            currentLesson = null;
+        }
+        
+        function startLessonFromDetail() {
+            if (!currentLesson) return;
+            
+            // Set up the code view
+            document.getElementById('currentLessonTitle').textContent = currentLesson.title;
+            document.getElementById('currentLessonDesc').textContent = currentLesson.description;
+            document.getElementById('hintText').textContent = currentLesson.hint;
+            document.getElementById('hintPanel').classList.remove('hidden');
+            
+            // Hide lesson detail and switch to code
+            document.getElementById('lessonDetailPanel').classList.add('hidden');
+            document.getElementById('lessonsGrid').style.display = 'grid';
+            
+            switchTab('code');
+            resetRobot();
+            clearWorkspace();
         }
 
         function startFirstLesson() {
