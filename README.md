@@ -6,157 +6,182 @@ A visual block-based coding platform where kids learn programming by controlling
 
 ## 🌐 Live Demo
 
-**Production URL**: https://3000-i99f94vaacd0i6dz3tkwn-5634da27.sandbox.novita.ai
+**Production URL**: https://stemo-coding-academy.pages.dev
+
+## 🚀 Quick Start - Run Locally
+
+### Prerequisites
+- Node.js 18+ installed
+- npm or yarn
+
+### Installation
+
+```bash
+# 1. Clone or extract the project
+cd stemo-coding-academy
+
+# 2. Install dependencies
+npm install
+
+# 3. Build the project
+npm run build
+
+# 4. Run locally (choose one):
+
+# Option A: Using Wrangler (recommended - same as production)
+npm run preview
+
+# Option B: Using Wrangler with custom port
+npx wrangler pages dev dist --port 3000
+
+# Option C: Using Vite dev server
+npm run dev
+```
+
+### Access the App
+Open your browser and go to: **http://localhost:8788** (or port 3000 if using Option B)
+
+## 📊 Data Storage
+
+**No database required!** All user data is stored in the browser's `localStorage`:
+
+| Key | Description |
+|-----|-------------|
+| `stemo_xp` | Total XP earned |
+| `stemo_level` | Current level |
+| `stemo_completed` | Array of completed lesson IDs |
+| `stemo_badges` | Array of earned badge IDs |
+| `stemo_streak` | Current day streak |
+
+To reset progress, open browser console (F12) and run:
+```javascript
+localStorage.clear();
+location.reload();
+```
 
 ## ✨ Features
 
-### 🎮 Visual Block Coding (Blockly)
-- **Drag-and-drop** code blocks - no typing required!
-- **Movement blocks**: Move Forward, Turn Left, Turn Right
-- **Drawing blocks**: Pen Down, Pen Up, Set Color
-- **Loop blocks**: Repeat X Times
-- Real-time code execution with visual feedback
+### 🎮 Visual Block Coding (16 Blocks)
+
+| Category | Blocks |
+|----------|--------|
+| **🚶 MOVE** | Forward, Back, Left, Right, Home, Hide |
+| **🎨 DRAW** | Pen, Color, Size |
+| **🔁 LOOP** | Repeat |
+| **🧲 ROBOT** | Magnet ON, Magnet OFF |
+| **📡 SENSOR** | Scan, Auto Move, Go Target, If Wall, Smart Turn |
 
 ### 🤖 STEMO Robot Character
 - Animated 2D robot with personality
 - Smooth movement animations on HTML5 Canvas
 - Drawing capability (like Logo/Turtle graphics)
-- Direction indicator showing where STEMO is facing
-- Trail visualization for pattern creation
+- Magnet for picking up metal objects
+- Ultrasonic sensor for wall detection
+
+### 🎮 Interactive Board Objects
+- **🔩 Metal Objects** - Place metals for magnet pickup challenges
+- **🧱 Walls** - Create obstacles for navigation
+- **🎯 Target** - Set destination for auto-navigation
+- **📏 Distance Indicators** - Shows steps to objects
 
 ### 💬 AI Assistant Chat
 - Context-aware help system
 - Kid-friendly responses with emojis
-- Hints for when students get stuck
-- Encouragement and celebration messages
-- Answers "How do I..." questions
+- Hints when students get stuck
 
-### 📚 Structured Curriculum
-**Beginner Track (6 lessons):**
-1. **Meet STEMO!** - Learn basic movement
-2. **Turn Around!** - Master left/right turns
-3. **Draw a Line** - Introduction to pen drawing
-4. **Repeat Magic** - Loops and repetition
-5. **Shape Artist** - Create triangles and shapes
-6. **Star Power** - Complex patterns with loops
+### 📚 Structured Curriculum (6 Lessons)
+1. **Meet STEMO!** - Learn basic movement (50 XP)
+2. **Movement Master** - All directions (100 XP)
+3. **Start Drawing!** - Pen and colors (100 XP)
+4. **Loop Power!** - Repeat blocks (150 XP)
+5. **Shape Artist** - Triangles, hexagons (200 XP)
+6. **Star Power!** - Draw a 5-pointed star (300 XP)
 
 ### 🏆 Gamification System
 - **XP Points**: Earn rewards for completing lessons
-- **Level System**: Progress through levels (500 XP per level)
-- **Achievement Badges**:
-  - 🎯 First Steps (50 XP)
-  - 🚀 Robot Mover (200 XP)
-  - 🎨 Code Artist (500 XP)
-  - 🔄 Loop Master (750 XP)
-  - ⭐ Star Coder (1000 XP)
-  - 🤖 Robot's Best Friend (1500 XP)
-- **Progress Tracking**: Local storage persistence
-- **Day Streaks**: Keep kids coming back!
-
-### 🎨 Kid-Friendly UI
-- Colorful, playful design with gradients
-- Large, easy-to-click buttons
-- Animated elements (bounce, sparkle effects)
-- Fun fonts (Fredoka One, Nunito)
-- Responsive layout for tablets
-
-## 🚀 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Main application page |
-| `/api/curriculum` | GET | Get all lessons and curriculum data |
-| `/api/lesson/:id` | GET | Get specific lesson by ID |
-| `/api/badges` | GET | Get all available badges |
-| `/api/chat` | POST | Send message to AI assistant |
-| `/api/progress` | POST | Save user progress |
+- **Level System**: 500 XP per level
+- **6 Badges** to unlock
+- **Progress Tracking** with localStorage
 
 ## 🛠️ Tech Stack
 
 - **Backend**: Hono (TypeScript)
-- **Frontend**: HTML5, TailwindCSS, Blockly
+- **Frontend**: HTML5, TailwindCSS (CDN), Blockly
 - **Canvas**: HTML5 Canvas for robot animation
 - **Deployment**: Cloudflare Pages
-- **CDN Libraries**:
-  - TailwindCSS (styling)
-  - Font Awesome (icons)
-  - Google Blockly (visual coding)
+- **Storage**: Browser localStorage (no database)
 
 ## 📁 Project Structure
 
 ```
-webapp/
+stemo-coding-academy/
 ├── src/
-│   └── index.tsx          # Main Hono application
-├── public/                # Static assets
-├── dist/                  # Built output
-├── ecosystem.config.cjs   # PM2 configuration
+│   └── index.tsx          # Main Hono application (ALL code here!)
+├── public/                # Static assets (if any)
+├── dist/                  # Built output (generated)
+├── ecosystem.config.cjs   # PM2 configuration (for servers)
 ├── vite.config.ts         # Vite build config
 ├── wrangler.jsonc         # Cloudflare config
 ├── package.json           # Dependencies
+├── tsconfig.json          # TypeScript config
 └── README.md              # This file
 ```
 
-## 🎯 User Guide
+## 🎯 API Endpoints
 
-### For Kids:
-1. **Start Learning**: Click "Start Learning!" on the welcome banner
-2. **Select a Lesson**: Choose from the lesson cards
-3. **Code Tab**: Drag blocks from the left panel to the workspace
-4. **Run**: Click the green "Run" button to see STEMO move!
-5. **Get Help**: Type questions in the chat box to ask STEMO for help
-6. **Earn XP**: Complete lessons to earn XP and unlock badges!
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Main application page |
+| `/api/curriculum` | GET | Get all lessons data |
+| `/api/lesson/:id` | GET | Get specific lesson |
+| `/api/badges` | GET | Get all badges |
+| `/api/chat` | POST | Send message to AI assistant |
+| `/api/progress` | POST | Save user progress |
 
-### Block Types:
-- 🚶 **Move Forward**: Move STEMO 1-10 steps
-- ↩️ **Turn Left**: Rotate left by degrees
-- ↪️ **Turn Right**: Rotate right by degrees
-- 🖍️ **Pen Down**: Start drawing
-- ✏️ **Pen Up**: Stop drawing
-- 🎨 **Set Color**: Change pen color
-- 🔁 **Repeat**: Loop actions X times
+## 🚀 Deployment Options
 
-## 🚀 Deployment
-
-### Local Development
-```bash
-npm install
-npm run build
-npm run dev:sandbox
-```
-
-### Deploy to Cloudflare Pages
+### Option 1: Cloudflare Pages (Recommended)
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name stemo
+npx wrangler pages deploy dist --project-name your-project-name
 ```
 
-## 📊 Data Architecture
+### Option 2: Any Node.js Server
+```bash
+npm run build
+# Serve the dist folder with any static server
+npx serve dist
+```
 
-- **User Progress**: Stored in browser localStorage
-  - `stemo_xp`: Total XP earned
-  - `stemo_level`: Current level
-  - `stemo_completed`: Array of completed lesson IDs
-  - `stemo_badges`: Array of earned badge IDs
-  - `stemo_streak`: Current day streak
+### Option 3: Docker (create your own Dockerfile)
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 8788
+CMD ["npx", "wrangler", "pages", "dev", "dist", "--port", "8788"]
+```
 
-- **Curriculum Data**: Served via API from backend
-- **Chat Context**: Sent with each message for personalized responses
+## 🎓 Teaching Guide
 
-## 🎯 Future Enhancements (Roadmap)
+### For Instructors:
+1. **Lesson 1-3**: Basic concepts (movement, drawing)
+2. **Lesson 4-6**: Advanced concepts (loops, patterns)
+3. **Sensor blocks**: Teach robotics concepts
+4. **Challenges**: Use walls + targets for problem-solving
 
-- [ ] D1 Database for persistent user accounts
-- [ ] Teacher dashboard for classroom management
-- [ ] More lessons (50+ planned)
-- [ ] Text-based coding transition
-- [ ] Mobile-responsive improvements
-- [ ] Voice input/output with ElevenLabs
-- [ ] Multiplayer coding challenges
-- [ ] User-created lesson marketplace
+### Shape Formulas:
+- **Square**: Repeat 4 → Forward + Right 90°
+- **Triangle**: Repeat 3 → Forward + Right 120°
+- **Hexagon**: Repeat 6 → Forward + Right 60°
+- **Star**: Repeat 5 → Forward + Right 144°
 
 ## 📝 License
 
-Educational project for STEAM Academy's Smart Coding Platform.
+Educational project - Free to use for teaching coding to kids!
 
 ---
 
