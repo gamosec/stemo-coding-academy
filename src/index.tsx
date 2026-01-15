@@ -499,6 +499,20 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-red-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('magnet_off')">
                         🧲 Magnet OFF
                     </div>
+                    
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">📡 Sensor</div>
+                    <div class="block-item bg-cyan-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-cyan-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('sensor_scan')">
+                        📡 Scan
+                    </div>
+                    <div class="block-item bg-cyan-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-cyan-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('auto_move')">
+                        🚗 Auto Move
+                    </div>
+                    <div class="block-item bg-cyan-700 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-cyan-800 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_to_target')">
+                        🎯 Go Target
+                    </div>
+                    <div class="block-item bg-amber-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-amber-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('if_wall_ahead')">
+                        🧱 If Wall
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -512,16 +526,26 @@ const htmlContent = `<!DOCTYPE html>
                             <span class="font-bold">STEMO's World</span>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="addRandomMetal()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Add Metal Object">
-                                ➕🔩
+                            <button onclick="setPlacementMode('metal')" id="modeMetalBtn" class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Metal">
+                                🔩
                             </button>
-                            <button onclick="clearMetals()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Clear All Metals">
+                            <button onclick="setPlacementMode('wall')" id="modeWallBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Wall">
+                                🧱
+                            </button>
+                            <button onclick="setPlacementMode('target')" id="modeTargetBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Target">
+                                🎯
+                            </button>
+                            <button onclick="clearAll()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Clear All">
                                 🗑️
                             </button>
                         </div>
                     </div>
+                    <!-- Placement mode indicator -->
+                    <div class="bg-gray-100 px-2 py-1 text-xs text-center">
+                        <span id="placementModeText">Click to place: 🔩 Metal</span>
+                    </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden">
-                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair" onclick="addMetalAtClick(event)"></canvas>
+                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair" onclick="handleCanvasClick(event)"></canvas>
                     </div>
                     
                     <!-- Chat Area - Bigger -->
@@ -650,6 +674,20 @@ const htmlContent = `<!DOCTYPE html>
         // Metal objects on the board
         var metalObjects = [];
         var metalIdCounter = 0;
+        
+        // Wall objects for ultrasonic sensor
+        var wallObjects = [];
+        var wallIdCounter = 0;
+        
+        // Target point for navigation
+        var targetPoint = null;
+        
+        // Placement mode: 'none', 'wall', 'target', 'metal'
+        var placementMode = 'metal';
+        
+        // Ultrasonic sensor settings
+        var sensorRange = 100; // pixels (5 steps)
+        var showSensorBeam = true;
 
         // ============================================
         // INITIALIZATION
@@ -969,6 +1007,61 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
         
+        // ============================================
+        // ULTRASONIC SENSOR BLOCKS
+        // ============================================
+        Blockly.Blocks['sensor_scan'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📡 Scan Ahead");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(180);
+                this.setTooltip("Scan for walls ahead and show distance");
+            }
+        };
+        
+        Blockly.Blocks['auto_move'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🚗 Auto Move")
+                    .appendField(new Blockly.FieldNumber(1, 1, 50, 1), "STEPS")
+                    .appendField("steps");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(180);
+                this.setTooltip("Move forward, auto-turn if wall detected");
+            }
+        };
+        
+        Blockly.Blocks['go_to_target'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🎯 Go To Target");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(180);
+                this.setTooltip("Navigate to target, avoiding walls");
+            }
+        };
+        
+        Blockly.Blocks['if_wall_ahead'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🧱 If Wall Within")
+                    .appendField(new Blockly.FieldNumber(2, 1, 10, 1), "DISTANCE")
+                    .appendField("steps");
+                this.appendStatementInput("DO")
+                    .appendField("then");
+                this.appendStatementInput("ELSE")
+                    .appendField("else");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(45);
+                this.setTooltip("Check if wall is within distance, do something");
+            }
+        };
+        
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
             workspace = Blockly.inject('blocklyDiv', {
@@ -1132,6 +1225,33 @@ const htmlContent = `<!DOCTYPE html>
                             parseBlocks(innerBlock, commands);
                         }
                     }
+                } else if (type === 'sensor_scan') {
+                    commands.push({ action: 'scan' });
+                } else if (type === 'auto_move') {
+                    var steps = parseInt(block.getFieldValue('STEPS'));
+                    for (var i = 0; i < steps; i++) {
+                        commands.push({ action: 'auto_move', value: 20 });
+                    }
+                } else if (type === 'go_to_target') {
+                    commands.push({ action: 'go_to_target' });
+                } else if (type === 'if_wall_ahead') {
+                    var distance = parseInt(block.getFieldValue('DISTANCE'));
+                    var doBlock = block.getInputTargetBlock('DO');
+                    var elseBlock = block.getInputTargetBlock('ELSE');
+                    commands.push({ 
+                        action: 'if_wall', 
+                        distance: distance,
+                        doCommands: [],
+                        elseCommands: []
+                    });
+                    // Parse inner blocks
+                    var lastCmd = commands[commands.length - 1];
+                    if (doBlock) {
+                        parseBlocks(doBlock, lastCmd.doCommands);
+                    }
+                    if (elseBlock) {
+                        parseBlocks(elseBlock, lastCmd.elseCommands);
+                    }
                 }
                 
                 block = block.getNextBlock();
@@ -1259,7 +1379,214 @@ const htmlContent = `<!DOCTYPE html>
                         addChatMessage('stemo', "🤖 🧲 Magnet OFF.");
                     }
                 }
+            } else if (cmd.action === 'scan') {
+                // Scan for walls ahead
+                var wallDist = detectWallAhead();
+                robot.lastScan = wallDist;
+                if (wallDist < 999) {
+                    addChatMessage('stemo', "📡 Wall detected " + Math.round(wallDist / 20) + " steps ahead!");
+                } else {
+                    addChatMessage('stemo', "📡 No wall ahead - path is clear!");
+                }
+            } else if (cmd.action === 'auto_move') {
+                // Auto move with wall avoidance
+                var wallDist = detectWallAhead();
+                if (wallDist <= 30) { // Wall within 1.5 steps
+                    // Turn right 90 degrees instead of moving
+                    robot.angle += 90;
+                    addChatMessage('stemo', "🚗 Wall detected! Turning right...");
+                } else {
+                    // Safe to move
+                    var rad = robot.angle * Math.PI / 180;
+                    var newX = robot.x + Math.cos(rad) * cmd.value;
+                    var newY = robot.y + Math.sin(rad) * cmd.value;
+                    
+                    if (robot.penDown) {
+                        robot.trails.push({
+                            x1: robot.x, y1: robot.y,
+                            x2: newX, y2: newY,
+                            color: robot.penColor,
+                            size: robot.penSize
+                        });
+                    }
+                    
+                    robot.x = Math.max(25, Math.min(375, newX));
+                    robot.y = Math.max(25, Math.min(375, newY));
+                }
+            } else if (cmd.action === 'go_to_target') {
+                // This will be handled by executeGoToTarget
+                if (!targetPoint) {
+                    addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target on the board.");
+                } else {
+                    // Add navigation commands
+                    executeGoToTarget();
+                    return; // Exit as executeGoToTarget handles its own execution
+                }
+            } else if (cmd.action === 'if_wall') {
+                var wallDist = detectWallAhead();
+                var wallSteps = wallDist / 20;
+                if (wallSteps <= cmd.distance) {
+                    // Wall is within range - execute DO commands
+                    if (cmd.doCommands.length > 0) {
+                        executeCommands(cmd.doCommands);
+                    }
+                } else {
+                    // No wall - execute ELSE commands
+                    if (cmd.elseCommands.length > 0) {
+                        executeCommands(cmd.elseCommands);
+                    }
+                }
             }
+        }
+        
+        // ============================================
+        // ULTRASONIC SENSOR - WALL DETECTION
+        // ============================================
+        function detectWallAhead() {
+            var rad = robot.angle * Math.PI / 180;
+            var minDist = 999;
+            
+            // Check distance to each wall
+            for (var w = 0; w < wallObjects.length; w++) {
+                var wall = wallObjects[w];
+                
+                // Ray-box intersection
+                var dist = rayBoxIntersection(
+                    robot.x, robot.y,
+                    Math.cos(rad), Math.sin(rad),
+                    wall.x, wall.y, wall.width, wall.height
+                );
+                
+                if (dist > 0 && dist < minDist) {
+                    minDist = dist;
+                }
+            }
+            
+            // Also check canvas boundaries as walls
+            var boundaryDist = rayBoundaryIntersection(robot.x, robot.y, Math.cos(rad), Math.sin(rad));
+            if (boundaryDist < minDist) {
+                minDist = boundaryDist;
+            }
+            
+            return minDist;
+        }
+        
+        function rayBoxIntersection(rx, ry, dx, dy, bx, by, bw, bh) {
+            // Ray-AABB intersection
+            var tmin = -Infinity;
+            var tmax = Infinity;
+            
+            // Check X axis
+            if (dx !== 0) {
+                var t1 = (bx - rx) / dx;
+                var t2 = (bx + bw - rx) / dx;
+                tmin = Math.max(tmin, Math.min(t1, t2));
+                tmax = Math.min(tmax, Math.max(t1, t2));
+            } else if (rx < bx || rx > bx + bw) {
+                return -1;
+            }
+            
+            // Check Y axis
+            if (dy !== 0) {
+                var t1 = (by - ry) / dy;
+                var t2 = (by + bh - ry) / dy;
+                tmin = Math.max(tmin, Math.min(t1, t2));
+                tmax = Math.min(tmax, Math.max(t1, t2));
+            } else if (ry < by || ry > by + bh) {
+                return -1;
+            }
+            
+            if (tmax >= tmin && tmax > 0) {
+                return tmin > 0 ? tmin : tmax;
+            }
+            return -1;
+        }
+        
+        function rayBoundaryIntersection(rx, ry, dx, dy) {
+            var minDist = 999;
+            
+            // Check all 4 boundaries
+            if (dx > 0) {
+                var t = (375 - rx) / dx;
+                if (t > 0 && t < minDist) minDist = t;
+            } else if (dx < 0) {
+                var t = (25 - rx) / dx;
+                if (t > 0 && t < minDist) minDist = t;
+            }
+            
+            if (dy > 0) {
+                var t = (375 - ry) / dy;
+                if (t > 0 && t < minDist) minDist = t;
+            } else if (dy < 0) {
+                var t = (25 - ry) / dy;
+                if (t > 0 && t < minDist) minDist = t;
+            }
+            
+            return minDist;
+        }
+        
+        function executeGoToTarget() {
+            if (!targetPoint) return;
+            
+            var maxSteps = 100; // Safety limit
+            var stepCount = 0;
+            
+            function moveStep() {
+                if (stepCount >= maxSteps) {
+                    addChatMessage('stemo', "🎯 Gave up after 100 steps! Try clearing some walls.");
+                    return;
+                }
+                
+                // Check if reached target
+                var dx = targetPoint.x - robot.x;
+                var dy = targetPoint.y - robot.y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < 25) {
+                    addChatMessage('stemo', "🎯 Target reached! 🎉");
+                    drawRobot();
+                    if (currentLesson) {
+                        checkLessonCompletion();
+                    }
+                    return;
+                }
+                
+                // Calculate desired angle to target
+                var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                var angleDiff = desiredAngle - robot.angle;
+                
+                // Normalize angle difference
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+                
+                // Check for wall ahead
+                var wallDist = detectWallAhead();
+                
+                if (wallDist <= 30) {
+                    // Wall ahead - turn right
+                    robot.angle += 90;
+                    addChatMessage('stemo', "🚗 Wall! Turning...");
+                } else if (Math.abs(angleDiff) > 15) {
+                    // Need to turn toward target
+                    robot.angle += angleDiff > 0 ? 15 : -15;
+                } else {
+                    // Move forward
+                    var rad = robot.angle * Math.PI / 180;
+                    robot.x += Math.cos(rad) * 20;
+                    robot.y += Math.sin(rad) * 20;
+                    
+                    // Bounds
+                    robot.x = Math.max(25, Math.min(375, robot.x));
+                    robot.y = Math.max(25, Math.min(375, robot.y));
+                }
+                
+                stepCount++;
+                drawRobot();
+                setTimeout(moveStep, 150);
+            }
+            
+            addChatMessage('stemo', "🎯 Navigating to target...");
+            moveStep();
         }
 
         // ============================================
@@ -1320,6 +1647,145 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.lineTo(trail.x2, trail.y2);
                 ctx.stroke();
             });
+            
+            // Draw walls (obstacles)
+            wallObjects.forEach(function(wall) {
+                ctx.save();
+                
+                // Wall shadow
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Wall body - brick pattern
+                ctx.fillStyle = '#b45309';
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+                
+                // Brick lines
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 1;
+                
+                // Horizontal brick lines
+                for (var by = wall.y + 10; by < wall.y + wall.height; by += 10) {
+                    ctx.beginPath();
+                    ctx.moveTo(wall.x, by);
+                    ctx.lineTo(wall.x + wall.width, by);
+                    ctx.stroke();
+                }
+                
+                // Vertical brick lines (staggered)
+                var rowIndex = 0;
+                for (var by = wall.y; by < wall.y + wall.height; by += 10) {
+                    var offset = (rowIndex % 2) * 10;
+                    for (var bx = wall.x + offset; bx < wall.x + wall.width; bx += 20) {
+                        ctx.beginPath();
+                        ctx.moveTo(bx, by);
+                        ctx.lineTo(bx, Math.min(by + 10, wall.y + wall.height));
+                        ctx.stroke();
+                    }
+                    rowIndex++;
+                }
+                
+                ctx.restore();
+            });
+            
+            // Draw target point
+            if (targetPoint) {
+                ctx.save();
+                
+                // Pulsing effect
+                var pulse = 1 + 0.1 * Math.sin(Date.now() / 200);
+                
+                // Target outer ring
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(targetPoint.x, targetPoint.y, 20 * pulse, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Target middle ring
+                ctx.strokeStyle = '#16a34a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(targetPoint.x, targetPoint.y, 12 * pulse, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Target center
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.arc(targetPoint.x, targetPoint.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Flag
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.moveTo(targetPoint.x, targetPoint.y - 5);
+                ctx.lineTo(targetPoint.x, targetPoint.y - 30);
+                ctx.lineTo(targetPoint.x + 15, targetPoint.y - 22);
+                ctx.lineTo(targetPoint.x, targetPoint.y - 15);
+                ctx.fill();
+                
+                // Distance to target
+                var dx = targetPoint.x - robot.x;
+                var dy = targetPoint.y - robot.y;
+                var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+                
+                ctx.fillStyle = '#166534';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🎯 ' + distSteps + ' steps', targetPoint.x, targetPoint.y + 35);
+                
+                ctx.restore();
+            }
+            
+            // Draw ultrasonic sensor beam
+            if (showSensorBeam && robot.visible) {
+                var wallDist = detectWallAhead();
+                var beamLength = Math.min(wallDist, sensorRange);
+                var rad = robot.angle * Math.PI / 180;
+                
+                ctx.save();
+                
+                // Sensor cone
+                var coneWidth = 20; // degrees
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+                ctx.beginPath();
+                ctx.moveTo(robot.x, robot.y);
+                ctx.arc(robot.x, robot.y, beamLength, 
+                    (robot.angle - coneWidth) * Math.PI / 180,
+                    (robot.angle + coneWidth) * Math.PI / 180);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Center beam line
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(robot.x, robot.y);
+                ctx.lineTo(robot.x + Math.cos(rad) * beamLength, robot.y + Math.sin(rad) * beamLength);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Distance indicator if wall detected
+                if (wallDist < sensorRange) {
+                    var indicatorX = robot.x + Math.cos(rad) * wallDist;
+                    var indicatorY = robot.y + Math.sin(rad) * wallDist;
+                    
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(indicatorX, indicatorY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#dc2626';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(Math.round(wallDist / 20) + ' steps', indicatorX, indicatorY - 10);
+                }
+                
+                ctx.restore();
+            }
             
             // Draw metal objects on the board with distance indicators
             metalObjects.forEach(function(metal) {
@@ -1727,22 +2193,55 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         // ============================================
-        // METAL OBJECTS FUNCTIONALITY
+        // PLACEMENT MODE & CANVAS CLICK HANDLER
         // ============================================
-        function addMetalAtClick(event) {
+        function setPlacementMode(mode) {
+            placementMode = mode;
+            
+            // Update button styles
+            document.getElementById('modeMetalBtn').className = mode === 'metal' 
+                ? 'bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            document.getElementById('modeWallBtn').className = mode === 'wall'
+                ? 'bg-amber-700 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            document.getElementById('modeTargetBtn').className = mode === 'target'
+                ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            
+            // Update indicator text
+            var modeText = {
+                'metal': 'Click to place: 🔩 Metal',
+                'wall': 'Click & drag to place: 🧱 Wall',
+                'target': 'Click to place: 🎯 Target'
+            };
+            document.getElementById('placementModeText').textContent = modeText[mode] || 'Click to place';
+            
+            addChatMessage('stemo', '🤖 Mode: ' + modeText[mode]);
+        }
+        
+        var wallStartPos = null;
+        
+        function handleCanvasClick(event) {
             var canvas = document.getElementById('robotCanvas');
             var rect = canvas.getBoundingClientRect();
-            var x = event.clientX - rect.left;
-            var y = event.clientY - rect.top;
-            
-            // Scale for canvas size
-            x = x * (canvas.width / rect.width);
-            y = y * (canvas.height / rect.height);
+            var x = (event.clientX - rect.left) * (canvas.width / rect.width);
+            var y = (event.clientY - rect.top) * (canvas.height / rect.height);
             
             // Keep within bounds
             x = Math.max(20, Math.min(380, x));
             y = Math.max(20, Math.min(380, y));
             
+            if (placementMode === 'metal') {
+                addMetalAt(x, y);
+            } else if (placementMode === 'wall') {
+                addWallAt(x, y);
+            } else if (placementMode === 'target') {
+                addTargetAt(x, y);
+            }
+        }
+        
+        function addMetalAt(x, y) {
             var types = ['bolt', 'gear', 'screw'];
             var type = types[Math.floor(Math.random() * types.length)];
             
@@ -1754,37 +2253,56 @@ const htmlContent = `<!DOCTYPE html>
                 pickedUp: false
             });
             
-            // Calculate distance in steps
             var dx = x - robot.x;
             var dy = y - robot.y;
             var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
             
             drawRobot();
-            addChatMessage('stemo', "🤖 ✨ New " + type + " appeared! It's about " + distSteps + " steps away. Use Magnet ON when you're close! 🧲");
+            addChatMessage('stemo', "🤖 ✨ New " + type + "! " + distSteps + " steps away. Use Magnet ON to pick it up! 🧲");
+        }
+        
+        function addWallAt(x, y) {
+            // Create a wall (40x40 default, can be expanded later with drag)
+            wallObjects.push({
+                id: wallIdCounter++,
+                x: x - 20,
+                y: y - 20,
+                width: 40,
+                height: 40
+            });
+            
+            drawRobot();
+            addChatMessage('stemo', "🤖 🧱 Wall placed! Use Auto Move or If Wall blocks to avoid it!");
+        }
+        
+        function addTargetAt(x, y) {
+            // Only one target at a time
+            targetPoint = { x: x, y: y };
+            
+            var dx = x - robot.x;
+            var dy = y - robot.y;
+            var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+            
+            drawRobot();
+            addChatMessage('stemo', "🤖 🎯 Target set! " + distSteps + " steps away. Use 'Go To Target' block to navigate there!");
         }
         
         function addRandomMetal() {
             var x = 50 + Math.random() * 300;
             var y = 50 + Math.random() * 300;
-            
-            var types = ['bolt', 'gear', 'screw'];
-            var type = types[Math.floor(Math.random() * types.length)];
-            
-            metalObjects.push({
-                id: metalIdCounter++,
-                x: x,
-                y: y,
-                type: type,
-                pickedUp: false
-            });
-            
-            // Calculate distance in steps
-            var dx = x - robot.x;
-            var dy = y - robot.y;
-            var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
-            
+            addMetalAt(x, y);
+        }
+        
+        function clearAll() {
+            metalObjects = [];
+            wallObjects = [];
+            targetPoint = null;
+            if (robot.carrying) {
+                robot.carrying = null;
+                robot.magnetOn = false;
+            }
             drawRobot();
-            addChatMessage('stemo', "🤖 🔩 A " + type + " appeared " + distSteps + " steps away! Can you collect it?");
+            addChatMessage('stemo', "🤖 🗑️ Board cleared! Click buttons to add walls, metals, or targets.");
         }
         
         function clearMetals() {
@@ -1794,7 +2312,7 @@ const htmlContent = `<!DOCTYPE html>
                 robot.magnetOn = false;
             }
             drawRobot();
-            addChatMessage('stemo', "🤖 🗑️ All metal objects cleared! Click on the board to add new ones.");
+            addChatMessage('stemo', "🤖 🗑️ All metal objects cleared!");
         }
 
         // Toggle Robot Panel to maximize workspace
