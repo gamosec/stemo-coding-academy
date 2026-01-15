@@ -1258,24 +1258,61 @@ const htmlContent = `<!DOCTYPE html>
             }
         }
 
-        function executeCommands(commands) {
+        function executeCommands(commands, onComplete) {
             var index = 0;
+            var isTopLevel = !onComplete; // Track if this is the main execution
             
             function executeNext() {
                 if (index >= commands.length) {
-                    console.log('Execution complete!');
-                    addChatMessage('stemo', "🤖 Great job! I finished running your code! " + (robot.trails.length > 0 ? "Look at that beautiful drawing! 🎨" : "Try adding more blocks to make me do cool things! ✨"));
-                    
-                    if (currentLesson) {
-                        checkLessonCompletion();
+                    console.log('Execution batch complete!');
+                    if (isTopLevel) {
+                        addChatMessage('stemo', "🤖 Great job! I finished running your code! " + (robot.trails.length > 0 ? "Look at that beautiful drawing! 🎨" : "Try adding more blocks to make me do cool things! ✨"));
+                        
+                        if (currentLesson) {
+                            checkLessonCompletion();
+                        }
                     }
+                    if (onComplete) onComplete();
                     return;
                 }
                 
                 var cmd = commands[index];
+                index++;
+                
+                // Handle if_wall specially - it needs to execute nested commands
+                if (cmd.action === 'if_wall') {
+                    var wallDist = detectWallAhead();
+                    var wallSteps = wallDist / 20;
+                    var nestedCommands = wallSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
+                    
+                    if (nestedCommands && nestedCommands.length > 0) {
+                        // Execute nested commands, then continue
+                        executeCommands(nestedCommands, function() {
+                            drawRobot();
+                            setTimeout(executeNext, 200);
+                        });
+                    } else {
+                        drawRobot();
+                        setTimeout(executeNext, 200);
+                    }
+                    return;
+                }
+                
+                // Handle go_to_target specially
+                if (cmd.action === 'go_to_target') {
+                    if (!targetPoint) {
+                        addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        executeGoToTarget(function() {
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+                
                 executeCommand(cmd);
                 drawRobot();
-                index++;
                 
                 setTimeout(executeNext, 200);
             }
@@ -1413,30 +1450,8 @@ const htmlContent = `<!DOCTYPE html>
                     robot.x = Math.max(25, Math.min(375, newX));
                     robot.y = Math.max(25, Math.min(375, newY));
                 }
-            } else if (cmd.action === 'go_to_target') {
-                // This will be handled by executeGoToTarget
-                if (!targetPoint) {
-                    addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target on the board.");
-                } else {
-                    // Add navigation commands
-                    executeGoToTarget();
-                    return; // Exit as executeGoToTarget handles its own execution
-                }
-            } else if (cmd.action === 'if_wall') {
-                var wallDist = detectWallAhead();
-                var wallSteps = wallDist / 20;
-                if (wallSteps <= cmd.distance) {
-                    // Wall is within range - execute DO commands
-                    if (cmd.doCommands.length > 0) {
-                        executeCommands(cmd.doCommands);
-                    }
-                } else {
-                    // No wall - execute ELSE commands
-                    if (cmd.elseCommands.length > 0) {
-                        executeCommands(cmd.elseCommands);
-                    }
-                }
             }
+            // Note: go_to_target and if_wall are handled in executeCommands() directly
         }
         
         // ============================================
@@ -1525,8 +1540,11 @@ const htmlContent = `<!DOCTYPE html>
             return minDist;
         }
         
-        function executeGoToTarget() {
-            if (!targetPoint) return;
+        function executeGoToTarget(onComplete) {
+            if (!targetPoint) {
+                if (onComplete) onComplete();
+                return;
+            }
             
             var maxSteps = 100; // Safety limit
             var stepCount = 0;
@@ -1534,6 +1552,7 @@ const htmlContent = `<!DOCTYPE html>
             function moveStep() {
                 if (stepCount >= maxSteps) {
                     addChatMessage('stemo', "🎯 Gave up after 100 steps! Try clearing some walls.");
+                    if (onComplete) onComplete();
                     return;
                 }
                 
@@ -1548,6 +1567,7 @@ const htmlContent = `<!DOCTYPE html>
                     if (currentLesson) {
                         checkLessonCompletion();
                     }
+                    if (onComplete) onComplete();
                     return;
                 }
                 
@@ -1565,7 +1585,6 @@ const htmlContent = `<!DOCTYPE html>
                 if (wallDist <= 30) {
                     // Wall ahead - turn right
                     robot.angle += 90;
-                    addChatMessage('stemo', "🚗 Wall! Turning...");
                 } else if (Math.abs(angleDiff) > 15) {
                     // Need to turn toward target
                     robot.angle += angleDiff > 0 ? 15 : -15;
