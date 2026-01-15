@@ -513,6 +513,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-amber-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-amber-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('if_wall_ahead')">
                         🧱 If Wall
                     </div>
+                    <div class="block-item bg-purple-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-purple-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('smart_turn')">
+                        🧠 Smart Turn
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -1062,6 +1065,17 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
         
+        Blockly.Blocks['smart_turn'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🧠 Smart Turn");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(45);
+                this.setTooltip("Turn left or right - chooses best direction based on walls and target");
+            }
+        };
+        
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
             workspace = Blockly.inject('blocklyDiv', {
@@ -1252,6 +1266,8 @@ const htmlContent = `<!DOCTYPE html>
                     if (elseBlock) {
                         parseBlocks(elseBlock, lastCmd.elseCommands);
                     }
+                } else if (type === 'smart_turn') {
+                    commands.push({ action: 'smart_turn' });
                 }
                 
                 block = block.getNextBlock();
@@ -1429,9 +1445,10 @@ const htmlContent = `<!DOCTYPE html>
                 // Auto move with wall avoidance
                 var wallDist = detectWallAhead();
                 if (wallDist <= 30) { // Wall within 1.5 steps
-                    // Turn right 90 degrees instead of moving
-                    robot.angle += 90;
-                    addChatMessage('stemo', "🚗 Wall detected! Turning right...");
+                    // Smart turn - choose best direction
+                    var turnDir = chooseBestTurnDirection();
+                    robot.angle += turnDir;
+                    addChatMessage('stemo', "🚗 Wall! Turning " + (turnDir > 0 ? "right" : "left") + "...");
                 } else {
                     // Safe to move
                     var rad = robot.angle * Math.PI / 180;
@@ -1450,8 +1467,78 @@ const htmlContent = `<!DOCTYPE html>
                     robot.x = Math.max(25, Math.min(375, newX));
                     robot.y = Math.max(25, Math.min(375, newY));
                 }
+            } else if (cmd.action === 'smart_turn') {
+                // Smart turn - choose best direction based on situation
+                var turnDir = chooseBestTurnDirection();
+                robot.angle += turnDir;
+                addChatMessage('stemo', "🧠 Smart turn " + (turnDir > 0 ? "right ↪️" : "left ↩️"));
             }
             // Note: go_to_target and if_wall are handled in executeCommands() directly
+        }
+        
+        // Choose best turn direction based on:
+        // 1. Which side has more space (left vs right wall distance)
+        // 2. Which direction is closer to target (if target exists)
+        function chooseBestTurnDirection() {
+            var leftDist = detectWallAtAngle(robot.angle - 90);
+            var rightDist = detectWallAtAngle(robot.angle + 90);
+            
+            // If target exists, prefer direction toward target
+            if (targetPoint) {
+                var dx = targetPoint.x - robot.x;
+                var dy = targetPoint.y - robot.y;
+                var targetAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                var angleDiff = targetAngle - robot.angle;
+                
+                // Normalize
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+                
+                // If target is more to the left and left is clear enough
+                if (angleDiff < 0 && leftDist > 40) {
+                    return -90; // Turn left
+                }
+                // If target is more to the right and right is clear enough
+                if (angleDiff > 0 && rightDist > 40) {
+                    return 90; // Turn right
+                }
+            }
+            
+            // No target or target direction blocked - choose clearer path
+            if (leftDist > rightDist + 20) {
+                return -90; // Turn left - more space
+            } else if (rightDist > leftDist + 20) {
+                return 90; // Turn right - more space
+            } else {
+                // Similar space - default to right (or random)
+                return 90;
+            }
+        }
+        
+        // Detect wall at a specific angle
+        function detectWallAtAngle(angle) {
+            var rad = angle * Math.PI / 180;
+            var minDist = 999;
+            
+            for (var w = 0; w < wallObjects.length; w++) {
+                var wall = wallObjects[w];
+                var dist = rayBoxIntersection(
+                    robot.x, robot.y,
+                    Math.cos(rad), Math.sin(rad),
+                    wall.x, wall.y, wall.width, wall.height
+                );
+                if (dist > 0 && dist < minDist) {
+                    minDist = dist;
+                }
+            }
+            
+            // Also check boundaries
+            var boundaryDist = rayBoundaryIntersection(robot.x, robot.y, Math.cos(rad), Math.sin(rad));
+            if (boundaryDist < minDist) {
+                minDist = boundaryDist;
+            }
+            
+            return minDist;
         }
         
         // ============================================
@@ -1583,8 +1670,9 @@ const htmlContent = `<!DOCTYPE html>
                 var wallDist = detectWallAhead();
                 
                 if (wallDist <= 30) {
-                    // Wall ahead - turn right
-                    robot.angle += 90;
+                    // Wall ahead - use smart turn to choose best direction
+                    var turnDir = chooseBestTurnDirection();
+                    robot.angle += turnDir;
                 } else if (Math.abs(angleDiff) > 15) {
                     // Need to turn toward target
                     robot.angle += angleDiff > 0 ? 15 : -15;
