@@ -491,6 +491,14 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-green-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-green-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('repeat_times')">
                         🔁 Repeat
                     </div>
+                    
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🧲 Robot</div>
+                    <div class="block-item bg-red-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('magnet_on')">
+                        🧲 Magnet ON
+                    </div>
+                    <div class="block-item bg-red-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('magnet_off')">
+                        🧲 Magnet OFF
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -498,12 +506,22 @@ const htmlContent = `<!DOCTYPE html>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
                 <div id="robotPanel" class="bg-gradient-to-b from-cyan-50 to-blue-50 border-l-2 border-gray-200 flex flex-col flex-shrink-0 transition-all duration-300" style="width: 430px;">
-                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center gap-2">
-                        <span class="text-xl">🤖</span>
-                        <span class="font-bold">STEMO's World</span>
+                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <span class="font-bold">STEMO's World</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="addRandomMetal()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Add Metal Object">
+                                ➕🔩
+                            </button>
+                            <button onclick="clearMetals()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Clear All Metals">
+                                🗑️
+                            </button>
+                        </div>
                     </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden">
-                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg"></canvas>
+                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair" onclick="addMetalAtClick(event)"></canvas>
                     </div>
                     
                     <!-- Chat Area - Bigger -->
@@ -617,7 +635,9 @@ const htmlContent = `<!DOCTYPE html>
             penColor: '#6366f1',
             penSize: 4,
             trails: [],
-            visible: true
+            visible: true,
+            magnetOn: false,
+            carrying: null
         };
         
         var robotPanelVisible = true;
@@ -626,6 +646,10 @@ const htmlContent = `<!DOCTYPE html>
         var currentColorIndex = 0;
         var currentLesson = null;
         var workspace = null;
+        
+        // Metal objects on the board
+        var metalObjects = [];
+        var metalIdCounter = 0;
 
         // ============================================
         // INITIALIZATION
@@ -909,6 +933,28 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['magnet_on'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🧲 Magnet ON");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(0);
+                this.setTooltip("Turn on magnet to pick up metal objects");
+            }
+        };
+
+        Blockly.Blocks['magnet_off'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🧲 Magnet OFF");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(0);
+                this.setTooltip("Turn off magnet to release/drop metal objects");
+            }
+        };
+
         Blockly.Blocks['repeat_times'] = {
             init: function() {
                 this.appendDummyInput()
@@ -1021,6 +1067,8 @@ const htmlContent = `<!DOCTYPE html>
             robot.penDown = false;
             robot.penSize = 4;
             robot.visible = true;
+            robot.magnetOn = false;
+            robot.carrying = null;
             robot.trails = [];
             drawRobot();
             
@@ -1072,6 +1120,10 @@ const htmlContent = `<!DOCTYPE html>
                 } else if (type === 'set_pen_size') {
                     var size = parseInt(block.getFieldValue('SIZE'));
                     commands.push({ action: 'size', value: size });
+                } else if (type === 'magnet_on') {
+                    commands.push({ action: 'magnet', value: true });
+                } else if (type === 'magnet_off') {
+                    commands.push({ action: 'magnet', value: false });
                 } else if (type === 'repeat_times') {
                     var times = parseInt(block.getFieldValue('TIMES'));
                     var innerBlock = block.getInputTargetBlock('DO');
@@ -1130,6 +1182,25 @@ const htmlContent = `<!DOCTYPE html>
                 
                 robot.x = Math.max(25, Math.min(375, newX));
                 robot.y = Math.max(25, Math.min(375, newY));
+                
+                // Check if magnet is ON and can pick up nearby metal
+                if (robot.magnetOn && !robot.carrying) {
+                    var pickupRange = 35;
+                    for (var m = 0; m < metalObjects.length; m++) {
+                        var metal = metalObjects[m];
+                        if (!metal.pickedUp) {
+                            var dx = metal.x - robot.x;
+                            var dy = metal.y - robot.y;
+                            var dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < pickupRange) {
+                                robot.carrying = metal;
+                                metal.pickedUp = true;
+                                addChatMessage('stemo', "🤖 🧲 Picked up " + metal.type + "! 🎉");
+                                break;
+                            }
+                        }
+                    }
+                }
             } else if (cmd.action === 'turn') {
                 robot.angle += cmd.value;
             } else if (cmd.action === 'home') {
@@ -1145,6 +1216,40 @@ const htmlContent = `<!DOCTYPE html>
                 robot.penSize = cmd.value;
             } else if (cmd.action === 'visibility') {
                 robot.visible = cmd.value;
+            } else if (cmd.action === 'magnet') {
+                robot.magnetOn = cmd.value;
+                if (cmd.value) {
+                    // Magnet ON - try to pick up nearby metal
+                    if (!robot.carrying) {
+                        var pickupRange = 35; // pixels distance to pick up
+                        for (var m = 0; m < metalObjects.length; m++) {
+                            var metal = metalObjects[m];
+                            var dx = metal.x - robot.x;
+                            var dy = metal.y - robot.y;
+                            var dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < pickupRange) {
+                                robot.carrying = metal;
+                                metal.pickedUp = true;
+                                addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
+                                break;
+                            }
+                        }
+                        if (!robot.carrying) {
+                            addChatMessage('stemo', "🤖 🧲 Magnet ON! Move closer to a metal object to pick it up.");
+                        }
+                    }
+                } else {
+                    // Magnet OFF - drop the object at current position
+                    if (robot.carrying) {
+                        robot.carrying.x = robot.x;
+                        robot.carrying.y = robot.y;
+                        robot.carrying.pickedUp = false;
+                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " here! 📍");
+                        robot.carrying = null;
+                    } else {
+                        addChatMessage('stemo', "🤖 🧲 Magnet OFF.");
+                    }
+                }
             }
         }
 
@@ -1185,20 +1290,110 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.stroke();
             });
             
+            // Draw metal objects on the board
+            metalObjects.forEach(function(metal) {
+                if (!metal.pickedUp) {
+                    ctx.save();
+                    ctx.translate(metal.x, metal.y);
+                    
+                    // Glow effect for metals
+                    ctx.shadowColor = '#ef4444';
+                    ctx.shadowBlur = 8;
+                    
+                    // Draw based on metal type
+                    if (metal.type === 'bolt') {
+                        // Draw bolt 🔩
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#475569';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Hex pattern
+                        ctx.strokeStyle = '#334155';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        for (var h = 0; h < 6; h++) {
+                            var hAngle = h * Math.PI / 3;
+                            var hx = Math.cos(hAngle) * 7;
+                            var hy = Math.sin(hAngle) * 7;
+                            if (h === 0) ctx.moveTo(hx, hy);
+                            else ctx.lineTo(hx, hy);
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    } else if (metal.type === 'gear') {
+                        // Draw gear ⚙️
+                        ctx.fillStyle = '#78716c';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Teeth
+                        ctx.fillStyle = '#57534e';
+                        for (var t = 0; t < 8; t++) {
+                            var tAngle = t * Math.PI / 4;
+                            ctx.save();
+                            ctx.rotate(tAngle);
+                            ctx.fillRect(-3, 10, 6, 5);
+                            ctx.restore();
+                        }
+                        // Center hole
+                        ctx.fillStyle = '#fef3c7';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (metal.type === 'screw') {
+                        // Draw screw 🪛
+                        ctx.fillStyle = '#a1a1aa';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, 6, 10, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Slot
+                        ctx.strokeStyle = '#52525b';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-4, 0);
+                        ctx.lineTo(4, 0);
+                        ctx.stroke();
+                    } else {
+                        // Default metal piece
+                        ctx.fillStyle = '#71717a';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
+                }
+            });
+            
             // Draw robot (only if visible)
             if (robot.visible) {
                 ctx.save();
                 ctx.translate(robot.x, robot.y);
                 ctx.rotate((robot.angle + 90) * Math.PI / 180);
                 
-                // Body
-                ctx.fillStyle = '#3b82f6';
+                // Body - change color if magnet is on
+                ctx.fillStyle = robot.magnetOn ? '#ef4444' : '#3b82f6';
                 ctx.beginPath();
                 ctx.roundRect(-20, -25, 40, 50, 8);
                 ctx.fill();
+                
+                // Magnet indicator when ON
+                if (robot.magnetOn) {
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
             
                 // Head
-                ctx.fillStyle = '#60a5fa';
+                ctx.fillStyle = robot.magnetOn ? '#f87171' : '#60a5fa';
                 ctx.beginPath();
                 ctx.arc(0, -15, 15, 0, Math.PI * 2);
                 ctx.fill();
@@ -1210,24 +1405,45 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.arc(6, -18, 5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Pupils
-                ctx.fillStyle = '#1e3a5f';
-                ctx.beginPath();
-                ctx.arc(-5, -17, 2, 0, Math.PI * 2);
-                ctx.arc(7, -17, 2, 0, Math.PI * 2);
-                ctx.fill();
+                // Pupils - heart eyes when carrying something
+                if (robot.carrying) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.font = '8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('❤', -5, -15);
+                    ctx.fillText('❤', 7, -15);
+                } else {
+                    ctx.fillStyle = '#1e3a5f';
+                    ctx.beginPath();
+                    ctx.arc(-5, -17, 2, 0, Math.PI * 2);
+                    ctx.arc(7, -17, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
                 
-                // Antenna
-                ctx.strokeStyle = '#fbbf24';
+                // Antenna - show magnet icon when ON
+                ctx.strokeStyle = robot.magnetOn ? '#ef4444' : '#fbbf24';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.moveTo(0, -30);
                 ctx.lineTo(0, -40);
                 ctx.stroke();
-                ctx.fillStyle = '#fbbf24';
-                ctx.beginPath();
-                ctx.arc(0, -42, 4, 0, Math.PI * 2);
-                ctx.fill();
+                
+                if (robot.magnetOn) {
+                    // Magnet shape on antenna
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(0, -45, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🧲', 0, -42);
+                } else {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(0, -42, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             
                 // Direction arrow
                 ctx.fillStyle = '#22c55e';
@@ -1237,6 +1453,21 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.lineTo(8, -10);
                 ctx.closePath();
                 ctx.fill();
+                
+                // Draw carried object attached to robot
+                if (robot.carrying) {
+                    ctx.save();
+                    ctx.translate(0, 20); // Below robot body
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#475569';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🔩', 0, 4);
+                    ctx.restore();
+                }
                 
                 ctx.restore();
             }
@@ -1251,7 +1482,9 @@ const htmlContent = `<!DOCTYPE html>
                 penColor: '#6366f1',
                 penSize: 4,
                 trails: [],
-                visible: true
+                visible: true,
+                magnetOn: false,
+                carrying: null
             };
             drawRobot();
             addChatMessage('stemo', "🤖 Ready! Use Pen Down to start drawing!");
@@ -1427,6 +1660,67 @@ const htmlContent = `<!DOCTYPE html>
             }
         }
         
+        // ============================================
+        // METAL OBJECTS FUNCTIONALITY
+        // ============================================
+        function addMetalAtClick(event) {
+            var canvas = document.getElementById('robotCanvas');
+            var rect = canvas.getBoundingClientRect();
+            var x = event.clientX - rect.left;
+            var y = event.clientY - rect.top;
+            
+            // Scale for canvas size
+            x = x * (canvas.width / rect.width);
+            y = y * (canvas.height / rect.height);
+            
+            // Keep within bounds
+            x = Math.max(20, Math.min(380, x));
+            y = Math.max(20, Math.min(380, y));
+            
+            var types = ['bolt', 'gear', 'screw'];
+            var type = types[Math.floor(Math.random() * types.length)];
+            
+            metalObjects.push({
+                id: metalIdCounter++,
+                x: x,
+                y: y,
+                type: type,
+                pickedUp: false
+            });
+            
+            drawRobot();
+            addChatMessage('stemo', "🤖 ✨ New " + type + " appeared! Use Magnet ON to pick it up when you're close! 🧲");
+        }
+        
+        function addRandomMetal() {
+            var x = 50 + Math.random() * 300;
+            var y = 50 + Math.random() * 300;
+            
+            var types = ['bolt', 'gear', 'screw'];
+            var type = types[Math.floor(Math.random() * types.length)];
+            
+            metalObjects.push({
+                id: metalIdCounter++,
+                x: x,
+                y: y,
+                type: type,
+                pickedUp: false
+            });
+            
+            drawRobot();
+            addChatMessage('stemo', "🤖 🔩 A " + type + " appeared on the board! Can you collect it?");
+        }
+        
+        function clearMetals() {
+            metalObjects = [];
+            if (robot.carrying) {
+                robot.carrying = null;
+                robot.magnetOn = false;
+            }
+            drawRobot();
+            addChatMessage('stemo', "🤖 🗑️ All metal objects cleared! Click on the board to add new ones.");
+        }
+
         // Toggle Robot Panel to maximize workspace
         function toggleRobotPanel() {
             var panel = document.getElementById('robotPanel');
