@@ -1239,12 +1239,21 @@ const htmlContent = `<!DOCTYPE html>
                         }
                     }
                 } else {
-                    // Magnet OFF - drop the object at current position
+                    // Magnet OFF - drop the object BEHIND the robot (so it's visible)
                     if (robot.carrying) {
-                        robot.carrying.x = robot.x;
-                        robot.carrying.y = robot.y;
+                        // Drop 40 pixels behind robot's current direction
+                        var dropRad = robot.angle * Math.PI / 180;
+                        var dropX = robot.x - Math.cos(dropRad) * 40;
+                        var dropY = robot.y - Math.sin(dropRad) * 40;
+                        
+                        // Keep within bounds
+                        dropX = Math.max(25, Math.min(375, dropX));
+                        dropY = Math.max(25, Math.min(375, dropY));
+                        
+                        robot.carrying.x = dropX;
+                        robot.carrying.y = dropY;
                         robot.carrying.pickedUp = false;
-                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " here! 📍");
+                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " behind me! 📍");
                         robot.carrying = null;
                     } else {
                         addChatMessage('stemo', "🤖 🧲 Magnet OFF.");
@@ -1263,7 +1272,7 @@ const htmlContent = `<!DOCTYPE html>
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw grid
+            // Draw grid with step numbers (each grid = 2 steps = 40px, 1 step = 20px)
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 1;
             for (var i = 0; i < canvas.width; i += 40) {
@@ -1271,13 +1280,35 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.moveTo(i, 0);
                 ctx.lineTo(i, canvas.height);
                 ctx.stroke();
+                
+                // Add step numbers on top (every 2 steps)
+                if (i > 0 && i < canvas.width) {
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText((i / 20).toString(), i, 12);
+                }
             }
             for (var j = 0; j < canvas.height; j += 40) {
                 ctx.beginPath();
                 ctx.moveTo(0, j);
                 ctx.lineTo(canvas.width, j);
                 ctx.stroke();
+                
+                // Add step numbers on left side
+                if (j > 0 && j < canvas.height) {
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText((j / 20).toString(), 3, j + 4);
+                }
             }
+            
+            // Draw "1 step = 20px" indicator in corner
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '9px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('1 step = 1 grid line', canvas.width - 5, canvas.height - 5);
             
             // Draw trails
             robot.trails.forEach(function(trail) {
@@ -1290,9 +1321,44 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.stroke();
             });
             
-            // Draw metal objects on the board
+            // Draw metal objects on the board with distance indicators
             metalObjects.forEach(function(metal) {
                 if (!metal.pickedUp) {
+                    // Calculate distance from robot to metal (in steps)
+                    var dx = metal.x - robot.x;
+                    var dy = metal.y - robot.y;
+                    var distPixels = Math.sqrt(dx * dx + dy * dy);
+                    var distSteps = Math.round(distPixels / 20); // 1 step = 20 pixels
+                    
+                    // Draw dashed line from robot to metal (distance indicator)
+                    ctx.save();
+                    ctx.strokeStyle = '#f97316';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 4]);
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(robot.x, robot.y);
+                    ctx.lineTo(metal.x, metal.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.globalAlpha = 1;
+                    ctx.restore();
+                    
+                    // Draw distance label at midpoint
+                    var midX = (robot.x + metal.x) / 2;
+                    var midY = (robot.y + metal.y) / 2;
+                    ctx.save();
+                    ctx.fillStyle = '#ea580c';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.roundRect(midX - 18, midY - 8, 36, 16, 4);
+                    ctx.fill();
+                    ctx.fillStyle = '#ea580c';
+                    ctx.fillText(distSteps + ' steps', midX, midY + 4);
+                    ctx.restore();
+                    
                     ctx.save();
                     ctx.translate(metal.x, metal.y);
                     
@@ -1688,8 +1754,13 @@ const htmlContent = `<!DOCTYPE html>
                 pickedUp: false
             });
             
+            // Calculate distance in steps
+            var dx = x - robot.x;
+            var dy = y - robot.y;
+            var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+            
             drawRobot();
-            addChatMessage('stemo', "🤖 ✨ New " + type + " appeared! Use Magnet ON to pick it up when you're close! 🧲");
+            addChatMessage('stemo', "🤖 ✨ New " + type + " appeared! It's about " + distSteps + " steps away. Use Magnet ON when you're close! 🧲");
         }
         
         function addRandomMetal() {
@@ -1707,8 +1778,13 @@ const htmlContent = `<!DOCTYPE html>
                 pickedUp: false
             });
             
+            // Calculate distance in steps
+            var dx = x - robot.x;
+            var dy = y - robot.y;
+            var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+            
             drawRobot();
-            addChatMessage('stemo', "🤖 🔩 A " + type + " appeared on the board! Can you collect it?");
+            addChatMessage('stemo', "🤖 🔩 A " + type + " appeared " + distSteps + " steps away! Can you collect it?");
         }
         
         function clearMetals() {
