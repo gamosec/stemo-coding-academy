@@ -516,6 +516,20 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-purple-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-purple-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('smart_turn')">
                         🧠 Smart Turn
                     </div>
+                    
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔥 Fire</div>
+                    <div class="block-item bg-orange-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('check_temp')">
+                        🌡️ Check Temp
+                    </div>
+                    <div class="block-item bg-orange-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('if_hot_ahead')">
+                        🔥 If Hot
+                    </div>
+                    <div class="block-item bg-blue-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-blue-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('spray_water')">
+                        💧 Spray Water
+                    </div>
+                    <div class="block-item bg-red-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('firefighter_mode')">
+                        🚒 Firefighter
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -534,6 +548,9 @@ const htmlContent = `<!DOCTYPE html>
                             </button>
                             <button onclick="setPlacementMode('wall')" id="modeWallBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Wall">
                                 🧱
+                            </button>
+                            <button onclick="setPlacementMode('fire')" id="modeFireBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Fire">
+                                🔥
                             </button>
                             <button onclick="setPlacementMode('target')" id="modeTargetBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Target">
                                 🎯
@@ -664,7 +681,10 @@ const htmlContent = `<!DOCTYPE html>
             trails: [],
             visible: true,
             magnetOn: false,
-            carrying: null
+            carrying: null,
+            waterLevel: 5,
+            spraying: false,
+            lastTemp: 25
         };
         
         var robotPanelVisible = true;
@@ -681,6 +701,10 @@ const htmlContent = `<!DOCTYPE html>
         // Wall objects for ultrasonic sensor
         var wallObjects = [];
         var wallIdCounter = 0;
+        
+        // Fire objects for temperature sensor
+        var fireObjects = [];
+        var fireIdCounter = 0;
         
         // Target point for navigation
         var targetPoint = null;
@@ -1076,6 +1100,59 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
         
+        // ============================================
+        // TEMPERATURE SENSOR / FIREFIGHTER BLOCKS
+        // ============================================
+        Blockly.Blocks['check_temp'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🌡️ Check Temp");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(0);
+                this.setTooltip("Scan ahead and report temperature");
+            }
+        };
+        
+        Blockly.Blocks['if_hot_ahead'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔥 If Fire Within")
+                    .appendField(new Blockly.FieldNumber(3, 1, 10, 1), "DISTANCE")
+                    .appendField("steps");
+                this.appendStatementInput("DO")
+                    .appendField("then");
+                this.appendStatementInput("ELSE")
+                    .appendField("else");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(0);
+                this.setTooltip("Check if fire/heat is within distance");
+            }
+        };
+        
+        Blockly.Blocks['spray_water'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💧 Spray Water");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(200);
+                this.setTooltip("Spray water to extinguish fire ahead (uses 1 water)");
+            }
+        };
+        
+        Blockly.Blocks['firefighter_mode'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🚒 Firefighter Mode");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(0);
+                this.setTooltip("Auto-navigate and extinguish all fires");
+            }
+        };
+        
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
             workspace = Blockly.inject('blocklyDiv', {
@@ -1268,6 +1345,30 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 } else if (type === 'smart_turn') {
                     commands.push({ action: 'smart_turn' });
+                } else if (type === 'check_temp') {
+                    commands.push({ action: 'check_temp' });
+                } else if (type === 'spray_water') {
+                    commands.push({ action: 'spray_water' });
+                } else if (type === 'firefighter_mode') {
+                    commands.push({ action: 'firefighter_mode' });
+                } else if (type === 'if_hot_ahead') {
+                    var distance = parseInt(block.getFieldValue('DISTANCE'));
+                    var doBlock = block.getInputTargetBlock('DO');
+                    var elseBlock = block.getInputTargetBlock('ELSE');
+                    commands.push({ 
+                        action: 'if_hot', 
+                        distance: distance,
+                        doCommands: [],
+                        elseCommands: []
+                    });
+                    // Parse inner blocks
+                    var lastCmd = commands[commands.length - 1];
+                    if (doBlock) {
+                        parseBlocks(doBlock, lastCmd.doCommands);
+                    }
+                    if (elseBlock) {
+                        parseBlocks(elseBlock, lastCmd.elseCommands);
+                    }
                 }
                 
                 block = block.getNextBlock();
@@ -1321,6 +1422,37 @@ const htmlContent = `<!DOCTYPE html>
                         setTimeout(executeNext, 200);
                     } else {
                         executeGoToTarget(function() {
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+                
+                // Handle if_hot (fire detection conditional)
+                if (cmd.action === 'if_hot') {
+                    var fireInfo = detectFireAhead();
+                    var fireSteps = fireInfo.distance / 20;
+                    var nestedCommands = fireSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
+                    
+                    if (nestedCommands && nestedCommands.length > 0) {
+                        executeCommands(nestedCommands, function() {
+                            drawRobot();
+                            setTimeout(executeNext, 200);
+                        });
+                    } else {
+                        drawRobot();
+                        setTimeout(executeNext, 200);
+                    }
+                    return;
+                }
+                
+                // Handle firefighter_mode
+                if (cmd.action === 'firefighter_mode') {
+                    if (fireObjects.length === 0) {
+                        addChatMessage('stemo', "🚒 No fires to extinguish! Place some fires with the 🔥 button.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        executeFirefighterMode(function() {
                             setTimeout(executeNext, 200);
                         });
                     }
@@ -1475,8 +1607,42 @@ const htmlContent = `<!DOCTYPE html>
                 if (Math.random() < 0.3) {
                     addChatMessage('stemo', "🧠 Smart turn " + (turnDir > 0 ? "right ↪️" : "left ↩️"));
                 }
+            } else if (cmd.action === 'check_temp') {
+                // Check temperature ahead
+                var fireInfo = detectFireAhead();
+                robot.lastTemp = fireInfo.temp;
+                if (fireInfo.fire) {
+                    addChatMessage('stemo', "🌡️ Temperature: " + fireInfo.temp + "°C 🔥 Fire detected " + Math.round(fireInfo.distance / 20) + " steps ahead!");
+                } else {
+                    addChatMessage('stemo', "🌡️ Temperature: " + fireInfo.temp + "°C - All clear ahead!");
+                }
+            } else if (cmd.action === 'spray_water') {
+                // Spray water to extinguish fire
+                if (robot.waterLevel <= 0) {
+                    addChatMessage('stemo', "💧 Water tank empty! Return to base to refill.");
+                } else {
+                    var fireInfo = detectFireAhead();
+                    if (fireInfo.fire && fireInfo.distance < 60) { // Within 3 steps
+                        robot.waterLevel--;
+                        fireInfo.fire.health--;
+                        robot.spraying = true;
+                        
+                        if (fireInfo.fire.health <= 0) {
+                            // Fire extinguished!
+                            fireObjects = fireObjects.filter(function(f) { return f !== fireInfo.fire; });
+                            addChatMessage('stemo', "💧💥 Fire extinguished! Great job! 🎉 Water left: " + robot.waterLevel + "/5");
+                        } else {
+                            addChatMessage('stemo', "💧 Spraying water! Fire health: " + fireInfo.fire.health + "/3 | Water left: " + robot.waterLevel + "/5");
+                        }
+                        
+                        // Visual effect - clear spray flag after delay
+                        setTimeout(function() { robot.spraying = false; drawRobot(); }, 500);
+                    } else {
+                        addChatMessage('stemo', "💧 No fire within range! Move closer (within 3 steps).");
+                    }
+                }
             }
-            // Note: go_to_target and if_wall are handled in executeCommands() directly
+            // Note: go_to_target, if_wall, if_hot and firefighter_mode are handled in executeCommands() directly
         }
         
         // Choose best turn direction based on:
@@ -1636,6 +1802,167 @@ const htmlContent = `<!DOCTYPE html>
             }
             
             return minDist;
+        }
+        
+        // ============================================
+        // TEMPERATURE SENSOR - FIRE DETECTION
+        // ============================================
+        function detectFireAhead() {
+            var minDist = 999;
+            var closestFire = null;
+            var baseTemp = 25; // Normal room temperature
+            
+            // Check distance to each fire
+            for (var f = 0; f < fireObjects.length; f++) {
+                var fire = fireObjects[f];
+                var dx = fire.x - robot.x;
+                var dy = fire.y - robot.y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestFire = fire;
+                }
+            }
+            
+            // Calculate temperature based on distance
+            var temp = baseTemp;
+            if (closestFire) {
+                // Temperature increases as you get closer
+                // Max temp ~500°C when very close, decreases with distance
+                temp = Math.max(baseTemp, Math.min(500, baseTemp + (200 - minDist) * 2.5));
+            }
+            
+            return {
+                fire: closestFire,
+                distance: minDist,
+                temp: Math.round(temp)
+            };
+        }
+        
+        // Find nearest fire from robot
+        function findNearestFire() {
+            var minDist = 999;
+            var nearestFire = null;
+            
+            for (var f = 0; f < fireObjects.length; f++) {
+                var fire = fireObjects[f];
+                var dx = fire.x - robot.x;
+                var dy = fire.y - robot.y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearestFire = fire;
+                }
+            }
+            
+            return nearestFire;
+        }
+        
+        // Firefighter mode - auto-navigate and extinguish all fires
+        function executeFirefighterMode(onComplete) {
+            var maxSteps = 200; // Safety limit
+            var stepCount = 0;
+            
+            function firefightStep() {
+                if (stepCount >= maxSteps) {
+                    addChatMessage('stemo', "🚒 Reached step limit. Some fires may remain.");
+                    if (onComplete) onComplete();
+                    return;
+                }
+                
+                // Check if all fires extinguished
+                if (fireObjects.length === 0) {
+                    addChatMessage('stemo', "🚒🎉 All fires extinguished! Area is safe!");
+                    if (currentLesson) {
+                        checkLessonCompletion();
+                    }
+                    if (onComplete) onComplete();
+                    return;
+                }
+                
+                // Check water level
+                if (robot.waterLevel <= 0) {
+                    addChatMessage('stemo', "💧 Water empty! Returning to base...");
+                    // Move toward home to "refill"
+                    var dx = 200 - robot.x;
+                    var dy = 200 - robot.y;
+                    var dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 30) {
+                        robot.waterLevel = 5;
+                        addChatMessage('stemo', "💧 Tank refilled! Water: 5/5");
+                    } else {
+                        var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                        robot.angle = desiredAngle;
+                        var rad = robot.angle * Math.PI / 180;
+                        robot.x += Math.cos(rad) * 15;
+                        robot.y += Math.sin(rad) * 15;
+                    }
+                    
+                    stepCount++;
+                    drawRobot();
+                    setTimeout(firefightStep, 150);
+                    return;
+                }
+                
+                // Find nearest fire
+                var nearestFire = findNearestFire();
+                if (!nearestFire) {
+                    if (onComplete) onComplete();
+                    return;
+                }
+                
+                var dx = nearestFire.x - robot.x;
+                var dy = nearestFire.y - robot.y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // If close enough, spray water
+                if (dist < 50) {
+                    robot.waterLevel--;
+                    nearestFire.health--;
+                    robot.spraying = true;
+                    
+                    if (nearestFire.health <= 0) {
+                        fireObjects = fireObjects.filter(function(f) { return f !== nearestFire; });
+                        addChatMessage('stemo', "🚒💧 Fire out! " + fireObjects.length + " fires remaining. Water: " + robot.waterLevel + "/5");
+                    }
+                    
+                    setTimeout(function() { robot.spraying = false; drawRobot(); }, 300);
+                } else {
+                    // Move toward fire
+                    var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                    var angleDiff = desiredAngle - robot.angle;
+                    
+                    while (angleDiff > 180) angleDiff -= 360;
+                    while (angleDiff < -180) angleDiff += 360;
+                    
+                    // Check for walls
+                    var wallDist = detectWallAhead();
+                    
+                    if (wallDist <= 30) {
+                        var turnDir = chooseBestTurnDirection();
+                        robot.angle += turnDir;
+                    } else if (Math.abs(angleDiff) > 15) {
+                        robot.angle += angleDiff > 0 ? 15 : -15;
+                    } else {
+                        var rad = robot.angle * Math.PI / 180;
+                        robot.x += Math.cos(rad) * 15;
+                        robot.y += Math.sin(rad) * 15;
+                        
+                        robot.x = Math.max(25, Math.min(375, robot.x));
+                        robot.y = Math.max(25, Math.min(375, robot.y));
+                    }
+                }
+                
+                stepCount++;
+                drawRobot();
+                setTimeout(firefightStep, 150);
+            }
+            
+            addChatMessage('stemo', "🚒 Firefighter mode activated! Searching for fires...");
+            firefightStep();
         }
         
         function executeGoToTarget(onComplete) {
@@ -2019,6 +2346,159 @@ const htmlContent = `<!DOCTYPE html>
                 }
             });
             
+            // Draw fire objects on the board
+            fireObjects.forEach(function(fire) {
+                ctx.save();
+                ctx.translate(fire.x, fire.y);
+                
+                // Pulsing/flickering effect
+                var flicker = 1 + 0.2 * Math.sin(Date.now() / 100 + fire.id);
+                
+                // Fire glow
+                ctx.shadowColor = '#ff6b35';
+                ctx.shadowBlur = 20 * flicker;
+                
+                // Base fire - outer orange
+                ctx.fillStyle = '#ff6b35';
+                ctx.beginPath();
+                ctx.ellipse(0, 5, 15 * flicker, 8 * flicker, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Inner yellow flame
+                ctx.fillStyle = '#ffc107';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 10 * flicker, 18 * flicker, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Hot center
+                ctx.fillStyle = '#fff3cd';
+                ctx.beginPath();
+                ctx.ellipse(0, 3, 5 * flicker, 10 * flicker, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw flame tips
+                ctx.fillStyle = '#ff6b35';
+                for (var f = 0; f < 5; f++) {
+                    var fAngle = (f - 2) * 0.3;
+                    var fHeight = 15 + Math.random() * 10;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.sin(fAngle) * 5, 5);
+                    ctx.quadraticCurveTo(
+                        Math.sin(fAngle + 0.5) * 8 * flicker, -fHeight/2,
+                        Math.sin(fAngle) * 3, -fHeight * flicker
+                    );
+                    ctx.quadraticCurveTo(
+                        Math.sin(fAngle - 0.5) * 8 * flicker, -fHeight/2,
+                        Math.sin(fAngle) * 5, 5
+                    );
+                    ctx.fill();
+                }
+                
+                // Health indicator (how many sprays to extinguish)
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#dc2626';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🔥' + fire.health + '/3', 0, 35);
+                
+                // Distance indicator
+                var dx = fire.x - robot.x;
+                var dy = fire.y - robot.y;
+                var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+                
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#dc2626';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(-20, -40, 40, 16, 4);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#dc2626';
+                ctx.fillText(distSteps + ' steps', 0, -28);
+                
+                ctx.restore();
+            });
+            
+            // Draw temperature sensor beam if fire detected
+            if (robot.visible && fireObjects.length > 0) {
+                var fireInfo = detectFireAhead();
+                if (fireInfo.fire && fireInfo.distance < 150) {
+                    ctx.save();
+                    
+                    // Heat wave effect
+                    var rad = robot.angle * Math.PI / 180;
+                    ctx.strokeStyle = 'rgba(255, 107, 53, 0.4)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([3, 6]);
+                    ctx.beginPath();
+                    ctx.moveTo(robot.x, robot.y);
+                    ctx.lineTo(fireInfo.fire.x, fireInfo.fire.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Temperature reading
+                    var midX = (robot.x + fireInfo.fire.x) / 2;
+                    var midY = (robot.y + fireInfo.fire.y) / 2;
+                    ctx.fillStyle = fireInfo.temp > 100 ? '#dc2626' : '#f97316';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.roundRect(midX - 25, midY - 10, 50, 20, 5);
+                    ctx.fill();
+                    ctx.fillStyle = fireInfo.temp > 100 ? '#dc2626' : '#f97316';
+                    ctx.fillText('🌡️' + fireInfo.temp + '°C', midX, midY + 4);
+                    
+                    ctx.restore();
+                }
+            }
+            
+            // Draw water spray effect
+            if (robot.spraying && robot.visible) {
+                ctx.save();
+                var rad = robot.angle * Math.PI / 180;
+                
+                // Water droplets
+                ctx.fillStyle = '#60a5fa';
+                for (var w = 0; w < 10; w++) {
+                    var spray = 20 + Math.random() * 40;
+                    var spread = (Math.random() - 0.5) * 40;
+                    var wx = robot.x + Math.cos(rad) * spray + Math.cos(rad + Math.PI/2) * spread;
+                    var wy = robot.y + Math.sin(rad) * spray + Math.sin(rad + Math.PI/2) * spread;
+                    
+                    ctx.beginPath();
+                    ctx.arc(wx, wy, 3 + Math.random() * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Water stream
+                ctx.strokeStyle = 'rgba(96, 165, 250, 0.6)';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(robot.x, robot.y);
+                ctx.lineTo(robot.x + Math.cos(rad) * 50, robot.y + Math.sin(rad) * 50);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            // Draw water tank indicator
+            if (robot.visible) {
+                ctx.save();
+                ctx.fillStyle = '#1e3a5f';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('💧 Water: ' + robot.waterLevel + '/5', 10, canvas.height - 20);
+                
+                // Draw water bar
+                ctx.fillStyle = '#e5e7eb';
+                ctx.fillRect(10, canvas.height - 15, 50, 8);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(10, canvas.height - 15, (robot.waterLevel / 5) * 50, 8);
+                ctx.restore();
+            }
+            
             // Draw robot (only if visible)
             if (robot.visible) {
                 ctx.save();
@@ -2134,7 +2614,10 @@ const htmlContent = `<!DOCTYPE html>
                 trails: [],
                 visible: true,
                 magnetOn: false,
-                carrying: null
+                carrying: null,
+                waterLevel: 5,
+                spraying: false,
+                lastTemp: 25
             };
             drawRobot();
             addChatMessage('stemo', "🤖 Ready! Use Pen Down to start drawing!");
@@ -2323,6 +2806,9 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('modeWallBtn').className = mode === 'wall'
                 ? 'bg-amber-700 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
                 : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            document.getElementById('modeFireBtn').className = mode === 'fire'
+                ? 'bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
             document.getElementById('modeTargetBtn').className = mode === 'target'
                 ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
                 : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
@@ -2331,6 +2817,7 @@ const htmlContent = `<!DOCTYPE html>
             var modeText = {
                 'metal': 'Click to place: 🔩 Metal',
                 'wall': 'Click & drag to place: 🧱 Wall',
+                'fire': 'Click to place: 🔥 Fire',
                 'target': 'Click to place: 🎯 Target'
             };
             document.getElementById('placementModeText').textContent = modeText[mode] || 'Click to place';
@@ -2354,9 +2841,27 @@ const htmlContent = `<!DOCTYPE html>
                 addMetalAt(x, y);
             } else if (placementMode === 'wall') {
                 addWallAt(x, y);
+            } else if (placementMode === 'fire') {
+                addFireAt(x, y);
             } else if (placementMode === 'target') {
                 addTargetAt(x, y);
             }
+        }
+        
+        function addFireAt(x, y) {
+            fireObjects.push({
+                id: fireIdCounter++,
+                x: x,
+                y: y,
+                health: 3  // Takes 3 water sprays to extinguish
+            });
+            
+            var dx = x - robot.x;
+            var dy = y - robot.y;
+            var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
+            
+            drawRobot();
+            addChatMessage('stemo', "🤖 🔥 Fire started! " + distSteps + " steps away. Use Spray Water or Firefighter mode to extinguish! 💧");
         }
         
         function addMetalAt(x, y) {
@@ -2414,13 +2919,16 @@ const htmlContent = `<!DOCTYPE html>
         function clearAll() {
             metalObjects = [];
             wallObjects = [];
+            fireObjects = [];
             targetPoint = null;
             if (robot.carrying) {
                 robot.carrying = null;
                 robot.magnetOn = false;
             }
+            robot.waterLevel = 5; // Refill water
+            robot.spraying = false;
             drawRobot();
-            addChatMessage('stemo', "🤖 🗑️ Board cleared! Click buttons to add walls, metals, or targets.");
+            addChatMessage('stemo', "🤖 🗑️ Board cleared! Water refilled 💧. Click buttons to add walls, metals, fires, or targets.");
         }
         
         function clearMetals() {
