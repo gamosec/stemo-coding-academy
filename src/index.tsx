@@ -1471,7 +1471,10 @@ const htmlContent = `<!DOCTYPE html>
                 // Smart turn - choose best direction based on situation
                 var turnDir = chooseBestTurnDirection();
                 robot.angle += turnDir;
-                addChatMessage('stemo', "🧠 Smart turn " + (turnDir > 0 ? "right ↪️" : "left ↩️"));
+                // Only show message occasionally to avoid spam
+                if (Math.random() < 0.3) {
+                    addChatMessage('stemo', "🧠 Smart turn " + (turnDir > 0 ? "right ↪️" : "left ↩️"));
+                }
             }
             // Note: go_to_target and if_wall are handled in executeCommands() directly
         }
@@ -1482,6 +1485,8 @@ const htmlContent = `<!DOCTYPE html>
         function chooseBestTurnDirection() {
             var leftDist = detectWallAtAngle(robot.angle - 90);
             var rightDist = detectWallAtAngle(robot.angle + 90);
+            
+            console.log('Smart turn check - Left dist:', leftDist, 'Right dist:', rightDist);
             
             // If target exists, prefer direction toward target
             if (targetPoint) {
@@ -1494,24 +1499,30 @@ const htmlContent = `<!DOCTYPE html>
                 while (angleDiff > 180) angleDiff -= 360;
                 while (angleDiff < -180) angleDiff += 360;
                 
-                // If target is more to the left and left is clear enough
+                console.log('Target angle diff:', angleDiff);
+                
+                // If target is more to the left and left is clear enough (at least 2 steps)
                 if (angleDiff < 0 && leftDist > 40) {
+                    console.log('Choosing LEFT toward target');
                     return -90; // Turn left
                 }
                 // If target is more to the right and right is clear enough
                 if (angleDiff > 0 && rightDist > 40) {
+                    console.log('Choosing RIGHT toward target');
                     return 90; // Turn right
                 }
+                
+                // Target direction is blocked, choose the clearer side
+                console.log('Target direction blocked, choosing clearer path');
             }
             
             // No target or target direction blocked - choose clearer path
-            if (leftDist > rightDist + 20) {
+            if (leftDist > rightDist) {
+                console.log('Choosing LEFT - more space');
                 return -90; // Turn left - more space
-            } else if (rightDist > leftDist + 20) {
-                return 90; // Turn right - more space
             } else {
-                // Similar space - default to right (or random)
-                return 90;
+                console.log('Choosing RIGHT - more space or equal');
+                return 90; // Turn right - more space or equal
             }
         }
         
