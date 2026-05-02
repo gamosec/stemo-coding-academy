@@ -1555,6 +1555,7 @@ const htmlContent = `<!DOCTYPE html>
                     updateUI();
                     loadLessons();
                     loadBadges();
+                    updateProfileStats();
                 }
             } catch(e) { console.log('Using local progress'); }
         }
@@ -5669,7 +5670,7 @@ app.get('/', async (c) => {
     if (payload.role === 'parent') return c.redirect('/dashboard/parent')
     // Inject user info into the main student app
     const page = htmlContent
-        .replace('id="xpCounter">0', `id="xpCounter">0" data-user='${JSON.stringify(payload)}'`)
+        .replace('id="xpCounter"', `id="xpCounter" data-user='${JSON.stringify(payload)}'`)
     return c.html(page)
 })
 
