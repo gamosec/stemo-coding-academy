@@ -103,7 +103,7 @@ app.post('/api/auth/login', async (c) => {
 // Student self-registration
 app.post('/api/auth/register', async (c) => {
     try {
-        const { username, password, full_name } = await c.req.json()
+        const { username, password, full_name, class_id, parent_username } = await c.req.json()
         if (!username || !password || !full_name) return c.json({ error: 'All fields are required' }, 400)
         if (username.length < 3) return c.json({ error: 'Username must be at least 3 characters' }, 400)
         if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
@@ -112,7 +112,17 @@ app.post('/api/auth/register', async (c) => {
             const result = await c.env.DB.prepare(
                 "INSERT INTO users (username, password_hash, role, full_name, status) VALUES (?, ?, 'student', ?, 'pending')"
             ).bind(username, hash, full_name).run()
-            await c.env.DB.prepare('INSERT OR IGNORE INTO student_progress (student_id) VALUES (?)').bind(result.meta.last_row_id).run()
+            const newStudentId = result.meta.last_row_id
+            await c.env.DB.prepare('INSERT OR IGNORE INTO student_progress (student_id) VALUES (?)').bind(newStudentId).run()
+            if (class_id) {
+                await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(class_id, newStudentId).run()
+            }
+            if (parent_username) {
+                const parent = await c.env.DB.prepare("SELECT id FROM users WHERE username = ? AND role = 'parent' AND status = 'approved'").bind(parent_username).first() as any
+                if (parent) {
+                    await c.env.DB.prepare('INSERT OR IGNORE INTO parent_students (parent_id, student_id) VALUES (?, ?)').bind(parent.id, newStudentId).run()
+                }
+            }
             return c.json({ success: true, message: 'Registration submitted! Your teacher will approve your account soon.' })
         } catch (e: any) {
             if (e.message?.includes('UNIQUE')) return c.json({ error: 'That username is already taken. Please choose another.' }, 409)
@@ -227,9 +237,10 @@ app.get('/api/classes', authMiddleware, async (c) => {
 app.post('/api/classes', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
-    const { name, description } = await c.req.json()
-    const teacherId = me.role === 'teacher' ? me.id : (await c.req.json()).teacher_id || me.id
-    const result = await c.env.DB.prepare('INSERT INTO classes (name, description, teacher_id) VALUES (?, ?, ?)').bind(name, description || '', me.id).run()
+    const body = await c.req.json()
+    const { name, description, teacher_id } = body
+    const finalTeacherId = me.role === 'teacher' ? me.id : (teacher_id || null)
+    const result = await c.env.DB.prepare('INSERT INTO classes (name, description, teacher_id) VALUES (?, ?, ?)').bind(name, description || '', finalTeacherId).run()
     return c.json({ success: true, id: result.meta.last_row_id })
 })
 
@@ -255,6 +266,44 @@ app.post('/api/classes/:id/students', authMiddleware, async (c) => {
     const { student_id } = await c.req.json()
     await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(classId, student_id).run()
     return c.json({ success: true })
+})
+
+// Remove student from class
+app.delete('/api/classes/:id/students/:studentId', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const classId = c.req.param('id')
+    const studentId = c.req.param('studentId')
+    await c.env.DB.prepare('DELETE FROM class_students WHERE class_id = ? AND student_id = ?').bind(classId, studentId).run()
+    return c.json({ success: true })
+})
+
+// Get approved students NOT yet in a specific class
+app.get('/api/classes/:id/available-students', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const classId = c.req.param('id')
+    const { results } = await c.env.DB.prepare(`
+        SELECT id, full_name, username FROM users
+        WHERE role = 'student' AND status = 'approved'
+        AND id NOT IN (SELECT student_id FROM class_students WHERE class_id = ?)
+        ORDER BY full_name
+    `).bind(classId).all()
+    return c.json(results)
+})
+
+// Get teachers list (admin only)
+app.get('/api/teachers', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare("SELECT id, full_name, username FROM users WHERE role = 'teacher' AND status = 'approved' ORDER BY full_name").all()
+    return c.json(results)
+})
+
+// Public classes list (no auth — for registration page)
+app.get('/api/public/classes', async (c) => {
+    const { results } = await c.env.DB.prepare('SELECT id, name, description FROM classes ORDER BY name').all()
+    return c.json(results)
 })
 
 // ============================================
@@ -4418,16 +4467,20 @@ const adminDashboard = `<!DOCTYPE html>
             </div>
             <div id="createClassForm" class="hidden bg-indigo-50 rounded-xl p-4 mb-4 border border-indigo-200">
                 <h3 class="font-bold text-indigo-700 mb-3">Create New Class</h3>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <input id="newClassName" placeholder="Class Name" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
                     <input id="newClassDesc" placeholder="Description (optional)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                    <select id="newClassTeacher" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                        <option value="">— Assign Teacher (optional) —</option>
+                    </select>
                 </div>
                 <div class="flex gap-2 mt-3">
                     <button onclick="createClass()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">✅ Create</button>
                     <button onclick="document.getElementById('createClassForm').classList.add('hidden')" class="bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold">Cancel</button>
                 </div>
+                <div id="createClassMsg" class="mt-2 text-sm hidden"></div>
             </div>
-            <div id="classesList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="classesList" class="space-y-4"></div>
         </div>
     </div>
     <!-- Parent Links Tab -->
@@ -4527,12 +4580,53 @@ async function loadUsers() {
 async function loadClasses() {
     const classes = await fetch('/api/classes').then(r=>r.json());
     document.getElementById('statClasses').textContent = classes.length;
-    document.getElementById('classesList').innerHTML = classes.map(c => \`
-        <div class="border rounded-xl p-4">
-            <h3 class="font-bold text-gray-800">\${c.name}</h3>
-            <p class="text-gray-500 text-sm">\${c.description || 'No description'}</p>
-            <p class="text-indigo-500 text-xs mt-1">Teacher: \${c.teacher_name || 'Unassigned'}</p>
-        </div>\`).join('');
+    if (!classes.length) {
+        document.getElementById('classesList').innerHTML = '<p class="text-gray-400 text-center py-8">No classes yet. Click "+ Add Class" to create one.</p>';
+        return;
+    }
+    const container = document.getElementById('classesList');
+    container.innerHTML = '';
+    for (const cls of classes) {
+        const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
+        const available = await fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json());
+        const studentRows = students.map(s => \`
+            <tr class="border-b hover:bg-gray-50">
+                <td class="py-2 font-semibold text-sm">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
+                <td class="py-2 text-xs text-yellow-500 font-bold">⭐ \${s.xp||0}</td>
+                <td class="py-2 text-xs"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Lv \${s.level||1}</span></td>
+                <td class="py-2"><button onclick="removeStudentFromClass(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs">✕ Remove</button></td>
+            </tr>\`).join('');
+        const availableOpts = available.map(s => \`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
+        const div = document.createElement('div');
+        div.className = 'border rounded-xl p-5 bg-white shadow-sm';
+        div.innerHTML = \`
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">\${cls.name}</h3>
+                    <p class="text-gray-400 text-sm">\${cls.description || ''}</p>
+                </div>
+                <div class="text-right">
+                    <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">\${students.length} students</span>
+                    <div class="text-blue-500 text-xs mt-1">📚 \${cls.teacher_name || '— Unassigned —'}</div>
+                </div>
+            </div>
+            \${students.length ? \`<div class="overflow-x-auto mb-3"><table class="w-full text-sm"><thead><tr class="border-b text-gray-400 text-xs"><th class="pb-1 text-left">Student</th><th class="pb-1 text-left">XP</th><th class="pb-1 text-left">Level</th><th class="pb-1"></th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-sm mb-3">No students enrolled yet.</p>'}
+            \${available.length ? \`<div class="flex gap-2 items-center mt-2"><select id="addStudentSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400"><option value="">+ Add a student to this class...</option>\${availableOpts}</select><button onclick="addStudentToClass(\${cls.id})" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-700">Add</button></div>\` : '<p class="text-gray-400 text-xs mt-2">All approved students are enrolled.</p>'}
+        \`;
+        container.appendChild(div);
+    }
+}
+
+async function removeStudentFromClass(classId, studentId) {
+    await fetch('/api/classes/' + classId + '/students/' + studentId, { method: 'DELETE' });
+    loadClasses();
+}
+
+async function addStudentToClass(classId) {
+    const sel = document.getElementById('addStudentSel_' + classId);
+    if (!sel.value) return;
+    await fetch('/api/classes/' + classId + '/students', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ student_id: sel.value }) });
+    loadClasses();
 }
 
 async function loadLinkDropdowns() {
@@ -4544,7 +4638,12 @@ async function loadLinkDropdowns() {
 }
 
 function showCreateUser() { document.getElementById('createUserForm').classList.toggle('hidden'); }
-function showCreateClass() { document.getElementById('createClassForm').classList.toggle('hidden'); }
+async function showCreateClass() {
+    document.getElementById('createClassForm').classList.toggle('hidden');
+    const teachers = await fetch('/api/teachers').then(r=>r.json());
+    const sel = document.getElementById('newClassTeacher');
+    sel.innerHTML = '<option value="">— Assign Teacher (optional) —</option>' + teachers.map(t=>\`<option value="\${t.id}">\${t.full_name} (@\${t.username})</option>\`).join('');
+}
 
 async function createUser() {
     const msg = document.getElementById('createUserMsg');
@@ -4558,11 +4657,21 @@ async function createUser() {
 }
 
 async function createClass() {
-    await fetch('/api/classes', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ name: document.getElementById('newClassName').value, description: document.getElementById('newClassDesc').value })
+    const name = document.getElementById('newClassName').value.trim();
+    const msg = document.getElementById('createClassMsg');
+    if (!name) { msg.className='mt-2 text-sm text-red-600'; msg.classList.remove('hidden'); msg.textContent='Class name is required.'; return; }
+    const res = await fetch('/api/classes', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name, description: document.getElementById('newClassDesc').value, teacher_id: document.getElementById('newClassTeacher').value || null })
     });
-    loadClasses();
-    document.getElementById('createClassForm').classList.add('hidden');
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('newClassName').value = '';
+        document.getElementById('newClassDesc').value = '';
+        document.getElementById('createClassForm').classList.add('hidden');
+        loadClasses();
+    } else {
+        msg.className='mt-2 text-sm text-red-600'; msg.classList.remove('hidden'); msg.textContent='❌ ' + (data.error||'Failed');
+    }
 }
 
 async function deleteUser(id, username) {
@@ -4662,33 +4771,54 @@ async function init() {
     let totalStudents = 0, totalXP = 0, xpCount = 0;
     const container = document.getElementById('classesContainer');
     container.innerHTML = '';
+    if (!classes.length) {
+        container.innerHTML = '<div class="bg-white rounded-2xl shadow p-12 text-center"><div class="text-5xl mb-3">🏫</div><p class="text-gray-400">You have no classes assigned yet. Contact your admin to be assigned to a class.</p></div>';
+    }
     for (const cls of classes) {
         const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
+        const available = await fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json());
         totalStudents += students.length;
         students.forEach(s => { if(s.xp) { totalXP += s.xp; xpCount++; } });
-        container.innerHTML += \`
-        <div class="bg-white rounded-2xl shadow p-6">
+        const studentRows = students.map(s => {
+            const lessons = JSON.parse(s.completed_lessons || '[]');
+            return \`<tr class="border-b hover:bg-gray-50">
+                <td class="py-2 font-semibold">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
+                <td class="py-2"><span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">Lv \${s.level || 1}</span></td>
+                <td class="py-2 font-bold text-yellow-500">⭐ \${s.xp || 0}</td>
+                <td class="py-2">\${lessons.length} / 14</td>
+                <td class="py-2">\${s.streak || 0} 🔥</td>
+                <td class="py-2"><button onclick="removeStudent(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs font-bold">✕</button></td>
+            </tr>\`;
+        }).join('');
+        const availableOpts = available.map(s => \`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
+        const div = document.createElement('div');
+        div.className = 'bg-white rounded-2xl shadow p-6';
+        div.innerHTML = \`
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl text-blue-700">🏫 \${cls.name}</h2>
                 <span class="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full font-bold">\${students.length} students</span>
             </div>
             <p class="text-gray-500 text-sm mb-4">\${cls.description || ''}</p>
-            \${students.length === 0 ? '<p class="text-gray-400 text-center py-8">No students in this class yet. Ask your admin to add students.</p>' :
-            '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons Done</th><th class="pb-2">Streak</th></tr></thead><tbody>' +
-            students.map(s => {
-                const lessons = JSON.parse(s.completed_lessons || '[]');
-                return \`<tr class="border-b hover:bg-gray-50">
-                    <td class="py-2 font-semibold">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
-                    <td class="py-2"><span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">Lv \${s.level || 1}</span></td>
-                    <td class="py-2 font-bold text-yellow-500">⭐ \${s.xp || 0}</td>
-                    <td class="py-2">\${lessons.length} / 14</td>
-                    <td class="py-2">\${s.streak || 0} 🔥</td>
-                </tr>\`;
-            }).join('') + '</tbody></table></div>'}
-        </div>\`;
+            \${students.length ? \`<div class="overflow-x-auto mb-4"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons</th><th class="pb-2">Streak</th><th class="pb-2"></th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-center py-6 mb-2">No students in this class yet.</p>'}
+            \${available.length ? \`<div class="flex gap-2 items-center border-t pt-4"><select id="tAddSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"><option value="">+ Enrol an approved student...</option>\${availableOpts}</select><button onclick="teacherAddStudent(\${cls.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button></div>\` : '<p class="text-gray-400 text-xs border-t pt-3">All approved students are enrolled.</p>'}
+        \`;
+        container.appendChild(div);
     }
     document.getElementById('statStudents').textContent = totalStudents;
     document.getElementById('statAvgXP').textContent = xpCount ? Math.round(totalXP/xpCount) : 0;
+}
+
+async function teacherAddStudent(classId) {
+    const sel = document.getElementById('tAddSel_' + classId);
+    if (!sel || !sel.value) return;
+    await fetch('/api/classes/' + classId + '/students', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ student_id: sel.value }) });
+    init();
+}
+
+async function removeStudent(classId, studentId) {
+    if (!confirm('Remove this student from the class?')) return;
+    await fetch('/api/classes/' + classId + '/students/' + studentId, { method: 'DELETE' });
+    init();
 }
 
 async function approveUser(id, action) {
@@ -4858,6 +4988,19 @@ const registerPage = `<!DOCTYPE html>
                         <input id="confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password"
                             class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
                     </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Class <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <select id="class_id" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                            <option value="">— Select your class —</option>
+                        </select>
+                        <p class="text-gray-400 text-xs mt-1">Choose your class if your teacher has already set one up.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Parent Username <span class="text-gray-400 font-normal">(optional)</span></label>
+                        <input id="parent_username" type="text" placeholder="Your parent's STEMO username"
+                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                        <p class="text-gray-400 text-xs mt-1">If your parent already has a STEMO account, enter their username to link automatically.</p>
+                    </div>
                     <button type="submit" id="regBtn"
                         class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
                         ✍️ Submit Registration
@@ -4877,6 +5020,17 @@ const registerPage = `<!DOCTYPE html>
         </div>
     </div>
     <script>
+        // Load available classes
+        fetch('/api/public/classes').then(r=>r.json()).then(classes => {
+            const sel = document.getElementById('class_id');
+            classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name + (c.description ? ' — ' + c.description : '');
+                sel.appendChild(opt);
+            });
+        }).catch(()=>{});
+
         document.getElementById('regForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('regBtn');
@@ -4885,6 +5039,8 @@ const registerPage = `<!DOCTYPE html>
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm').value;
+            const classId = document.getElementById('class_id').value || null;
+            const parentUsername = document.getElementById('parent_username').value.trim() || null;
             err.classList.add('hidden');
             if (!fullName || !username || !password) { err.textContent = 'All fields are required.'; err.classList.remove('hidden'); return; }
             if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.classList.remove('hidden'); return; }
@@ -4896,7 +5052,7 @@ const registerPage = `<!DOCTYPE html>
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ full_name: fullName, username, password })
+                    body: JSON.stringify({ full_name: fullName, username, password, class_id: classId, parent_username: parentUsername })
                 });
                 const data = await res.json();
                 if (data.success) {
