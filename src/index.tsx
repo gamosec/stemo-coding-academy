@@ -454,7 +454,7 @@ app.get('/api/student/profile', authMiddleware, async (c) => {
         LEFT JOIN users u ON c.teacher_id = u.id
         LEFT JOIN assigned_lessons al ON al.class_id = c.id
         WHERE cs.student_id = ?
-        ORDER BY cs.id DESC LIMIT 1
+        LIMIT 1
     `).bind(me.id).first()
     return c.json({ user, class: cls || null })
 })
@@ -5038,7 +5038,7 @@ const teacherDashboard = `<!DOCTYPE html>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-blue-200 text-sm" id="welcomeMsg"></span>
-            <a href="/" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
+            <a href="/academy" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
             <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
         </div>
     </div>
@@ -5330,7 +5330,7 @@ function renderCurriculum() {
                     </div>
                     <div class="flex flex-wrap gap-2 mt-3">
                         \${allClasses.length ? allClasses.map(c=>\`<button onclick="quickAssign('\${l.id}',\${c.id},'\${l.title}')" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700">📌 Assign to \${c.name}</button>\`).join('') : '<span class="text-gray-400 text-xs">No classes yet</span>'}
-                        <a href="/" target="_blank" class="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-3 py-1.5 rounded-lg font-bold">🤖 Open Academy</a>
+                        <a href="/academy" target="_blank" class="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-3 py-1.5 rounded-lg font-bold">🤖 Open Academy</a>
                     </div>
                 </div>\`).join('')}
             </div>
@@ -5656,6 +5656,21 @@ app.get('/register', (c) => c.html(registerPage))
 app.get('/dashboard/admin', (c) => c.html(adminDashboard))
 app.get('/dashboard/teacher', (c) => c.html(teacherDashboard))
 app.get('/dashboard/parent', (c) => c.html(parentDashboard))
+
+// Academy demo route — teachers and admins can view the academy without being redirected
+app.get('/academy', async (c) => {
+    const cookie = c.req.header('cookie') || ''
+    const token = getCookieToken(cookie)
+    if (!token) return c.redirect('/login')
+    const payload = await verifyToken(token)
+    if (!payload) return c.redirect('/login')
+    // Show academy in demo mode for teachers/admins (no progress saved)
+    const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
+        🎓 Demo Mode — You are viewing the academy as a teacher. Progress is not saved. <a href="/dashboard/teacher" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
+    </div>`
+    const page = htmlContent.replace('<body', demoBanner + '<body')
+    return c.html(page)
+})
 
 // Main app - check auth and redirect students, allow access with user info
 app.get('/', async (c) => {
