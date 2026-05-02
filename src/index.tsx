@@ -3,12 +3,270 @@ import { cors } from 'hono/cors'
 
 type Bindings = {
     AI: any
+    DB: D1Database
 }
 
-const app = new Hono<{ Bindings: Bindings }>()
+type Variables = {
+    user: {
+        id: number
+        username: string
+        role: string
+        full_name: string
+        exp: number
+    }
+}
+
+// ============================================
+// AUTH HELPERS (Web Crypto - Cloudflare compatible)
+// ============================================
+async function hashPassword(password: string): Promise<string> {
+    const encoder = new TextEncoder()
+    const data = encoder.encode(password)
+    const hash = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function createToken(payload: any): Promise<string> {
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    const body = btoa(JSON.stringify({ ...payload, exp: Date.now() + 86400000 * 7 }))
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey('raw', encoder.encode('stemo-secret-key-2024'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+    const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`))
+    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
+    return `${header}.${body}.${sigB64}`
+}
+
+async function verifyToken(token: string): Promise<any> {
+    try {
+        const parts = token.split('.')
+        if (parts.length !== 3) return null
+        const payload = JSON.parse(atob(parts[1]))
+        if (payload.exp < Date.now()) return null
+        return payload
+    } catch { return null }
+}
+
+async function authMiddleware(c: any, next: any) {
+    const cookie = c.req.header('cookie') || ''
+    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    if (!token) return c.json({ error: 'Unauthorized' }, 401)
+    const payload = await verifyToken(token)
+    if (!payload) return c.json({ error: 'Invalid token' }, 401)
+    c.set('user', payload)
+    await next()
+}
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 // Enable CORS
 app.use('/api/*', cors())
+
+// ============================================
+// AUTH ROUTES
+// ============================================
+
+// Login
+app.post('/api/auth/login', async (c) => {
+    try {
+        const { username, password } = await c.req.json()
+        if (!username || !password) return c.json({ error: 'Username and password required' }, 400)
+        const hash = await hashPassword(password)
+        const user = await c.env.DB.prepare('SELECT id, username, role, full_name FROM users WHERE username = ? AND password_hash = ?').bind(username, hash).first()
+        if (!user) return c.json({ error: 'Invalid username or password' }, 401)
+        const token = await createToken({ id: user.id, username: user.username, role: user.role, full_name: user.full_name })
+        const res = c.json({ success: true, user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name } })
+        res.headers.set('Set-Cookie', `stemo_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`)
+        return res
+    } catch (e) {
+        console.error('Login error:', e)
+        return c.json({ error: 'Login failed' }, 500)
+    }
+})
+
+// Logout
+app.post('/api/auth/logout', (c) => {
+    const res = c.json({ success: true })
+    res.headers.set('Set-Cookie', 'stemo_token=; Path=/; HttpOnly; Max-Age=0')
+    return res
+})
+
+// Get current user
+app.get('/api/auth/me', async (c) => {
+    const cookie = c.req.header('cookie') || ''
+    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    if (!token) return c.json({ user: null })
+    const payload = await verifyToken(token)
+    if (!payload) return c.json({ user: null })
+    return c.json({ user: payload })
+})
+
+// ============================================
+// USER MANAGEMENT ROUTES (Admin only)
+// ============================================
+
+// Get all users
+app.get('/api/admin/users', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare('SELECT id, username, role, full_name, created_at FROM users ORDER BY created_at DESC').all()
+    return c.json(results)
+})
+
+// Create user
+app.post('/api/admin/users', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { username, password, role, full_name } = await c.req.json()
+    if (!username || !password || !role || !full_name) return c.json({ error: 'All fields required' }, 400)
+    const hash = await hashPassword(password)
+    try {
+        const result = await c.env.DB.prepare('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)').bind(username, hash, role, full_name).run()
+        const newUser = await c.env.DB.prepare('SELECT id, username, role, full_name FROM users WHERE id = ?').bind(result.meta.last_row_id).first()
+        // Init progress for students
+        if (role === 'student') {
+            await c.env.DB.prepare('INSERT OR IGNORE INTO student_progress (student_id) VALUES (?)').bind(result.meta.last_row_id).run()
+        }
+        return c.json({ success: true, user: newUser })
+    } catch (e: any) {
+        if (e.message?.includes('UNIQUE')) return c.json({ error: 'Username already exists' }, 409)
+        return c.json({ error: 'Failed to create user' }, 500)
+    }
+})
+
+// Delete user
+app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const id = c.req.param('id')
+    await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
+    return c.json({ success: true })
+})
+
+// ============================================
+// CLASS MANAGEMENT ROUTES
+// ============================================
+
+// Get classes (teacher sees own, admin sees all)
+app.get('/api/classes', authMiddleware, async (c) => {
+    const me = c.get('user')
+    let rows
+    if (me.role === 'admin') {
+        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id ORDER BY c.created_at DESC').all()
+        rows = results
+    } else if (me.role === 'teacher') {
+        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.teacher_id = ? ORDER BY c.created_at DESC').bind(me.id).all()
+        rows = results
+    } else {
+        return c.json({ error: 'Forbidden' }, 403)
+    }
+    return c.json(rows)
+})
+
+// Create class
+app.post('/api/classes', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const { name, description } = await c.req.json()
+    const teacherId = me.role === 'teacher' ? me.id : (await c.req.json()).teacher_id || me.id
+    const result = await c.env.DB.prepare('INSERT INTO classes (name, description, teacher_id) VALUES (?, ?, ?)').bind(name, description || '', me.id).run()
+    return c.json({ success: true, id: result.meta.last_row_id })
+})
+
+// Get students in a class
+app.get('/api/classes/:id/students', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const classId = c.req.param('id')
+    const { results } = await c.env.DB.prepare(`
+        SELECT u.id, u.username, u.full_name, sp.xp, sp.level, sp.completed_lessons, sp.streak
+        FROM class_students cs JOIN users u ON cs.student_id = u.id
+        LEFT JOIN student_progress sp ON sp.student_id = u.id
+        WHERE cs.class_id = ?
+    `).bind(classId).all()
+    return c.json(results)
+})
+
+// Add student to class
+app.post('/api/classes/:id/students', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const classId = c.req.param('id')
+    const { student_id } = await c.req.json()
+    await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(classId, student_id).run()
+    return c.json({ success: true })
+})
+
+// ============================================
+// PROGRESS ROUTES
+// ============================================
+
+// Get student progress
+app.get('/api/progress/:studentId', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const studentId = c.req.param('studentId')
+    // Students can only view their own
+    if (me.role === 'student' && String(me.id) !== studentId) return c.json({ error: 'Forbidden' }, 403)
+    const progress = await c.env.DB.prepare('SELECT * FROM student_progress WHERE student_id = ?').bind(studentId).first()
+    return c.json(progress || { student_id: studentId, xp: 0, level: 1, completed_lessons: '[]', earned_badges: '[]', streak: 0 })
+})
+
+// Save student progress
+app.post('/api/progress', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student') return c.json({ error: 'Only students can save progress' }, 403)
+    const { xp, level, completed_lessons, earned_badges, streak } = await c.req.json()
+    await c.env.DB.prepare(`
+        INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(student_id) DO UPDATE SET xp=excluded.xp, level=excluded.level,
+        completed_lessons=excluded.completed_lessons, earned_badges=excluded.earned_badges,
+        streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
+    `).bind(me.id, xp, level, JSON.stringify(completed_lessons), JSON.stringify(earned_badges), streak).run()
+    return c.json({ success: true })
+})
+
+// ============================================
+// CHAT HISTORY
+// ============================================
+app.get('/api/chat/history/:studentId', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const studentId = c.req.param('studentId')
+    if (me.role === 'student' && String(me.id) !== studentId) return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare('SELECT * FROM chat_history WHERE student_id = ? ORDER BY created_at DESC LIMIT 50').bind(studentId).all()
+    return c.json(results)
+})
+
+// ============================================
+// PARENT ROUTES
+// ============================================
+app.get('/api/parent/children', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'parent') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare(`
+        SELECT u.id, u.username, u.full_name, sp.xp, sp.level, sp.completed_lessons, sp.earned_badges, sp.streak, sp.last_active
+        FROM parent_students ps JOIN users u ON ps.student_id = u.id
+        LEFT JOIN student_progress sp ON sp.student_id = u.id
+        WHERE ps.parent_id = ?
+    `).bind(me.id).all()
+    return c.json(results)
+})
+
+// Link parent to student (admin only)
+app.post('/api/parent/link', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { parent_id, student_id } = await c.req.json()
+    await c.env.DB.prepare('INSERT OR IGNORE INTO parent_students (parent_id, student_id) VALUES (?, ?)').bind(parent_id, student_id).run()
+    return c.json({ success: true })
+})
+
+// Get all students (for admin/teacher dropdowns)
+app.get('/api/admin/students', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare("SELECT id, username, full_name FROM users WHERE role = 'student' ORDER BY full_name").all()
+    return c.json(results)
+})
 
 // ============================================
 // CURRICULUM DATA - Lessons & Challenges
@@ -369,12 +627,6 @@ Answer the following message from a student: "${message}"`;
     }
 }
 
-// Save progress
-app.post('/api/progress', async (c) => {
-    const progress = await c.req.json()
-    return c.json({ success: true, message: 'Progress saved!' })
-})
-
 // ============================================
 // MAIN PAGE - Using raw string to avoid escaping issues
 // ============================================
@@ -475,9 +727,11 @@ const htmlContent = `<!DOCTYPE html>
                     <span class="text-2xl">🏆</span>
                     <span class="font-bold">Level <span id="levelCounter">1</span></span>
                 </div>
-                <div class="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-xl cursor-pointer">
-                    👦
+                <div class="flex items-center gap-2 bg-white/20 rounded-full px-3 py-2">
+                    <span class="text-xl">👦</span>
+                    <span class="font-semibold text-sm" id="studentName">Student</span>
                 </div>
+                <button onclick="logoutStudent()" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-full text-sm font-bold transition-all">🚪</button>
             </div>
         </div>
     </nav>
@@ -928,15 +1182,21 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('STEMO initializing...');
-            updateUI();
-            loadLessons();
-            loadBadges();
+            // Load user info from injected data attribute
+            var xpEl = document.getElementById('xpCounter');
+            var userData = null;
+            try { userData = JSON.parse(xpEl.getAttribute('data-user') || 'null'); } catch(e) {}
+            if (userData) {
+                document.getElementById('studentName').textContent = userData.full_name || userData.username;
+                loadProgressFromDB(userData.id);
+            } else {
+                updateUI();
+                loadLessons();
+                loadBadges();
+            }
             initBlockly();
             drawRobot();
-            
-            // Start the animation loop for realistic effects
             requestAnimationFrame(animationLoop);
-            
             console.log('STEMO ready!');
         });
 
@@ -984,12 +1244,50 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('badgesEarned').textContent = stemo.badges.length;
         }
 
-        function saveProgress() {
+        // Save progress to D1 (and localStorage as fallback)
+        async function saveProgress() {
             localStorage.setItem('stemo_xp', stemo.xp);
             localStorage.setItem('stemo_level', stemo.level);
             localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
             localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
             localStorage.setItem('stemo_streak', stemo.streak);
+            try {
+                await fetch('/api/progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        xp: stemo.xp,
+                        level: stemo.level,
+                        completed_lessons: stemo.completedLessons,
+                        earned_badges: stemo.badges,
+                        streak: stemo.streak
+                    })
+                });
+            } catch(e) { console.log('Progress saved locally only'); }
+        }
+
+        // Load progress from D1
+        async function loadProgressFromDB(userId) {
+            try {
+                const res = await fetch('/api/progress/' + userId);
+                const data = await res.json();
+                if (data && data.xp !== undefined) {
+                    stemo.xp = data.xp || 0;
+                    stemo.level = data.level || 1;
+                    stemo.completedLessons = JSON.parse(data.completed_lessons || '[]');
+                    stemo.badges = JSON.parse(data.earned_badges || '[]');
+                    stemo.streak = data.streak || 0;
+                    updateUI();
+                    loadLessons();
+                    loadBadges();
+                }
+            } catch(e) { console.log('Using local progress'); }
+        }
+
+        // Logout
+        async function logoutStudent() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login';
         }
 
         // ============================================
@@ -3863,8 +4161,515 @@ const htmlContent = `<!DOCTYPE html>
 </body>
 </html>`;
 
-app.get('/', (c) => {
-    return c.html(htmlContent)
+// ============================================
+// LOGIN PAGE
+// ============================================
+const loginPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 STEMO - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Nunito', sans-serif; }
+        h1, h2 { font-family: 'Fredoka One', cursive; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bounce { animation: bounce 2s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="text-8xl bounce mb-4">🤖</div>
+            <h1 class="text-5xl text-white mb-2">STEMO</h1>
+            <p class="text-purple-200 text-lg">AI Coding Academy</p>
+        </div>
+        <div class="card rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-2xl text-gray-800 mb-6 text-center">Welcome Back!</h2>
+            <div id="errorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm"></div>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Username</label>
+                    <input id="username" type="text" placeholder="Enter your username" autocomplete="username"
+                        class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors text-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-600 mb-1">Password</label>
+                    <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password"
+                        class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors text-lg">
+                </div>
+                <button type="submit" id="loginBtn"
+                    class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+                    🚀 Let's Go!
+                </button>
+            </form>
+            <p class="text-center text-gray-400 text-sm mt-6">Ask your teacher for your username and password</p>
+        </div>
+    </div>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const err = document.getElementById('errorMsg');
+            btn.textContent = '⏳ Logging in...';
+            btn.disabled = true;
+            err.classList.add('hidden');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value.trim(),
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const role = data.user.role;
+                    if (role === 'admin') window.location.href = '/dashboard/admin';
+                    else if (role === 'teacher') window.location.href = '/dashboard/teacher';
+                    else if (role === 'parent') window.location.href = '/dashboard/parent';
+                    else window.location.href = '/';
+                } else {
+                    err.textContent = data.error || 'Login failed. Please try again.';
+                    err.classList.remove('hidden');
+                    btn.textContent = '🚀 Let\\'s Go!';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                err.textContent = 'Connection error. Please try again.';
+                err.classList.remove('hidden');
+                btn.textContent = '🚀 Let\\'s Go!';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>`
+
+// ============================================
+// ADMIN DASHBOARD PAGE
+// ============================================
+const adminDashboard = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ STEMO Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>* { font-family: 'Nunito', sans-serif; } h1,h2,h3{font-family:'Fredoka One',cursive;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white px-6 py-4 shadow-lg">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">🛡️</span>
+            <div><h1 class="text-2xl">STEMO Admin</h1><p class="text-purple-200 text-xs">System Dashboard</p></div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
+            <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold transition-all">🚪 Logout</button>
+        </div>
+    </div>
+</nav>
+<div class="max-w-7xl mx-auto p-6">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" id="statsRow">
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">👥</div><div class="text-3xl font-bold text-indigo-600" id="statUsers">-</div><div class="text-gray-500 text-sm">Total Users</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🎓</div><div class="text-3xl font-bold text-green-600" id="statStudents">-</div><div class="text-gray-500 text-sm">Students</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">📚</div><div class="text-3xl font-bold text-blue-600" id="statTeachers">-</div><div class="text-gray-500 text-sm">Teachers</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🏫</div><div class="text-3xl font-bold text-purple-600" id="statClasses">-</div><div class="text-gray-500 text-sm">Classes</div></div>
+    </div>
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6">
+        <button onclick="showTab('users')" id="tab-users" class="tab-btn bg-indigo-600 text-white px-5 py-2 rounded-full font-bold text-sm">👥 Users</button>
+        <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏫 Classes</button>
+        <button onclick="showTab('links')" id="tab-links" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🔗 Parent Links</button>
+    </div>
+    <!-- Users Tab -->
+    <div id="section-users">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl">All Users</h2>
+                <button onclick="showCreateUser()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-700">+ Add User</button>
+            </div>
+            <!-- Create User Form -->
+            <div id="createUserForm" class="hidden bg-indigo-50 rounded-xl p-4 mb-4 border border-indigo-200">
+                <h3 class="font-bold text-indigo-700 mb-3">Create New User</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <input id="newFullName" placeholder="Full Name" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                    <input id="newUsername" placeholder="Username" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                    <input id="newPassword" type="password" placeholder="Password" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                    <select id="newRole" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                        <option value="student">🎓 Student</option>
+                        <option value="teacher">📚 Teacher</option>
+                        <option value="parent">👨‍👩‍👧 Parent</option>
+                        <option value="admin">🛡️ Admin</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="createUser()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">✅ Create</button>
+                    <button onclick="document.getElementById('createUserForm').classList.add('hidden')" class="bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                </div>
+                <div id="createUserMsg" class="mt-2 text-sm hidden"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Name</th><th class="pb-2">Username</th><th class="pb-2">Role</th><th class="pb-2">Joined</th><th class="pb-2">Actions</th></tr></thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Classes Tab -->
+    <div id="section-classes" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl">Classes</h2>
+                <button onclick="showCreateClass()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-700">+ Add Class</button>
+            </div>
+            <div id="createClassForm" class="hidden bg-indigo-50 rounded-xl p-4 mb-4 border border-indigo-200">
+                <h3 class="font-bold text-indigo-700 mb-3">Create New Class</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <input id="newClassName" placeholder="Class Name" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                    <input id="newClassDesc" placeholder="Description (optional)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="createClass()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700">✅ Create</button>
+                    <button onclick="document.getElementById('createClassForm').classList.add('hidden')" class="bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                </div>
+            </div>
+            <div id="classesList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+    </div>
+    <!-- Parent Links Tab -->
+    <div id="section-links" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl mb-4">Link Parent to Student</h2>
+            <div class="grid grid-cols-2 gap-4 max-w-md">
+                <div>
+                    <label class="text-sm font-bold text-gray-600 block mb-1">Parent</label>
+                    <select id="linkParent" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"></select>
+                </div>
+                <div>
+                    <label class="text-sm font-bold text-gray-600 block mb-1">Student</label>
+                    <select id="linkStudent" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"></select>
+                </div>
+            </div>
+            <button onclick="linkParent()" class="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold text-sm hover:bg-indigo-700">🔗 Link</button>
+            <div id="linkMsg" class="mt-2 text-sm hidden"></div>
+        </div>
+    </div>
+</div>
+<script>
+let allUsers = [];
+const roleColors = {admin:'bg-red-100 text-red-700',teacher:'bg-blue-100 text-blue-700',student:'bg-green-100 text-green-700',parent:'bg-yellow-100 text-yellow-700'};
+const roleEmoji = {admin:'🛡️',teacher:'📚',student:'🎓',parent:'👨‍👩‍👧'};
+
+async function init() {
+    const me = await fetch('/api/auth/me').then(r=>r.json());
+    if (!me.user || me.user.role !== 'admin') { window.location.href='/login'; return; }
+    document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+    loadUsers();
+    loadClasses();
+    loadLinkDropdowns();
+}
+
+function showTab(tab) {
+    ['users','classes','links'].forEach(t => {
+        document.getElementById('section-'+t).classList.add('hidden');
+        document.getElementById('tab-'+t).className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
+    });
+    document.getElementById('section-'+tab).classList.remove('hidden');
+    document.getElementById('tab-'+tab).className = 'tab-btn bg-indigo-600 text-white px-5 py-2 rounded-full font-bold text-sm';
+}
+
+async function loadUsers() {
+    allUsers = await fetch('/api/admin/users').then(r=>r.json());
+    const students = allUsers.filter(u=>u.role==='student').length;
+    const teachers = allUsers.filter(u=>u.role==='teacher').length;
+    document.getElementById('statUsers').textContent = allUsers.length;
+    document.getElementById('statStudents').textContent = students;
+    document.getElementById('statTeachers').textContent = teachers;
+    const tbody = document.getElementById('usersTable');
+    tbody.innerHTML = allUsers.map(u => \`<tr class="border-b hover:bg-gray-50">
+        <td class="py-2 font-semibold">\${u.full_name}</td>
+        <td class="py-2 text-gray-500">@\${u.username}</td>
+        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${roleColors[u.role]}">\${roleEmoji[u.role]} \${u.role}</span></td>
+        <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
+        <td class="py-2"><button onclick="deleteUser(\${u.id}, '\${u.username}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button></td>
+    </tr>\`).join('');
+}
+
+async function loadClasses() {
+    const classes = await fetch('/api/classes').then(r=>r.json());
+    document.getElementById('statClasses').textContent = classes.length;
+    document.getElementById('classesList').innerHTML = classes.map(c => \`
+        <div class="border rounded-xl p-4">
+            <h3 class="font-bold text-gray-800">\${c.name}</h3>
+            <p class="text-gray-500 text-sm">\${c.description || 'No description'}</p>
+            <p class="text-indigo-500 text-xs mt-1">Teacher: \${c.teacher_name || 'Unassigned'}</p>
+        </div>\`).join('');
+}
+
+async function loadLinkDropdowns() {
+    const users = allUsers.length ? allUsers : await fetch('/api/admin/users').then(r=>r.json());
+    const parents = users.filter(u=>u.role==='parent');
+    const students = users.filter(u=>u.role==='student');
+    document.getElementById('linkParent').innerHTML = parents.map(u=>\`<option value="\${u.id}">\${u.full_name}</option>\`).join('');
+    document.getElementById('linkStudent').innerHTML = students.map(u=>\`<option value="\${u.id}">\${u.full_name}</option>\`).join('');
+}
+
+function showCreateUser() { document.getElementById('createUserForm').classList.toggle('hidden'); }
+function showCreateClass() { document.getElementById('createClassForm').classList.toggle('hidden'); }
+
+async function createUser() {
+    const msg = document.getElementById('createUserMsg');
+    const res = await fetch('/api/admin/users', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ full_name: document.getElementById('newFullName').value, username: document.getElementById('newUsername').value, password: document.getElementById('newPassword').value, role: document.getElementById('newRole').value })
+    });
+    const data = await res.json();
+    msg.classList.remove('hidden');
+    if (data.success) { msg.className = 'mt-2 text-sm text-green-600'; msg.textContent = '✅ User created!'; loadUsers(); loadLinkDropdowns(); }
+    else { msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + data.error; }
+}
+
+async function createClass() {
+    await fetch('/api/classes', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ name: document.getElementById('newClassName').value, description: document.getElementById('newClassDesc').value })
+    });
+    loadClasses();
+    document.getElementById('createClassForm').classList.add('hidden');
+}
+
+async function deleteUser(id, username) {
+    if (!confirm('Delete user @' + username + '?')) return;
+    await fetch('/api/admin/users/' + id, { method: 'DELETE' });
+    loadUsers();
+}
+
+async function linkParent() {
+    const msg = document.getElementById('linkMsg');
+    const res = await fetch('/api/parent/link', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ parent_id: document.getElementById('linkParent').value, student_id: document.getElementById('linkStudent').value })
+    });
+    const data = await res.json();
+    msg.classList.remove('hidden');
+    if (data.success) { msg.className = 'mt-2 text-sm text-green-600'; msg.textContent = '✅ Linked!'; }
+    else { msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + data.error; }
+}
+
+async function logout() {
+    await fetch('/api/auth/logout', { method:'POST' });
+    window.location.href = '/login';
+}
+
+init();
+</script>
+</body>
+</html>`
+
+// ============================================
+// TEACHER DASHBOARD PAGE
+// ============================================
+const teacherDashboard = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 STEMO Teacher Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>* { font-family: 'Nunito', sans-serif; } h1,h2,h3{font-family:'Fredoka One',cursive;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-4 shadow-lg">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">📚</span>
+            <div><h1 class="text-2xl">Teacher Dashboard</h1><p class="text-blue-200 text-xs">STEMO Academy</p></div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-blue-200 text-sm" id="welcomeMsg"></span>
+            <a href="/" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
+            <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
+        </div>
+    </div>
+</nav>
+<div class="max-w-7xl mx-auto p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🏫</div><div class="text-3xl font-bold text-blue-600" id="statClasses">-</div><div class="text-gray-500 text-sm">My Classes</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🎓</div><div class="text-3xl font-bold text-green-600" id="statStudents">-</div><div class="text-gray-500 text-sm">Total Students</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">⭐</div><div class="text-3xl font-bold text-yellow-500" id="statAvgXP">-</div><div class="text-gray-500 text-sm">Avg XP</div></div>
+    </div>
+    <div id="classesContainer" class="space-y-6"></div>
+</div>
+<script>
+async function init() {
+    const me = await fetch('/api/auth/me').then(r=>r.json());
+    if (!me.user || me.user.role !== 'teacher') { window.location.href='/login'; return; }
+    document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+    const classes = await fetch('/api/classes').then(r=>r.json());
+    document.getElementById('statClasses').textContent = classes.length;
+    let totalStudents = 0, totalXP = 0, xpCount = 0;
+    const container = document.getElementById('classesContainer');
+    container.innerHTML = '';
+    for (const cls of classes) {
+        const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
+        totalStudents += students.length;
+        students.forEach(s => { if(s.xp) { totalXP += s.xp; xpCount++; } });
+        container.innerHTML += \`
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl text-blue-700">🏫 \${cls.name}</h2>
+                <span class="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full font-bold">\${students.length} students</span>
+            </div>
+            <p class="text-gray-500 text-sm mb-4">\${cls.description || ''}</p>
+            \${students.length === 0 ? '<p class="text-gray-400 text-center py-8">No students in this class yet. Ask your admin to add students.</p>' :
+            '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons Done</th><th class="pb-2">Streak</th></tr></thead><tbody>' +
+            students.map(s => {
+                const lessons = JSON.parse(s.completed_lessons || '[]');
+                return \`<tr class="border-b hover:bg-gray-50">
+                    <td class="py-2 font-semibold">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
+                    <td class="py-2"><span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">Lv \${s.level || 1}</span></td>
+                    <td class="py-2 font-bold text-yellow-500">⭐ \${s.xp || 0}</td>
+                    <td class="py-2">\${lessons.length} / 14</td>
+                    <td class="py-2">\${s.streak || 0} 🔥</td>
+                </tr>\`;
+            }).join('') + '</tbody></table></div>'}
+        </div>\`;
+    }
+    document.getElementById('statStudents').textContent = totalStudents;
+    document.getElementById('statAvgXP').textContent = xpCount ? Math.round(totalXP/xpCount) : 0;
+}
+
+async function logout() {
+    await fetch('/api/auth/logout', { method:'POST' });
+    window.location.href = '/login';
+}
+init();
+</script>
+</body>
+</html>`
+
+// ============================================
+// PARENT DASHBOARD PAGE
+// ============================================
+const parentDashboard = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👨‍👩‍👧 STEMO Parent View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>* { font-family: 'Nunito', sans-serif; } h1,h2,h3{font-family:'Fredoka One',cursive;}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-gradient-to-r from-green-500 to-teal-600 text-white px-6 py-4 shadow-lg">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">👨‍👩‍👧</span>
+            <div><h1 class="text-2xl">Parent View</h1><p class="text-green-100 text-xs">STEMO Academy</p></div>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-green-100 text-sm" id="welcomeMsg"></span>
+            <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
+        </div>
+    </div>
+</nav>
+<div class="max-w-4xl mx-auto p-6">
+    <div id="childrenContainer" class="space-y-6"></div>
+</div>
+<script>
+const allLessons = 14;
+async function init() {
+    const me = await fetch('/api/auth/me').then(r=>r.json());
+    if (!me.user || me.user.role !== 'parent') { window.location.href='/login'; return; }
+    document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+    const children = await fetch('/api/parent/children').then(r=>r.json());
+    const container = document.getElementById('childrenContainer');
+    if (!children.length) {
+        container.innerHTML = '<div class="bg-white rounded-2xl shadow p-12 text-center"><div class="text-6xl mb-4">👧</div><h2 class="text-xl text-gray-500">No children linked yet</h2><p class="text-gray-400 mt-2">Contact your school admin to link your account to your child.</p></div>';
+        return;
+    }
+    container.innerHTML = children.map(child => {
+        const lessons = JSON.parse(child.completed_lessons || '[]');
+        const badges = JSON.parse(child.earned_badges || '[]');
+        const pct = Math.round((lessons.length / allLessons) * 100);
+        const level = child.level || 1;
+        const xpForNext = level * 500;
+        const xpProgress = Math.min(100, Math.round(((child.xp || 0) % 500) / 5));
+        return \`<div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-16 h-16 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center text-3xl">🎓</div>
+                <div>
+                    <h2 class="text-2xl text-gray-800">\${child.full_name}</h2>
+                    <p class="text-gray-400 text-sm">@\${child.username} • Level \${level} Coder</p>
+                </div>
+                <div class="ml-auto text-right">
+                    <div class="text-3xl font-bold text-yellow-500">⭐ \${child.xp || 0}</div>
+                    <div class="text-gray-400 text-xs">Total XP</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-indigo-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-indigo-600">Lv \${level}</div>
+                    <div class="text-gray-500 text-xs">Current Level</div>
+                    <div class="w-full bg-indigo-100 rounded-full h-2 mt-2"><div class="bg-indigo-500 h-2 rounded-full" style="width:\${xpProgress}%"></div></div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600">\${lessons.length}/\${allLessons}</div>
+                    <div class="text-gray-500 text-xs">Lessons Done</div>
+                    <div class="w-full bg-green-100 rounded-full h-2 mt-2"><div class="bg-green-500 h-2 rounded-full" style="width:\${pct}%"></div></div>
+                </div>
+                <div class="bg-orange-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-orange-500">\${child.streak || 0} 🔥</div>
+                    <div class="text-gray-500 text-xs">Day Streak</div>
+                </div>
+            </div>
+            \${badges.length ? \`<div><h3 class="font-bold text-gray-700 mb-2">🏆 Badges Earned</h3><div class="flex gap-2 flex-wrap">\${badges.map(b=>\`<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">\${b}</span>\`).join('')}</div></div>\` : ''}
+        </div>\`;
+    }).join('');
+}
+async function logout() {
+    await fetch('/api/auth/logout', { method:'POST' });
+    window.location.href = '/login';
+}
+init();
+</script>
+</body>
+</html>`
+
+// ============================================
+// PAGE ROUTES
+// ============================================
+
+app.get('/login', (c) => c.html(loginPage))
+app.get('/dashboard/admin', (c) => c.html(adminDashboard))
+app.get('/dashboard/teacher', (c) => c.html(teacherDashboard))
+app.get('/dashboard/parent', (c) => c.html(parentDashboard))
+
+// Main app - check auth and redirect students, allow access with user info
+app.get('/', async (c) => {
+    const cookie = c.req.header('cookie') || ''
+    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    if (!token) return c.redirect('/login')
+    const payload = await verifyToken(token)
+    if (!payload) return c.redirect('/login')
+    // Redirect non-students to their dashboards
+    if (payload.role === 'admin') return c.redirect('/dashboard/admin')
+    if (payload.role === 'teacher') return c.redirect('/dashboard/teacher')
+    if (payload.role === 'parent') return c.redirect('/dashboard/parent')
+    // Inject user info into the main student app
+    const page = htmlContent
+        .replace('id="xpCounter">0', `id="xpCounter">0" data-user='${JSON.stringify(payload)}'`)
+    return c.html(page)
 })
 
 export default app
