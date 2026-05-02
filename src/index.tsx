@@ -71,8 +71,10 @@ app.post('/api/auth/login', async (c) => {
         const { username, password } = await c.req.json()
         if (!username || !password) return c.json({ error: 'Username and password required' }, 400)
         const hash = await hashPassword(password)
-        const user = await c.env.DB.prepare('SELECT id, username, role, full_name FROM users WHERE username = ? AND password_hash = ?').bind(username, hash).first()
+        const user = await c.env.DB.prepare('SELECT id, username, role, full_name, status FROM users WHERE username = ? AND password_hash = ?').bind(username, hash).first()
         if (!user) return c.json({ error: 'Invalid username or password' }, 401)
+        if (user.status === 'pending') return c.json({ error: 'Your account is pending approval. Please wait for an admin or teacher to approve your registration.', pending: true }, 403)
+        if (user.status === 'rejected') return c.json({ error: 'Your registration was not approved. Please contact your teacher.', rejected: true }, 403)
         const token = await createToken({ id: user.id, username: user.username, role: user.role, full_name: user.full_name })
         const res = c.json({ success: true, user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name } })
         res.headers.set('Set-Cookie', `stemo_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`)
@@ -81,6 +83,50 @@ app.post('/api/auth/login', async (c) => {
         console.error('Login error:', e)
         return c.json({ error: 'Login failed' }, 500)
     }
+})
+
+// Student self-registration
+app.post('/api/auth/register', async (c) => {
+    try {
+        const { username, password, full_name } = await c.req.json()
+        if (!username || !password || !full_name) return c.json({ error: 'All fields are required' }, 400)
+        if (username.length < 3) return c.json({ error: 'Username must be at least 3 characters' }, 400)
+        if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+        const hash = await hashPassword(password)
+        try {
+            const result = await c.env.DB.prepare(
+                "INSERT INTO users (username, password_hash, role, full_name, status) VALUES (?, ?, 'student', ?, 'pending')"
+            ).bind(username, hash, full_name).run()
+            await c.env.DB.prepare('INSERT OR IGNORE INTO student_progress (student_id) VALUES (?)').bind(result.meta.last_row_id).run()
+            return c.json({ success: true, message: 'Registration submitted! Your teacher will approve your account soon.' })
+        } catch (e: any) {
+            if (e.message?.includes('UNIQUE')) return c.json({ error: 'That username is already taken. Please choose another.' }, 409)
+            throw e
+        }
+    } catch (e: any) {
+        if (e.status) throw e
+        console.error('Register error:', e)
+        return c.json({ error: 'Registration failed. Please try again.' }, 500)
+    }
+})
+
+// Approve or reject a pending user (admin or teacher)
+app.post('/api/admin/users/:id/approve', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const id = c.req.param('id')
+    const { action } = await c.req.json()
+    const status = action === 'approve' ? 'approved' : 'rejected'
+    await c.env.DB.prepare('UPDATE users SET status = ? WHERE id = ?').bind(status, id).run()
+    return c.json({ success: true, status })
+})
+
+// Get pending users (admin or teacher)
+app.get('/api/admin/pending', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare("SELECT id, username, full_name, role, created_at FROM users WHERE status = 'pending' ORDER BY created_at DESC").all()
+    return c.json(results)
 })
 
 // Logout
@@ -4207,7 +4253,15 @@ const loginPage = `<!DOCTYPE html>
                     🚀 Let's Go!
                 </button>
             </form>
-            <p class="text-center text-gray-400 text-sm mt-6">Ask your teacher for your username and password</p>
+            <div class="flex items-center gap-2 mt-6">
+                <div class="flex-1 h-px bg-gray-200"></div>
+                <span class="text-gray-400 text-xs">or</span>
+                <div class="flex-1 h-px bg-gray-200"></div>
+            </div>
+            <a href="/register" class="block mt-4 text-center bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold text-base transition-all">
+                ✍️ Register as a Student
+            </a>
+            <p class="text-center text-gray-400 text-xs mt-3">Registration requires teacher or admin approval</p>
         </div>
     </div>
     <script>
@@ -4235,7 +4289,13 @@ const loginPage = `<!DOCTYPE html>
                     else if (role === 'parent') window.location.href = '/dashboard/parent';
                     else window.location.href = '/';
                 } else {
-                    err.textContent = data.error || 'Login failed. Please try again.';
+                    if (data.pending) {
+                        err.innerHTML = '⏳ <strong>Account Pending Approval</strong><br>Your registration is waiting for a teacher or admin to approve it. Check back soon!';
+                    } else if (data.rejected) {
+                        err.innerHTML = '❌ <strong>Registration Not Approved</strong><br>Please contact your teacher for help.';
+                    } else {
+                        err.textContent = data.error || 'Login failed. Please try again.';
+                    }
                     err.classList.remove('hidden');
                     btn.textContent = '🚀 Let\\'s Go!';
                     btn.disabled = false;
@@ -4286,10 +4346,18 @@ const adminDashboard = `<!DOCTYPE html>
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🏫</div><div class="text-3xl font-bold text-purple-600" id="statClasses">-</div><div class="text-gray-500 text-sm">Classes</div></div>
     </div>
     <!-- Tabs -->
-    <div class="flex gap-2 mb-6">
-        <button onclick="showTab('users')" id="tab-users" class="tab-btn bg-indigo-600 text-white px-5 py-2 rounded-full font-bold text-sm">👥 Users</button>
+    <div class="flex gap-2 mb-6 flex-wrap">
+        <button onclick="showTab('pending')" id="tab-pending" class="tab-btn bg-orange-500 text-white px-5 py-2 rounded-full font-bold text-sm">⏳ Pending <span id="pendingBadge" class="bg-white text-orange-600 rounded-full px-2 ml-1 text-xs">0</span></button>
+        <button onclick="showTab('users')" id="tab-users" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">👥 Users</button>
         <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏫 Classes</button>
         <button onclick="showTab('links')" id="tab-links" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🔗 Parent Links</button>
+    </div>
+    <!-- Pending Approvals Tab -->
+    <div id="section-pending">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl mb-4">⏳ Pending Registrations</h2>
+            <div id="pendingList"><p class="text-gray-400 text-center py-8">Loading...</p></div>
+        </div>
     </div>
     <!-- Users Tab -->
     <div id="section-users">
@@ -4375,25 +4443,59 @@ async function init() {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     if (!me.user || me.user.role !== 'admin') { window.location.href='/login'; return; }
     document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+    loadPending();
     loadUsers();
     loadClasses();
     loadLinkDropdowns();
 }
 
 function showTab(tab) {
-    ['users','classes','links'].forEach(t => {
+    ['pending','users','classes','links'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
-        document.getElementById('tab-'+t).className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
+        const btn = document.getElementById('tab-'+t);
+        if (btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    document.getElementById('tab-'+tab).className = 'tab-btn bg-indigo-600 text-white px-5 py-2 rounded-full font-bold text-sm';
+    const activeColors = {pending:'bg-orange-500',users:'bg-indigo-600',classes:'bg-indigo-600',links:'bg-indigo-600'};
+    document.getElementById('tab-'+tab).className = \`tab-btn \${activeColors[tab]} text-white px-5 py-2 rounded-full font-bold text-sm\`;
+}
+
+async function loadPending() {
+    const pending = await fetch('/api/admin/pending').then(r=>r.json());
+    document.getElementById('pendingBadge').textContent = pending.length;
+    const list = document.getElementById('pendingList');
+    if (!pending.length) {
+        list.innerHTML = '<p class="text-gray-400 text-center py-8">✅ No pending registrations right now!</p>';
+        return;
+    }
+    list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
+        <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div>
+                <div class="font-bold text-gray-800">\${u.full_name}</div>
+                <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10) || 'today'}</div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="approveUser(\${u.id}, 'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">✅ Approve</button>
+                <button onclick="approveUser(\${u.id}, 'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">❌ Reject</button>
+            </div>
+        </div>\`).join('')}</div>\`;
+}
+
+async function approveUser(id, action) {
+    await fetch('/api/admin/users/' + id + '/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action })
+    });
+    loadPending();
+    loadUsers();
 }
 
 async function loadUsers() {
     allUsers = await fetch('/api/admin/users').then(r=>r.json());
-    const students = allUsers.filter(u=>u.role==='student').length;
-    const teachers = allUsers.filter(u=>u.role==='teacher').length;
-    document.getElementById('statUsers').textContent = allUsers.length;
+    const approved = allUsers.filter(u=>u.status==='approved'||!u.status);
+    const students = approved.filter(u=>u.role==='student').length;
+    const teachers = approved.filter(u=>u.role==='teacher').length;
+    document.getElementById('statUsers').textContent = approved.length;
     document.getElementById('statStudents').textContent = students;
     document.getElementById('statTeachers').textContent = teachers;
     const tbody = document.getElementById('usersTable');
@@ -4401,6 +4503,7 @@ async function loadUsers() {
         <td class="py-2 font-semibold">\${u.full_name}</td>
         <td class="py-2 text-gray-500">@\${u.username}</td>
         <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${roleColors[u.role]}">\${roleEmoji[u.role]} \${u.role}</span></td>
+        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${u.status||'approved'}</span></td>
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
         <td class="py-2"><button onclick="deleteUser(\${u.id}, '\${u.username}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button></td>
     </tr>\`).join('');
@@ -4507,6 +4610,13 @@ const teacherDashboard = `<!DOCTYPE html>
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🎓</div><div class="text-3xl font-bold text-green-600" id="statStudents">-</div><div class="text-gray-500 text-sm">Total Students</div></div>
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">⭐</div><div class="text-3xl font-bold text-yellow-500" id="statAvgXP">-</div><div class="text-gray-500 text-sm">Avg XP</div></div>
     </div>
+    <!-- Pending Approvals -->
+    <div id="pendingSection" class="hidden mb-6">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl text-orange-600 mb-4">⏳ Pending Student Registrations</h2>
+            <div id="pendingList"></div>
+        </div>
+    </div>
     <div id="classesContainer" class="space-y-6"></div>
 </div>
 <script>
@@ -4514,6 +4624,24 @@ async function init() {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     if (!me.user || me.user.role !== 'teacher') { window.location.href='/login'; return; }
     document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+
+    // Load pending approvals
+    const pending = await fetch('/api/admin/pending').then(r=>r.json());
+    if (pending.length > 0) {
+        document.getElementById('pendingSection').classList.remove('hidden');
+        document.getElementById('pendingList').innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
+            <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                <div>
+                    <div class="font-bold text-gray-800">\${u.full_name}</div>
+                    <div class="text-gray-500 text-sm">@\${u.username} • wants to join as student</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="approveUser(\${u.id},'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
+                    <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
+                </div>
+            </div>\`).join('')}</div>\`;
+    }
+
     const classes = await fetch('/api/classes').then(r=>r.json());
     document.getElementById('statClasses').textContent = classes.length;
     let totalStudents = 0, totalXP = 0, xpCount = 0;
@@ -4546,6 +4674,14 @@ async function init() {
     }
     document.getElementById('statStudents').textContent = totalStudents;
     document.getElementById('statAvgXP').textContent = xpCount ? Math.round(totalXP/xpCount) : 0;
+}
+
+async function approveUser(id, action) {
+    await fetch('/api/admin/users/' + id + '/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action })
+    });
+    init();
 }
 
 async function logout() {
@@ -4647,10 +4783,133 @@ init();
 </html>`
 
 // ============================================
+// REGISTER PAGE
+// ============================================
+const registerPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✍️ STEMO - Sign Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Nunito', sans-serif; }
+        h1, h2 { font-family: 'Fredoka One', cursive; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card { background: rgba(255,255,255,0.97); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="text-7xl mb-3">🤖</div>
+            <h1 class="text-4xl text-white mb-1">Join STEMO!</h1>
+            <p class="text-purple-200">Create your student account</p>
+        </div>
+        <div class="card rounded-3xl p-8 shadow-2xl">
+            <!-- Success state -->
+            <div id="successState" class="hidden text-center py-4">
+                <div class="text-7xl mb-4">🎉</div>
+                <h2 class="text-2xl text-green-600 mb-2">You're registered!</h2>
+                <p class="text-gray-600 mb-2">Your account is <strong>waiting for approval</strong> from your teacher or admin.</p>
+                <p class="text-gray-400 text-sm mb-6">Once approved, you can log in and start coding!</p>
+                <a href="/login" class="inline-block bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all">Back to Login</a>
+            </div>
+            <!-- Form state -->
+            <div id="formState">
+                <h2 class="text-2xl text-gray-800 mb-1 text-center">Create Account</h2>
+                <p class="text-center text-gray-400 text-sm mb-5">Students only — teachers & admins are created by admin</p>
+                <div id="errorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm"></div>
+                <form id="regForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Full Name</label>
+                        <input id="full_name" type="text" placeholder="Your full name" autocomplete="name"
+                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Username</label>
+                        <input id="username" type="text" placeholder="Choose a username (min 3 chars)" autocomplete="username"
+                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                        <p class="text-gray-400 text-xs mt-1">Only letters, numbers, underscores. You'll use this to log in.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Password</label>
+                        <input id="password" type="password" placeholder="At least 6 characters" autocomplete="new-password"
+                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Confirm Password</label>
+                        <input id="confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password"
+                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
+                    </div>
+                    <button type="submit" id="regBtn"
+                        class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+                        ✍️ Submit Registration
+                    </button>
+                </form>
+                <div class="flex items-center gap-2 mt-5">
+                    <div class="flex-1 h-px bg-gray-200"></div>
+                    <span class="text-gray-400 text-xs">already have an account?</span>
+                    <div class="flex-1 h-px bg-gray-200"></div>
+                </div>
+                <a href="/login" class="block mt-3 text-center text-indigo-600 font-bold hover:underline text-sm">← Back to Login</a>
+            </div>
+        </div>
+        <div class="mt-6 bg-white/10 rounded-2xl p-4 text-white text-sm text-center">
+            <p class="font-bold mb-1">📋 How it works</p>
+            <p class="text-purple-200 text-xs">1. Fill in the form → 2. Wait for your teacher to approve → 3. Log in and start coding! 🚀</p>
+        </div>
+    </div>
+    <script>
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('regBtn');
+            const err = document.getElementById('errorMsg');
+            const fullName = document.getElementById('full_name').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm').value;
+            err.classList.add('hidden');
+            if (!fullName || !username || !password) { err.textContent = 'All fields are required.'; err.classList.remove('hidden'); return; }
+            if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.classList.remove('hidden'); return; }
+            if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.classList.remove('hidden'); return; }
+            if (username.length < 3) { err.textContent = 'Username must be at least 3 characters.'; err.classList.remove('hidden'); return; }
+            btn.textContent = '⏳ Submitting...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: fullName, username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('formState').classList.add('hidden');
+                    document.getElementById('successState').classList.remove('hidden');
+                } else {
+                    err.textContent = data.error || 'Registration failed. Please try again.';
+                    err.classList.remove('hidden');
+                    btn.textContent = '✍️ Submit Registration';
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                err.textContent = 'Connection error. Please try again.';
+                err.classList.remove('hidden');
+                btn.textContent = '✍️ Submit Registration';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>`
+
+// ============================================
 // PAGE ROUTES
 // ============================================
 
 app.get('/login', (c) => c.html(loginPage))
+app.get('/register', (c) => c.html(registerPage))
 app.get('/dashboard/admin', (c) => c.html(adminDashboard))
 app.get('/dashboard/teacher', (c) => c.html(teacherDashboard))
 app.get('/dashboard/parent', (c) => c.html(parentDashboard))
