@@ -26,29 +26,44 @@ async function hashPassword(password: string): Promise<string> {
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+function b64url(str: string): string {
+    return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
 async function createToken(payload: any): Promise<string> {
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-    const body = btoa(JSON.stringify({ ...payload, exp: Date.now() + 86400000 * 7 }))
+    const header = b64url(btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })))
+    const body = b64url(btoa(unescape(encodeURIComponent(JSON.stringify({ ...payload, exp: Date.now() + 86400000 * 7 })))))
     const encoder = new TextEncoder()
     const key = await crypto.subtle.importKey('raw', encoder.encode('stemo-secret-key-2024'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
     const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`))
-    const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)))
+    const sigB64 = b64url(btoa(String.fromCharCode(...new Uint8Array(sig))))
     return `${header}.${body}.${sigB64}`
+}
+
+function b64urlDecode(str: string): string {
+    str = str.replace(/-/g, '+').replace(/_/g, '/')
+    while (str.length % 4) str += '='
+    return decodeURIComponent(escape(atob(str)))
 }
 
 async function verifyToken(token: string): Promise<any> {
     try {
         const parts = token.split('.')
         if (parts.length !== 3) return null
-        const payload = JSON.parse(atob(parts[1]))
+        const payload = JSON.parse(b64urlDecode(parts[1]))
         if (payload.exp < Date.now()) return null
         return payload
     } catch { return null }
 }
 
+function getCookieToken(cookie: string): string | undefined {
+    const part = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))
+    return part ? part.trim().slice('stemo_token='.length) : undefined
+}
+
 async function authMiddleware(c: any, next: any) {
     const cookie = c.req.header('cookie') || ''
-    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    const token = getCookieToken(cookie)
     if (!token) return c.json({ error: 'Unauthorized' }, 401)
     const payload = await verifyToken(token)
     if (!payload) return c.json({ error: 'Invalid token' }, 401)
@@ -139,7 +154,7 @@ app.post('/api/auth/logout', (c) => {
 // Get current user
 app.get('/api/auth/me', async (c) => {
     const cookie = c.req.header('cookie') || ''
-    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    const token = getCookieToken(cookie)
     if (!token) return c.json({ user: null })
     const payload = await verifyToken(token)
     if (!payload) return c.json({ user: null })
@@ -4917,7 +4932,7 @@ app.get('/dashboard/parent', (c) => c.html(parentDashboard))
 // Main app - check auth and redirect students, allow access with user info
 app.get('/', async (c) => {
     const cookie = c.req.header('cookie') || ''
-    const token = cookie.split(';').find((p: string) => p.trim().startsWith('stemo_token='))?.split('=')[1]
+    const token = getCookieToken(cookie)
     if (!token) return c.redirect('/login')
     const payload = await verifyToken(token)
     if (!payload) return c.redirect('/login')
