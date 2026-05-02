@@ -422,6 +422,43 @@ app.get('/api/admin/students', authMiddleware, async (c) => {
     return c.json(results)
 })
 
+// Leaderboard — top students ranked by XP (accessible to students and teachers)
+app.get('/api/leaderboard', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student' && me.role !== 'teacher' && me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare(`
+        SELECT u.id, u.full_name, u.username, u.created_at,
+               COALESCE(sp.xp, 0) as xp,
+               COALESCE(sp.level, 1) as level,
+               COALESCE(sp.completed_lessons, '[]') as completed_lessons,
+               COALESCE(sp.earned_badges, '[]') as earned_badges,
+               COALESCE(sp.streak, 0) as streak
+        FROM users u
+        LEFT JOIN student_progress sp ON sp.student_id = u.id
+        WHERE u.role = 'student' AND u.status = 'approved'
+        ORDER BY COALESCE(sp.xp, 0) DESC
+        LIMIT 50
+    `).all()
+    return c.json(results)
+})
+
+// Current student's profile — their class and assigned lesson
+app.get('/api/student/profile', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
+    const user = await c.env.DB.prepare('SELECT id, full_name, username, created_at FROM users WHERE id = ?').bind(me.id).first()
+    const cls = await c.env.DB.prepare(`
+        SELECT c.id, c.name, u.full_name as teacher_name, al.lesson_id as assigned_lesson_id
+        FROM class_students cs
+        JOIN classes c ON cs.class_id = c.id
+        LEFT JOIN users u ON c.teacher_id = u.id
+        LEFT JOIN assigned_lessons al ON al.class_id = c.id
+        WHERE cs.student_id = ?
+        ORDER BY cs.id DESC LIMIT 1
+    `).bind(me.id).first()
+    return c.json({ user, class: cls || null })
+})
+
 // ============================================
 // CURRICULUM DATA - Lessons & Challenges
 // ============================================
@@ -893,15 +930,21 @@ const htmlContent = `<!DOCTYPE html>
     <!-- Main Content -->
     <div class="max-w-7xl mx-auto p-6">
         <!-- Tabs -->
-        <div class="flex gap-2 mb-6 bg-indigo-500 rounded-full p-1 w-fit">
-            <button onclick="switchTab('learn')" id="tab-learn" class="tab-active px-6 py-2 rounded-full font-bold transition-all">
-                <i class="fas fa-graduation-cap mr-2"></i>Learn
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button onclick="switchTab('learn')" id="tab-learn" class="tab-active px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-graduation-cap mr-1"></i>Learn
             </button>
-            <button onclick="switchTab('code')" id="tab-code" class="tab-inactive px-6 py-2 rounded-full font-bold transition-all">
-                <i class="fas fa-code mr-2"></i>Code
+            <button onclick="switchTab('code')" id="tab-code" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-code mr-1"></i>Code
             </button>
-            <button onclick="switchTab('achievements')" id="tab-achievements" class="tab-inactive px-6 py-2 rounded-full font-bold transition-all">
-                <i class="fas fa-trophy mr-2"></i>Achievements
+            <button onclick="switchTab('achievements')" id="tab-achievements" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-trophy mr-1"></i>Achievements
+            </button>
+            <button onclick="switchTab('profile')" id="tab-profile" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-user mr-1"></i>My Profile
+            </button>
+            <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-ranking-star mr-1"></i>Leaderboard
             </button>
         </div>
 
@@ -1240,6 +1283,78 @@ const htmlContent = `<!DOCTYPE html>
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="badgesGrid"></div>
         </div>
+
+        <!-- Profile Tab -->
+        <div id="profile-section" class="hidden">
+            <div class="max-w-2xl mx-auto space-y-6">
+                <!-- Profile Card -->
+                <div class="bg-white rounded-3xl card-shadow p-8">
+                    <div class="flex items-center gap-6 mb-6">
+                        <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-4xl font-bold text-white" id="profileAvatar">🎓</div>
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800" id="profileName">Loading...</h2>
+                            <p class="text-gray-400 text-lg">@<span id="profileUsername">-</span></p>
+                            <span class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full mt-1 inline-block">🎓 Student</span>
+                        </div>
+                    </div>
+                    <div id="profileClassInfo" class="bg-gray-50 rounded-2xl p-4 mb-4 space-y-2"></div>
+                    <div class="text-gray-400 text-xs" id="profileJoined"></div>
+                </div>
+                <!-- Assigned Lesson Banner -->
+                <div id="profileLessonBanner" class="hidden bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <span class="text-4xl" id="profileLessonIcon">📖</span>
+                        <div class="flex-1">
+                            <div class="text-sm font-bold text-purple-200">Your teacher assigned:</div>
+                            <div class="text-xl font-bold" id="profileLessonTitle">-</div>
+                        </div>
+                        <button onclick="switchTab('learn')" class="bg-white text-indigo-600 px-4 py-2 rounded-full font-bold text-sm hover:bg-yellow-300 transition-all">Go to Lesson →</button>
+                    </div>
+                </div>
+                <!-- Stats -->
+                <div class="bg-white rounded-3xl card-shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-chart-line text-indigo-400 mr-2"></i>My Stats</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 text-white text-center">
+                            <div class="text-2xl mb-1">⭐</div>
+                            <div class="text-2xl font-bold" id="profileXP">0</div>
+                            <div class="text-purple-200 text-xs">Total XP</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 text-white text-center">
+                            <div class="text-2xl mb-1">✅</div>
+                            <div class="text-2xl font-bold" id="profileLessons">0</div>
+                            <div class="text-green-200 text-xs">Lessons Done</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl p-4 text-white text-center">
+                            <div class="text-2xl mb-1">🔥</div>
+                            <div class="text-2xl font-bold" id="profileStreak">0</div>
+                            <div class="text-orange-200 text-xs">Day Streak</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 text-white text-center">
+                            <div class="text-2xl mb-1">🏆</div>
+                            <div class="text-2xl font-bold" id="profileBadges">0</div>
+                            <div class="text-pink-200 text-xs">Badges</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="leaderboard-section" class="hidden">
+            <div class="bg-white rounded-3xl card-shadow p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-trophy text-yellow-500 mr-2"></i>Student Leaderboard
+                    </h3>
+                    <button onclick="loadLeaderboard()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold transition-all">🔄 Refresh</button>
+                </div>
+                <!-- Top 3 podium -->
+                <div class="flex justify-center gap-4 mb-8" id="podiumRow"></div>
+                <!-- Full ranking table -->
+                <div id="leaderboardList" class="space-y-2"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Success Modal -->
@@ -1331,6 +1446,9 @@ const htmlContent = `<!DOCTYPE html>
         // Isometric 3D view toggle
         var isIsometricView = false;
 
+        // Current logged-in student (populated on init)
+        var currentUser = null;
+
         // ============================================
         // INITIALIZATION
         // ============================================
@@ -1341,8 +1459,10 @@ const htmlContent = `<!DOCTYPE html>
             var userData = null;
             try { userData = JSON.parse(xpEl.getAttribute('data-user') || 'null'); } catch(e) {}
             if (userData) {
+                currentUser = userData;
                 document.getElementById('studentName').textContent = userData.full_name || userData.username;
                 loadProgressFromDB(userData.id);
+                loadProfile();
             } else {
                 updateUI();
                 loadLessons();
@@ -3504,22 +3624,169 @@ const htmlContent = `<!DOCTYPE html>
         // TAB NAVIGATION
         // ============================================
         function switchTab(tab) {
-            document.getElementById('learn-section').classList.add('hidden');
-            document.getElementById('code-section').classList.add('hidden');
-            document.getElementById('achievements-section').classList.add('hidden');
-            
-            document.getElementById('tab-learn').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
-            document.getElementById('tab-code').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
-            document.getElementById('tab-achievements').className = 'tab-inactive px-6 py-2 rounded-full font-bold transition-all';
-            
+            ['learn','code','achievements','profile','leaderboard'].forEach(function(t) {
+                document.getElementById(t + '-section').classList.add('hidden');
+                document.getElementById('tab-' + t).className = 'tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm';
+            });
             document.getElementById(tab + '-section').classList.remove('hidden');
-            document.getElementById('tab-' + tab).className = 'tab-active px-6 py-2 rounded-full font-bold transition-all';
-            
-            // Resize Blockly when switching to code tab
+            document.getElementById('tab-' + tab).className = 'tab-active px-5 py-2 rounded-full font-bold transition-all text-sm';
             if (tab === 'code' && workspace) {
-                setTimeout(function() {
-                    Blockly.svgResize(workspace);
-                }, 100);
+                setTimeout(function() { Blockly.svgResize(workspace); }, 100);
+            }
+            if (tab === 'leaderboard') loadLeaderboard();
+        }
+
+        // ============================================
+        // PROFILE
+        // ============================================
+        async function loadProfile() {
+            try {
+                const data = await fetch('/api/student/profile').then(r => r.json());
+                const u = data.user || currentUser;
+                if (!u) return;
+                // Avatar: first letter of name
+                const initials = (u.full_name || u.username || 'S')[0].toUpperCase();
+                document.getElementById('profileAvatar').textContent = initials;
+                document.getElementById('profileName').textContent = u.full_name || u.username;
+                document.getElementById('profileUsername').textContent = u.username || '';
+                if (u.created_at) {
+                    document.getElementById('profileJoined').textContent = 'Joined ' + (u.created_at || '').slice(0, 10);
+                }
+                // Class info
+                var classHtml = '';
+                if (data.class) {
+                    classHtml += '<div class="flex items-center gap-2"><span class="text-blue-500">🏫</span><span class="font-semibold text-gray-700">Class:</span><span class="text-gray-600">' + data.class.name + '</span></div>';
+                    if (data.class.teacher_name) {
+                        classHtml += '<div class="flex items-center gap-2"><span class="text-purple-500">👩‍🏫</span><span class="font-semibold text-gray-700">Teacher:</span><span class="text-gray-600">' + data.class.teacher_name + '</span></div>';
+                    }
+                    // Assigned lesson banner
+                    if (data.class.assigned_lesson_id) {
+                        var lessonId = data.class.assigned_lesson_id;
+                        var lessonData = findLessonById(lessonId);
+                        if (lessonData) {
+                            document.getElementById('profileLessonIcon').textContent = lessonData.icon || '📖';
+                            document.getElementById('profileLessonTitle').textContent = lessonData.title;
+                            document.getElementById('profileLessonBanner').classList.remove('hidden');
+                        }
+                    }
+                } else {
+                    classHtml = '<div class="text-gray-400 text-sm">Not enrolled in any class yet</div>';
+                }
+                document.getElementById('profileClassInfo').innerHTML = classHtml;
+                // Stats (sync from stemo state)
+                updateProfileStats();
+            } catch(e) {
+                console.log('Profile load error:', e);
+                // Fallback: use currentUser + stemo state
+                if (currentUser) {
+                    const initials = (currentUser.full_name || currentUser.username || 'S')[0].toUpperCase();
+                    document.getElementById('profileAvatar').textContent = initials;
+                    document.getElementById('profileName').textContent = currentUser.full_name || currentUser.username;
+                    document.getElementById('profileUsername').textContent = currentUser.username || '';
+                }
+            }
+        }
+
+        function updateProfileStats() {
+            document.getElementById('profileXP').textContent = stemo.xp;
+            document.getElementById('profileLessons').textContent = stemo.completedLessons.length;
+            document.getElementById('profileStreak').textContent = stemo.streak;
+            document.getElementById('profileBadges').textContent = stemo.badges.length;
+        }
+
+        function findLessonById(id) {
+            // Search curriculum — flatten all groups
+            for (var key in curriculum) {
+                var arr = curriculum[key];
+                for (var i = 0; i < arr.length; i++) {
+                    if (arr[i].id === id) return arr[i];
+                }
+            }
+            return null;
+        }
+
+        // ============================================
+        // LEADERBOARD
+        // ============================================
+        async function loadLeaderboard() {
+            document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading...</p>';
+            document.getElementById('podiumRow').innerHTML = '';
+            try {
+                const data = await fetch('/api/leaderboard').then(r => r.json());
+                if (!Array.isArray(data) || data.length === 0) {
+                    document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">No students yet. Be the first! 🚀</p>';
+                    return;
+                }
+                const myId = currentUser ? currentUser.id : null;
+                const medals = ['🥇','🥈','🥉'];
+                const podiumColors = [
+                    'from-yellow-400 to-amber-500',
+                    'from-gray-300 to-gray-400',
+                    'from-orange-400 to-amber-600'
+                ];
+                const podiumSizes = ['h-28','h-20','h-16'];
+
+                // Top 3 podium
+                var podiumHtml = '';
+                var podiumOrder = [1, 0, 2]; // silver, gold, bronze display order
+                podiumOrder.forEach(function(idx) {
+                    var s = data[idx];
+                    if (!s) return;
+                    var isMe = s.id == myId;
+                    var lessons = 0;
+                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
+                    podiumHtml += '<div class="flex flex-col items-center gap-2 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
+                    podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
+                    podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + (s.full_name || 'S')[0].toUpperCase() + '</div>';
+                    podiumHtml += '<div class="text-center"><div class="font-bold text-sm text-gray-800 max-w-20 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="text-indigo-500">★</span>' : '') + '</div>';
+                    podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0) + '</div></div>';
+                    podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
+                    podiumHtml += '</div>';
+                });
+                document.getElementById('podiumRow').innerHTML = podiumHtml;
+
+                // Full list (skip first 3 in table, they appear in podium)
+                var listHtml = data.slice(3).map(function(s, i) {
+                    var rank = i + 4;
+                    var isMe = s.id == myId;
+                    var lessons = 0;
+                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
+                    return '<div class="flex items-center gap-4 p-4 rounded-2xl ' + (isMe ? 'bg-indigo-50 border-2 border-indigo-400' : 'border border-gray-100 hover:bg-gray-50') + ' transition-all">' +
+                        '<div class="text-lg font-bold text-gray-400 w-8 text-center">#' + rank + '</div>' +
+                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-lg font-bold text-white">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
+                            '<div class="text-gray-400 text-xs">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
+                        '</div>' +
+                        '<div class="text-right shrink-0">' +
+                            '<div class="font-bold text-yellow-500">⭐ ' + (s.xp || 0) + '</div>' +
+                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons · ' + (s.streak || 0) + '🔥</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+
+                // Also show top 3 in full list with highlight
+                var top3Html = data.slice(0, 3).map(function(s, i) {
+                    var isMe = s.id == myId;
+                    var lessons = 0;
+                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
+                    return '<div class="flex items-center gap-4 p-4 rounded-2xl ' + (isMe ? 'bg-indigo-50 border-2 border-indigo-400' : 'bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200') + ' transition-all">' +
+                        '<div class="text-2xl w-8 text-center">' + medals[i] + '</div>' +
+                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-lg font-bold text-white">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
+                            '<div class="text-gray-400 text-xs">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
+                        '</div>' +
+                        '<div class="text-right shrink-0">' +
+                            '<div class="font-bold text-yellow-500">⭐ ' + (s.xp || 0) + '</div>' +
+                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons · ' + (s.streak || 0) + '🔥</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+
+                document.getElementById('leaderboardList').innerHTML = '<div class="space-y-2 mb-4">' + top3Html + '</div>' + (listHtml ? '<div class="space-y-2">' + listHtml + '</div>' : '');
+            } catch(e) {
+                document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">Unable to load leaderboard</p>';
             }
         }
         
@@ -4787,6 +5054,7 @@ const teacherDashboard = `<!DOCTYPE html>
         <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">🏫 My Classes</button>
         <button onclick="showTab('curriculum')" id="tab-curriculum" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">📖 Curriculum</button>
         <button onclick="showTab('pending')" id="tab-pending" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">⏳ Pending <span id="pendingBadge" class="bg-orange-500 text-white rounded-full px-2 ml-1 text-xs hidden">0</span></button>
+        <button onclick="showTab('leaderboard')" id="tab-leaderboard" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏆 Leaderboard</button>
     </div>
     <!-- My Classes Tab -->
     <div id="section-classes">
@@ -4807,6 +5075,17 @@ const teacherDashboard = `<!DOCTYPE html>
         <div class="bg-white rounded-2xl shadow p-6">
             <h2 class="text-xl text-orange-600 mb-4">⏳ Pending Student Registrations</h2>
             <div id="pendingList"><p class="text-gray-400 text-center py-8">Loading...</p></div>
+        </div>
+    </div>
+    <!-- Leaderboard Tab -->
+    <div id="section-leaderboard" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold">🏆 Student Leaderboard</h2>
+                <button onclick="loadTeacherLeaderboard()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold transition-all">🔄 Refresh</button>
+            </div>
+            <div id="teacherPodiumRow" class="flex justify-center gap-6 mb-8"></div>
+            <div id="teacherLeaderboardList" class="space-y-2"><p class="text-gray-400 text-center py-8">Loading...</p></div>
         </div>
     </div>
 </div>
@@ -4848,14 +5127,69 @@ let allClasses = [];
 let pwResetStudentId = null;
 
 function showTab(tab) {
-    ['classes','curriculum','pending'].forEach(t => {
+    ['classes','curriculum','pending','leaderboard'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
         const btn = document.getElementById('tab-'+t);
         if(btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500'};
-    document.getElementById('tab-'+tab).className = \`tab-btn \${active[tab]} text-white px-5 py-2 rounded-full font-bold text-sm\`;
+    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500',leaderboard:'bg-yellow-500'};
+    document.getElementById('tab-'+tab).className = \`tab-btn \${active[tab]||'bg-indigo-600'} text-white px-5 py-2 rounded-full font-bold text-sm\`;
+    if (tab === 'leaderboard') loadTeacherLeaderboard();
+}
+
+async function loadTeacherLeaderboard() {
+    document.getElementById('teacherLeaderboardList').innerHTML = '<p class="text-gray-400 text-center py-8">Loading...</p>';
+    document.getElementById('teacherPodiumRow').innerHTML = '';
+    try {
+        const data = await fetch('/api/leaderboard').then(r=>r.json());
+        if (!Array.isArray(data) || !data.length) {
+            document.getElementById('teacherLeaderboardList').innerHTML = '<p class="text-gray-400 text-center py-8">No student data yet.</p>';
+            return;
+        }
+        const medals = ['🥇','🥈','🥉'];
+        const podiumColors = ['from-yellow-400 to-amber-500','from-gray-300 to-gray-400','from-orange-400 to-amber-600'];
+        const podiumHeights = ['h-28','h-20','h-16'];
+        const podiumOrder = [1,0,2];
+        let podiumHtml = '';
+        podiumOrder.forEach(idx => {
+            const s = data[idx];
+            if (!s) return;
+            let lessons = 0;
+            try { lessons = JSON.parse(s.completed_lessons||'[]').length; } catch(e) {}
+            podiumHtml += \`<div class="flex flex-col items-center gap-2 \${idx===0?'order-2':idx===1?'order-1':'order-3'}">
+                <div class="text-3xl">\${medals[idx]}</div>
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br \${podiumColors[idx]} flex items-center justify-center text-2xl font-bold text-white border-4 border-white">\${(s.full_name||'S')[0].toUpperCase()}</div>
+                <div class="text-center">
+                    <div class="font-bold text-sm text-gray-800 max-w-[80px] truncate">\${s.full_name||s.username}</div>
+                    <div class="text-yellow-500 font-bold text-sm">⭐ \${s.xp||0}</div>
+                    <div class="text-gray-400 text-xs">@\${s.username}</div>
+                </div>
+                <div class="bg-gradient-to-t \${podiumColors[idx]} rounded-t-xl w-20 \${podiumHeights[idx]}"></div>
+            </div>\`;
+        });
+        document.getElementById('teacherPodiumRow').innerHTML = podiumHtml;
+        const rows = data.map((s, i) => {
+            let lessons = 0;
+            try { lessons = JSON.parse(s.completed_lessons||'[]').length; } catch(e) {}
+            const badgeCount = (() => { try { return JSON.parse(s.earned_badges||'[]').length; } catch(e) { return 0; } })();
+            return \`<div class="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all">
+                <div class="text-lg font-bold w-10 text-center \${i<3?'text-yellow-500':'text-gray-400'}">\${i<3?medals[i]:'#'+(i+1)}</div>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-lg font-bold text-white">\${(s.full_name||'S')[0].toUpperCase()}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-gray-800 truncate">\${s.full_name||s.username}</div>
+                    <div class="text-gray-400 text-xs">@\${s.username} · Level \${s.level||1}</div>
+                </div>
+                <div class="text-right shrink-0 text-sm">
+                    <div class="font-bold text-yellow-500">⭐ \${s.xp||0} XP</div>
+                    <div class="text-gray-400 text-xs">\${lessons}/14 lessons · \${s.streak||0}🔥 · \${badgeCount} badges</div>
+                </div>
+            </div>\`;
+        }).join('');
+        document.getElementById('teacherLeaderboardList').innerHTML = \`<div class="space-y-2">\${rows}</div>\`;
+    } catch(e) {
+        document.getElementById('teacherLeaderboardList').innerHTML = '<p class="text-gray-400 text-center py-8">Unable to load leaderboard.</p>';
+    }
 }
 
 async function init() {
