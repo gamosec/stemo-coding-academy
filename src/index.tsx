@@ -300,6 +300,50 @@ app.get('/api/teachers', authMiddleware, async (c) => {
     return c.json(results)
 })
 
+// Assign a lesson to a class
+app.post('/api/classes/:id/assign-lesson', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'teacher' && me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const classId = c.req.param('id')
+    if (me.role === 'teacher') {
+        const cls = await c.env.DB.prepare('SELECT id FROM classes WHERE id = ? AND teacher_id = ?').bind(classId, me.id).first()
+        if (!cls) return c.json({ error: 'Not your class' }, 403)
+    }
+    const { lesson_id } = await c.req.json()
+    await c.env.DB.prepare('DELETE FROM assigned_lessons WHERE class_id = ?').bind(classId).run()
+    if (lesson_id) {
+        await c.env.DB.prepare('INSERT INTO assigned_lessons (class_id, lesson_id, assigned_by) VALUES (?, ?, ?)').bind(classId, lesson_id, me.id).run()
+    }
+    return c.json({ success: true })
+})
+
+// Get assigned lesson for a class
+app.get('/api/classes/:id/assigned-lesson', authMiddleware, async (c) => {
+    const classId = c.req.param('id')
+    const lesson = await c.env.DB.prepare('SELECT * FROM assigned_lessons WHERE class_id = ? ORDER BY created_at DESC LIMIT 1').bind(classId).first()
+    return c.json(lesson || null)
+})
+
+// Teacher resets a student password (student must be in teacher's class)
+app.post('/api/teacher/students/:id/reset-password', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'teacher' && me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const studentId = c.req.param('id')
+    const { password } = await c.req.json()
+    if (!password || password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+    if (me.role === 'teacher') {
+        const inClass = await c.env.DB.prepare(`
+            SELECT cs.student_id FROM class_students cs
+            JOIN classes cl ON cs.class_id = cl.id
+            WHERE cs.student_id = ? AND cl.teacher_id = ?
+        `).bind(studentId, me.id).first()
+        if (!inClass) return c.json({ error: 'Student not in your class' }, 403)
+    }
+    const hash = await hashPassword(password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hash, studentId).run()
+    return c.json({ success: true })
+})
+
 // Public classes list (no auth — for registration page)
 app.get('/api/public/classes', async (c) => {
     const { results } = await c.env.DB.prepare('SELECT id, name, description FROM classes ORDER BY name').all()
@@ -4712,7 +4756,9 @@ const teacherDashboard = `<!DOCTYPE html>
     <title>📚 STEMO Teacher Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>* { font-family: 'Nunito', sans-serif; } h1,h2,h3{font-family:'Fredoka One',cursive;}</style>
+    <style>* { font-family: 'Nunito', sans-serif; } h1,h2,h3{font-family:'Fredoka One',cursive;}
+    .diff-easy{background:#dcfce7;color:#166534}.diff-medium{background:#fef9c3;color:#854d0e}.diff-hard{background:#fee2e2;color:#991b1b}.diff-extreme{background:#f3e8ff;color:#6b21a8}
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <nav class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-6 py-4 shadow-lg">
@@ -4723,84 +4769,200 @@ const teacherDashboard = `<!DOCTYPE html>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-blue-200 text-sm" id="welcomeMsg"></span>
-            <a href="/" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
+            <a href="/" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
             <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
         </div>
     </div>
 </nav>
 <div class="max-w-7xl mx-auto p-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🏫</div><div class="text-3xl font-bold text-blue-600" id="statClasses">-</div><div class="text-gray-500 text-sm">My Classes</div></div>
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">🎓</div><div class="text-3xl font-bold text-green-600" id="statStudents">-</div><div class="text-gray-500 text-sm">Total Students</div></div>
         <div class="bg-white rounded-2xl p-5 shadow text-center"><div class="text-3xl mb-1">⭐</div><div class="text-3xl font-bold text-yellow-500" id="statAvgXP">-</div><div class="text-gray-500 text-sm">Avg XP</div></div>
+        <div class="bg-white rounded-2xl p-5 shadow text-center cursor-pointer" onclick="showTab('pending')"><div class="text-3xl mb-1">⏳</div><div class="text-3xl font-bold text-orange-500" id="statPending">-</div><div class="text-gray-500 text-sm">Pending</div></div>
     </div>
-    <!-- Pending Approvals -->
-    <div id="pendingSection" class="hidden mb-6">
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 flex-wrap">
+        <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-blue-600 text-white px-5 py-2 rounded-full font-bold text-sm">🏫 My Classes</button>
+        <button onclick="showTab('curriculum')" id="tab-curriculum" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">📖 Curriculum</button>
+        <button onclick="showTab('pending')" id="tab-pending" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">⏳ Pending <span id="pendingBadge" class="bg-orange-500 text-white rounded-full px-2 ml-1 text-xs hidden">0</span></button>
+    </div>
+    <!-- My Classes Tab -->
+    <div id="section-classes">
+        <div id="classesContainer" class="space-y-6"></div>
+    </div>
+    <!-- Curriculum Tab -->
+    <div id="section-curriculum" class="hidden">
         <div class="bg-white rounded-2xl shadow p-6">
-            <h2 class="text-xl text-orange-600 mb-4">⏳ Pending Student Registrations</h2>
-            <div id="pendingList"></div>
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-xl">📖 Lesson Curriculum</h2>
+                <p class="text-gray-400 text-sm">Assign lessons to your classes or open them in the academy to demonstrate</p>
+            </div>
+            <div id="curriculumList" class="space-y-8"></div>
         </div>
     </div>
-    <div id="classesContainer" class="space-y-6"></div>
+    <!-- Pending Tab -->
+    <div id="section-pending" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <h2 class="text-xl text-orange-600 mb-4">⏳ Pending Student Registrations</h2>
+            <div id="pendingList"><p class="text-gray-400 text-center py-8">Loading...</p></div>
+        </div>
+    </div>
 </div>
+
+<!-- Reset Password Modal -->
+<div id="pwModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50" onclick="closePwModal(event)">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">🔑 Reset Password</h3>
+        <p class="text-gray-500 text-sm mb-4" id="pwModalName"></p>
+        <input id="pwModalInput" type="password" placeholder="New password (min 6 chars)"
+            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-400 mb-2">
+        <div id="pwModalMsg" class="text-sm mb-3 hidden"></div>
+        <div class="flex gap-2">
+            <button onclick="confirmResetPw()" class="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold hover:bg-blue-700">Set Password</button>
+            <button onclick="document.getElementById('pwModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2 rounded-xl font-bold">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
+const CURRICULUM = [
+    {id:'lesson-1',title:'Meet STEMO!',icon:'👋',desc:'Discover coding blocks and understand the concept',diff:'easy',xp:50,group:'🟢 Basic'},
+    {id:'lesson-2',title:'Movement Master',icon:'🚶',desc:'Learn all movement: Forward, Back, Left, Right',diff:'easy',xp:100,group:'🟢 Basic'},
+    {id:'lesson-3',title:'Start Drawing!',icon:'🖌️',desc:'Use Pen to draw lines',diff:'easy',xp:100,group:'🟢 Basic'},
+    {id:'lesson-4',title:'Color Artist',icon:'🎨',desc:'Change colors and pen size',diff:'easy',xp:100,group:'🟢 Basic'},
+    {id:'lesson-5',title:'Loop Power!',icon:'🔁',desc:'Use Repeat to do actions multiple times',diff:'medium',xp:150,group:'🟡 Intermediate'},
+    {id:'lesson-6',title:'Shape Artist',icon:'📐',desc:'Create triangles, hexagons and more!',diff:'medium',xp:200,group:'🟡 Intermediate'},
+    {id:'lesson-7',title:'Star Power!',icon:'⭐',desc:'Draw a beautiful 5-pointed star',diff:'hard',xp:300,group:'🟡 Intermediate'},
+    {id:'lesson-8',title:'Magnet Magic',icon:'🧲',desc:'Pick up metal objects with your magnet',diff:'medium',xp:200,group:'🟡 Intermediate'},
+    {id:'lesson-9',title:'Ultrasonic Sight',icon:'📡',desc:'See walls using sound waves',diff:'medium',xp:250,group:'🟡 Intermediate'},
+    {id:'lesson-10',title:'Space Navigator',icon:'🎯',desc:'Reach targets automatically',diff:'hard',xp:300,group:'🔴 Advanced'},
+    {id:'lesson-11',title:'Smart Explorer',icon:'🧠',desc:'Make decisions with If/Else logic',diff:'hard',xp:350,group:'🔴 Advanced'},
+    {id:'lesson-12',title:'Fire Watch',icon:'🔥',desc:'Detect heat with temperature sensors',diff:'hard',xp:400,group:'🔴 Advanced'},
+    {id:'lesson-13',title:'Firefighter Hero',icon:'🚒',desc:'Extinguish fires with water',diff:'extreme',xp:500,group:'🔴 Advanced'},
+    {id:'lesson-14',title:'Master Coder',icon:'🏆',desc:'The final autonomous challenge',diff:'extreme',xp:1000,group:'🔴 Advanced'}
+];
+
+let allClasses = [];
+let pwResetStudentId = null;
+
+function showTab(tab) {
+    ['classes','curriculum','pending'].forEach(t => {
+        document.getElementById('section-'+t).classList.add('hidden');
+        const btn = document.getElementById('tab-'+t);
+        if(btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
+    });
+    document.getElementById('section-'+tab).classList.remove('hidden');
+    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500'};
+    document.getElementById('tab-'+tab).className = \`tab-btn \${active[tab]} text-white px-5 py-2 rounded-full font-bold text-sm\`;
+}
+
 async function init() {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     if (!me.user || me.user.role !== 'teacher') { window.location.href='/login'; return; }
     document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
+    loadClasses();
+    loadPending();
+    renderCurriculum();
+}
 
-    // Load pending approvals
+async function loadPending() {
     const pending = await fetch('/api/admin/pending').then(r=>r.json());
-    if (pending.length > 0) {
-        document.getElementById('pendingSection').classList.remove('hidden');
-        document.getElementById('pendingList').innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
-            <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
-                <div>
-                    <div class="font-bold text-gray-800">\${u.full_name}</div>
-                    <div class="text-gray-500 text-sm">@\${u.username} • wants to join as student</div>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="approveUser(\${u.id},'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
-                    <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
-                </div>
-            </div>\`).join('')}</div>\`;
-    }
+    document.getElementById('statPending').textContent = pending.length;
+    const badge = document.getElementById('pendingBadge');
+    if (pending.length > 0) { badge.textContent = pending.length; badge.classList.remove('hidden'); }
+    else badge.classList.add('hidden');
+    const list = document.getElementById('pendingList');
+    if (!pending.length) { list.innerHTML = '<p class="text-gray-400 text-center py-8">✅ No pending registrations right now!</p>'; return; }
+    list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
+        <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div>
+                <div class="font-bold text-gray-800">\${u.full_name}</div>
+                <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10)||'today'}</div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="approveUser(\${u.id},'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
+                <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
+            </div>
+        </div>\`).join('')}</div>\`;
+}
 
-    const classes = await fetch('/api/classes').then(r=>r.json());
-    document.getElementById('statClasses').textContent = classes.length;
+async function loadClasses() {
+    allClasses = await fetch('/api/classes').then(r=>r.json());
+    document.getElementById('statClasses').textContent = allClasses.length;
     let totalStudents = 0, totalXP = 0, xpCount = 0;
     const container = document.getElementById('classesContainer');
     container.innerHTML = '';
-    if (!classes.length) {
-        container.innerHTML = '<div class="bg-white rounded-2xl shadow p-12 text-center"><div class="text-5xl mb-3">🏫</div><p class="text-gray-400">You have no classes assigned yet. Contact your admin to be assigned to a class.</p></div>';
+    if (!allClasses.length) {
+        container.innerHTML = '<div class="bg-white rounded-2xl shadow p-12 text-center"><div class="text-5xl mb-3">🏫</div><p class="text-gray-400">You have no classes assigned yet. Ask your admin to assign you to a class.</p></div>';
+        document.getElementById('statStudents').textContent = 0;
+        document.getElementById('statAvgXP').textContent = 0;
+        return;
     }
-    for (const cls of classes) {
-        const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
-        const available = await fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json());
+    for (const cls of allClasses) {
+        const [students, available, assignedLesson] = await Promise.all([
+            fetch('/api/classes/' + cls.id + '/students').then(r=>r.json()),
+            fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json()),
+            fetch('/api/classes/' + cls.id + '/assigned-lesson').then(r=>r.json())
+        ]);
         totalStudents += students.length;
-        students.forEach(s => { if(s.xp) { totalXP += s.xp; xpCount++; } });
+        students.forEach(s => { if(s.xp){ totalXP += s.xp; xpCount++; } });
+        const lessonInfo = assignedLesson ? CURRICULUM.find(l=>l.id===assignedLesson.lesson_id) : null;
+        const lessonBadge = lessonInfo
+            ? \`<span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">📖 Current: \${lessonInfo.icon} \${lessonInfo.title}</span>\`
+            : \`<span class="bg-gray-100 text-gray-500 text-xs px-3 py-1 rounded-full">No lesson assigned</span>\`;
+        const lessonOpts = CURRICULUM.map(l=>\`<option value="\${l.id}" \${assignedLesson?.lesson_id===l.id?'selected':''}>\${l.icon} \${l.title} (\${l.group?.replace(/.*? /,'')})\`).join('');
         const studentRows = students.map(s => {
-            const lessons = JSON.parse(s.completed_lessons || '[]');
-            return \`<tr class="border-b hover:bg-gray-50">
-                <td class="py-2 font-semibold">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
-                <td class="py-2"><span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">Lv \${s.level || 1}</span></td>
-                <td class="py-2 font-bold text-yellow-500">⭐ \${s.xp || 0}</td>
-                <td class="py-2">\${lessons.length} / 14</td>
-                <td class="py-2">\${s.streak || 0} 🔥</td>
-                <td class="py-2"><button onclick="removeStudent(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs font-bold">✕</button></td>
+            const done = JSON.parse(s.completed_lessons || '[]').length;
+            return \`<tr class="border-b hover:bg-blue-50" id="row_\${s.id}">
+                <td class="py-2.5">
+                    <div class="font-semibold text-sm">\${s.full_name}</div>
+                    <div class="text-gray-400 text-xs">@\${s.username}</div>
+                    <div id="pwForm_\${s.id}" class="hidden mt-2 flex gap-2 items-center">
+                        <input type="password" id="pwInput_\${s.id}" placeholder="New password" class="border rounded-lg px-2 py-1 text-xs w-32 focus:outline-none focus:border-blue-400">
+                        <button onclick="submitResetPw(\${s.id})" class="bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold">Set</button>
+                        <button onclick="document.getElementById('pwForm_\${s.id}').classList.add('hidden')" class="bg-gray-200 text-xs px-2 py-1 rounded-lg">✕</button>
+                        <span id="pwMsg_\${s.id}" class="text-xs hidden"></span>
+                    </div>
+                </td>
+                <td class="py-2.5"><span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">Lv \${s.level||1}</span></td>
+                <td class="py-2.5 font-bold text-yellow-500 text-sm">⭐ \${s.xp||0}</td>
+                <td class="py-2.5 text-sm">\${done}/14</td>
+                <td class="py-2.5 text-sm">\${s.streak||0} 🔥</td>
+                <td class="py-2.5">
+                    <div class="flex gap-1.5">
+                        <button onclick="togglePwForm(\${s.id})" class="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs px-2 py-1 rounded-lg font-bold" title="Reset password">🔑</button>
+                        <button onclick="removeStudent(\${cls.id},\${s.id})" class="bg-red-100 text-red-600 hover:bg-red-200 text-xs px-2 py-1 rounded-lg font-bold" title="Remove from class">✕</button>
+                    </div>
+                </td>
             </tr>\`;
         }).join('');
-        const availableOpts = available.map(s => \`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
+        const availableOpts = available.map(s=>\`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
         const div = document.createElement('div');
         div.className = 'bg-white rounded-2xl shadow p-6';
         div.innerHTML = \`
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl text-blue-700">🏫 \${cls.name}</h2>
-                <span class="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full font-bold">\${students.length} students</span>
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-xl text-blue-700">🏫 \${cls.name}</h2>
+                    <p class="text-gray-400 text-sm mt-0.5">\${cls.description||''}</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    \${lessonBadge}
+                    <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">\${students.length} students</span>
+                </div>
             </div>
-            <p class="text-gray-500 text-sm mb-4">\${cls.description || ''}</p>
-            \${students.length ? \`<div class="overflow-x-auto mb-4"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons</th><th class="pb-2">Streak</th><th class="pb-2"></th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-center py-6 mb-2">No students in this class yet.</p>'}
-            \${available.length ? \`<div class="flex gap-2 items-center border-t pt-4"><select id="tAddSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"><option value="">+ Enrol an approved student...</option>\${availableOpts}</select><button onclick="teacherAddStudent(\${cls.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button></div>\` : '<p class="text-gray-400 text-xs border-t pt-3">All approved students are enrolled.</p>'}
+            <div class="flex flex-wrap gap-3 mb-5 p-3 bg-indigo-50 rounded-xl items-center">
+                <span class="text-sm font-bold text-indigo-700">📖 Assign Lesson:</span>
+                <select id="lessonSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white">
+                    <option value="">— No lesson assigned —</option>
+                    \${lessonOpts}
+                </select>
+                <button onclick="assignLesson(\${cls.id})" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-700">Assign</button>
+                <span id="assignMsg_\${cls.id}" class="text-xs hidden"></span>
+            </div>
+            \${students.length ? \`<div class="overflow-x-auto mb-4"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left text-xs"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons</th><th class="pb-2">Streak</th><th class="pb-2">Actions</th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-center py-6 mb-2">No students in this class yet.</p>'}
+            \${available.length ? \`<div class="flex gap-2 items-center border-t pt-4"><select id="tAddSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"><option value="">+ Enrol an approved student...</option>\${availableOpts}</select><button onclick="teacherAddStudent(\${cls.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button></div>\` : '<p class="text-gray-400 text-xs border-t pt-3 mt-2">All approved students are already enrolled.</p>'}
         \`;
         container.appendChild(div);
     }
@@ -4808,26 +4970,100 @@ async function init() {
     document.getElementById('statAvgXP').textContent = xpCount ? Math.round(totalXP/xpCount) : 0;
 }
 
+function renderCurriculum() {
+    const groups = {};
+    CURRICULUM.forEach(l => { if(!groups[l.group]) groups[l.group]=[]; groups[l.group].push(l); });
+    document.getElementById('curriculumList').innerHTML = Object.entries(groups).map(([g,lessons]) => \`
+        <div>
+            <h3 class="text-lg text-gray-700 mb-3">\${g}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                \${lessons.map(l => \`
+                <div class="border rounded-xl p-4 hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">\${l.icon}</span>
+                            <div>
+                                <div class="font-bold text-gray-800 text-sm">\${l.title}</div>
+                                <div class="text-gray-400 text-xs">\${l.desc}</div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1 shrink-0">
+                            <span class="diff-\${l.diff} text-xs font-bold px-2 py-0.5 rounded-full">\${l.diff}</span>
+                            <span class="text-yellow-500 text-xs font-bold">+\${l.xp} XP</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        \${allClasses.length ? allClasses.map(c=>\`<button onclick="quickAssign('\${l.id}',\${c.id},'\${l.title}')" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700">📌 Assign to \${c.name}</button>\`).join('') : '<span class="text-gray-400 text-xs">No classes yet</span>'}
+                        <a href="/" target="_blank" class="bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs px-3 py-1.5 rounded-lg font-bold">🤖 Open Academy</a>
+                    </div>
+                </div>\`).join('')}
+            </div>
+        </div>
+    \`).join('');
+}
+
+async function assignLesson(classId) {
+    const sel = document.getElementById('lessonSel_' + classId);
+    const msg = document.getElementById('assignMsg_' + classId);
+    const res = await fetch('/api/classes/' + classId + '/assign-lesson', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ lesson_id: sel.value || null })
+    });
+    const data = await res.json();
+    msg.classList.remove('hidden');
+    if (data.success) { msg.className='text-xs text-green-600'; msg.textContent='✅ Assigned!'; setTimeout(()=>{msg.classList.add('hidden');loadClasses();},1500); }
+    else { msg.className='text-xs text-red-600'; msg.textContent='❌ '+data.error; }
+}
+
+async function quickAssign(lessonId, classId, lessonTitle) {
+    const res = await fetch('/api/classes/' + classId + '/assign-lesson', {
+        method: 'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ lesson_id: lessonId })
+    });
+    const data = await res.json();
+    if (data.success) { alert('✅ "' + lessonTitle + '" assigned to class!'); loadClasses(); }
+}
+
 async function teacherAddStudent(classId) {
     const sel = document.getElementById('tAddSel_' + classId);
     if (!sel || !sel.value) return;
     await fetch('/api/classes/' + classId + '/students', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ student_id: sel.value }) });
-    init();
+    loadClasses();
 }
 
 async function removeStudent(classId, studentId) {
     if (!confirm('Remove this student from the class?')) return;
     await fetch('/api/classes/' + classId + '/students/' + studentId, { method: 'DELETE' });
-    init();
+    loadClasses();
+}
+
+function togglePwForm(studentId) {
+    const form = document.getElementById('pwForm_' + studentId);
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) document.getElementById('pwInput_' + studentId).focus();
+}
+
+async function submitResetPw(studentId) {
+    const pw = document.getElementById('pwInput_' + studentId).value;
+    const msg = document.getElementById('pwMsg_' + studentId);
+    if (!pw || pw.length < 6) { msg.className='text-xs text-red-600'; msg.classList.remove('hidden'); msg.textContent='Min 6 chars'; return; }
+    const res = await fetch('/api/teacher/students/' + studentId + '/reset-password', {
+        method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    msg.classList.remove('hidden');
+    if (data.success) { msg.className='text-xs text-green-600'; msg.textContent='✅ Done!'; setTimeout(()=>{ document.getElementById('pwForm_'+studentId).classList.add('hidden'); msg.classList.add('hidden'); },1500); }
+    else { msg.className='text-xs text-red-600'; msg.textContent='❌ '+data.error; }
 }
 
 async function approveUser(id, action) {
     await fetch('/api/admin/users/' + id + '/approve', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action })
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action })
     });
-    init();
+    loadPending();
 }
+
+function closePwModal(e) { document.getElementById('pwModal').classList.add('hidden'); }
 
 async function logout() {
     await fetch('/api/auth/logout', { method:'POST' });
