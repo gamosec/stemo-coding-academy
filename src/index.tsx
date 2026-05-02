@@ -881,11 +881,12 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         .tab-active {
-            background: white;
-            color: #6366f1;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #6366f1;
+            color: white;
+            box-shadow: 0 4px 6px rgba(99,102,241,0.3);
         }
-        .tab-inactive { background: transparent; color: white; }
+        .tab-inactive { background: #f1f5f9; color: #64748b; }
+        .tab-inactive:hover { background: #e2e8f0; color: #475569; }
         
         .xp-popup { animation: xp-float 2s ease forwards; }
         @keyframes xp-float {
