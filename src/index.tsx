@@ -448,11 +448,11 @@ app.get('/api/student/profile', authMiddleware, async (c) => {
     if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
     const user = await c.env.DB.prepare('SELECT id, full_name, username, created_at FROM users WHERE id = ?').bind(me.id).first()
     const cls = await c.env.DB.prepare(`
-        SELECT c.id, c.name, u.full_name as teacher_name, al.lesson_id as assigned_lesson_id
+        SELECT c.id, c.name, u.full_name as teacher_name,
+               (SELECT lesson_id FROM assigned_lessons WHERE class_id = c.id ORDER BY created_at DESC LIMIT 1) as assigned_lesson_id
         FROM class_students cs
         JOIN classes c ON cs.class_id = c.id
         LEFT JOIN users u ON c.teacher_id = u.id
-        LEFT JOIN assigned_lessons al ON al.class_id = c.id
         WHERE cs.student_id = ?
         LIMIT 1
     `).bind(me.id).first()
@@ -970,6 +970,19 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
             </div>
 
+            <!-- Teacher Assigned Lesson Banner -->
+            <div id="assignedLessonBanner" class="hidden bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-5 mb-6 text-white shadow-lg">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <span class="text-4xl" id="assignedLessonBannerIcon">📖</span>
+                    <div class="flex-1">
+                        <div class="text-xs font-bold text-amber-100 uppercase tracking-wide mb-1">📌 Your teacher assigned this lesson</div>
+                        <div class="text-xl font-bold" id="assignedLessonBannerTitle">-</div>
+                        <div class="text-amber-100 text-sm" id="assignedLessonBannerDesc"></div>
+                    </div>
+                    <button id="assignedLessonBannerBtn" onclick="" class="bg-white text-orange-600 px-5 py-2 rounded-full font-bold text-sm hover:bg-yellow-300 transition-all shadow">🚀 Start Now</button>
+                </div>
+            </div>
+
             <h3 class="text-2xl font-bold text-gray-800 mb-4">
                 <i class="fas fa-book-open text-indigo-500 mr-2"></i>Curriculum Path
             </h3>
@@ -1450,6 +1463,9 @@ const htmlContent = `<!DOCTYPE html>
         // Current logged-in student (populated on init)
         var currentUser = null;
 
+        // Lesson assigned by teacher (lesson ID string, e.g. 'lesson-3')
+        var assignedLessonId = null;
+
         // ============================================
         // INITIALIZATION
         // ============================================
@@ -1616,9 +1632,12 @@ const htmlContent = `<!DOCTYPE html>
                                            (lesson.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
                                            (lesson.difficulty === 'hard' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'));
                             
-                            html += '<div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer ' + (isLocked ? 'opacity-60 cursor-not-allowed' : '') + '" ' +
+                            var isAssigned = (lesson.id === assignedLessonId);
+                            var assignedBadge = isAssigned ? '<span class="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-bold">📌 Assigned</span>' : '';
+                            var assignedBorder = isAssigned ? ' ring-4 ring-orange-400 ring-offset-2' : '';
+                            html += '<div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer ' + (isLocked ? 'opacity-60 cursor-not-allowed' : '') + assignedBorder + '" ' +
                                     (isLocked ? '' : 'onclick="selectLesson(\\'' + lesson.id + '\\')"') + '>' +
-                                    '<div class="h-3 bg-gradient-to-r ' + diffGradient + '"></div>' +
+                                    '<div class="h-3 bg-gradient-to-r ' + (isAssigned ? 'from-amber-400 to-orange-500' : diffGradient) + '"></div>' +
                                     '<div class="p-5">' +
                                     '<div class="flex items-center justify-between mb-3">' +
                                     '<span class="text-3xl">' + icon + '</span>' +
@@ -1626,9 +1645,10 @@ const htmlContent = `<!DOCTYPE html>
                                     '</div>' +
                                     '<h4 class="font-bold text-lg text-gray-800 mb-1">' + lesson.title + '</h4>' +
                                     '<p class="text-gray-500 text-sm mb-3">' + lesson.description + '</p>' +
-                                    '<div class="flex items-center gap-2">' +
+                                    '<div class="flex items-center gap-2 flex-wrap">' +
                                     '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
                                     (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
+                                    assignedBadge +
                                     '</div></div></div>';
                         });
                     });
@@ -3661,14 +3681,23 @@ const htmlContent = `<!DOCTYPE html>
                     if (data.class.teacher_name) {
                         classHtml += '<div class="flex items-center gap-2"><span class="text-purple-500">👩‍🏫</span><span class="font-semibold text-gray-700">Teacher:</span><span class="text-gray-600">' + data.class.teacher_name + '</span></div>';
                     }
-                    // Assigned lesson banner
+                    // Assigned lesson — show banner on Profile AND Learn tabs
                     if (data.class.assigned_lesson_id) {
-                        var lessonId = data.class.assigned_lesson_id;
-                        var lessonData = findLessonById(lessonId);
+                        assignedLessonId = data.class.assigned_lesson_id;
+                        var lessonData = findLessonById(assignedLessonId);
                         if (lessonData) {
+                            // Profile banner
                             document.getElementById('profileLessonIcon').textContent = lessonData.icon || '📖';
                             document.getElementById('profileLessonTitle').textContent = lessonData.title;
                             document.getElementById('profileLessonBanner').classList.remove('hidden');
+                            // Learn tab banner
+                            document.getElementById('assignedLessonBannerIcon').textContent = lessonData.icon || '📖';
+                            document.getElementById('assignedLessonBannerTitle').textContent = lessonData.title;
+                            document.getElementById('assignedLessonBannerDesc').textContent = lessonData.description || '';
+                            document.getElementById('assignedLessonBannerBtn').setAttribute('onclick', "selectLesson('" + assignedLessonId + "')");
+                            document.getElementById('assignedLessonBanner').classList.remove('hidden');
+                            // Re-render lessons so the card gets highlighted
+                            loadLessons();
                         }
                     }
                 } else {
@@ -5198,7 +5227,7 @@ async function init() {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     if (!me.user || me.user.role !== 'teacher') { window.location.href='/login'; return; }
     document.getElementById('welcomeMsg').textContent = 'Welcome, ' + me.user.full_name;
-    loadClasses();
+    await loadClasses();
     loadPending();
     renderCurriculum();
 }
