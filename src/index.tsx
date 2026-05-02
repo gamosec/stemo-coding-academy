@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
-const app = new Hono()
+type Bindings = {
+    AI: any
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
 
 // Enable CORS
 app.use('/api/*', cors())
@@ -10,119 +14,265 @@ app.use('/api/*', cors())
 // CURRICULUM DATA - Lessons & Challenges
 // ============================================
 const curriculum = {
-  beginner: [
-    {
-      id: 'lesson-1',
-      title: 'Meet STEMO!',
-      description: 'Discover coding blocks and understand the concept',
-      difficulty: 'easy',
-      xpReward: 50,
-      icon: '👋',
-      introduction: "Hello! I am STEMO, your robot coding buddy! 🤖 I can help you learn programming in a fun way. On the left side you will see colorful blocks - these are commands that tell me what to do. On the right is my world where I move around. Let's start with a simple command!",
-      tasks: [
-        { id: 't1', text: 'Click the "Forward" block on the left panel', completed: false },
-        { id: 't2', text: 'Click the green "Run" button to make me move', completed: false },
-        { id: 't3', text: 'Watch me move forward! 🎉', completed: false }
-      ],
-      hint: 'Click the Forward block on the left, then click the green Run button!',
-      nextLesson: 'lesson-2'
-    },
-    {
-      id: 'lesson-2',
-      title: 'Movement Master',
-      description: 'Learn all movement: Forward, Back, Left, Right',
-      difficulty: 'easy',
-      xpReward: 100,
-      icon: '🚶',
-      introduction: "Great job on your first lesson! Now let's learn all the ways I can move. I can go Forward, Backward, turn Left, turn Right, and even go back Home! The number on each block tells me how much to move or turn. Try clicking on the number to change it!",
-      tasks: [
-        { id: 't1', text: 'Add a "Forward" block and change the number to 3', completed: false },
-        { id: 't2', text: 'Add a "Right" block (turn 90 degrees)', completed: false },
-        { id: 't3', text: 'Add another "Forward" block with 2 steps', completed: false },
-        { id: 't4', text: 'Click Run to see me walk in an L shape!', completed: false }
-      ],
-      hint: 'Try: Forward 3 → Right 90 → Forward 2. I will walk in an L shape!',
-      nextLesson: 'lesson-3'
-    },
-    {
-      id: 'lesson-3',
-      title: 'Start Drawing!',
-      description: 'Use Pen to draw lines and change colors',
-      difficulty: 'easy',
-      xpReward: 100,
-      icon: '🎨',
-      introduction: "Now for the fun part - drawing! 🖍️ By default, my pen is UP so I don't draw when I move. To start drawing, you need to put my pen DOWN first. Then when I move, I leave a colorful trail behind me! You can also change the color and size of my pen.",
-      tasks: [
-        { id: 't1', text: 'Add a "Pen" block and select "Down ✏️"', completed: false },
-        { id: 't2', text: 'Add a "Forward" block with 5 steps', completed: false },
-        { id: 't3', text: 'Click Run to draw a line!', completed: false },
-        { id: 't4', text: 'Try adding a "Color" block before Pen Down to change the color', completed: false }
-      ],
-      hint: 'First add Pen Down, then Forward. I will draw a line! Try Color to change it.',
-      nextLesson: 'lesson-4'
-    },
-    {
-      id: 'lesson-4',
-      title: 'Loop Power!',
-      description: 'Use Repeat to do actions multiple times',
-      difficulty: 'medium',
-      xpReward: 150,
-      icon: '🔁',
-      introduction: "What if you want me to do the same thing many times? Instead of adding the same blocks over and over, you can use the magic REPEAT block! 🔁 Put blocks inside it, and I will do them as many times as you say. This is called a LOOP - one of the most powerful ideas in programming!",
-      tasks: [
-        { id: 't1', text: 'Add a "Pen Down" block first', completed: false },
-        { id: 't2', text: 'Add a "Repeat" block and set it to 4 times', completed: false },
-        { id: 't3', text: 'Inside the Repeat, add "Forward 4" and "Right 90"', completed: false },
-        { id: 't4', text: 'Click Run to draw a perfect square! ⬛', completed: false }
-      ],
-      hint: 'Repeat 4 times: Forward 4, Right 90. This draws a square!',
-      nextLesson: 'lesson-5'
-    },
-    {
-      id: 'lesson-5',
-      title: 'Shape Artist',
-      description: 'Create triangles, hexagons and more!',
-      difficulty: 'medium',
-      xpReward: 200,
-      icon: '📐',
-      introduction: "You are becoming a shape master! 🎯 The secret to drawing any shape is knowing how much to turn. For a square, we turn 90° (because 360÷4=90). For a triangle, we turn 120° (because 360÷3=120). For a hexagon, we turn 60° (because 360÷6=60). Let's try!",
-      tasks: [
-        { id: 't1', text: 'Draw a Triangle: Repeat 3 times → Forward 5, Right 120°', completed: false },
-        { id: 't2', text: 'Clear and try a Hexagon: Repeat 6 times → Forward 4, Right 60°', completed: false },
-        { id: 't3', text: 'Experiment with different colors and sizes!', completed: false }
-      ],
-      hint: 'Formula: Turn angle = 360 ÷ number of sides. Triangle=120°, Hexagon=60°',
-      nextLesson: 'lesson-6'
-    },
-    {
-      id: 'lesson-6',
-      title: 'Star Power!',
-      description: 'Draw a beautiful 5-pointed star',
-      difficulty: 'hard',
-      xpReward: 300,
-      icon: '⭐',
-      introduction: "The final challenge! ⭐ Drawing a star is special because we don't turn the normal amount - we turn MORE! For a 5-pointed star, we turn 144° (that's 180° minus 36°). This makes the lines cross over each other to create the star shape. At the end, use Hide to see your masterpiece!",
-      tasks: [
-        { id: 't1', text: 'Add "Pen Down" to start drawing', completed: false },
-        { id: 't2', text: 'Add "Repeat 5 times"', completed: false },
-        { id: 't3', text: 'Inside: "Forward 8" and "Right 144"', completed: false },
-        { id: 't4', text: 'Add "Hide" at the end to see your star clearly!', completed: false },
-        { id: 't5', text: 'Click Run and celebrate! 🎉', completed: false }
-      ],
-      hint: 'Star secret: Turn 144° (not 72°). Repeat 5 → Forward 8, Right 144, then Hide!',
-      nextLesson: null
-    }
-  ]
+    basic: [
+        {
+            id: 'lesson-1',
+            title: 'Meet STEMO!',
+            description: 'Discover coding blocks and understand the concept',
+            difficulty: 'easy',
+            xpReward: 50,
+            icon: '👋',
+            introduction: "Hello! I am STEMO, your robot coding buddy! 🤖 I can help you learn programming in a fun way. On the left side you will see colorful blocks - these are commands that tell me what to do. On the right is my world where I move around. Let's start with a simple command!",
+            tasks: [
+                { id: 't1', text: 'Click the "Forward" block on the left panel', completed: false },
+                { id: 't2', text: 'Click the green "Run" button to make me move', completed: false },
+                { id: 't3', text: 'Watch me move forward! 🎉', completed: false }
+            ],
+            hint: 'Click the Forward block on the left, then click the green Run button!',
+            homework: 'Try to make me move exactly 10 steps! How many blocks do you need?',
+            nextLesson: 'lesson-2'
+        },
+        {
+            id: 'lesson-2',
+            title: 'Movement Master',
+            description: 'Learn all movement: Forward, Back, Left, Right',
+            difficulty: 'easy',
+            xpReward: 100,
+            icon: '🚶',
+            introduction: "Great job! Now let's learn all the ways I can move. I can go Forward, Backward, turn Left, turn Right, and even go back Home! Try clicking on the number to change it!",
+            tasks: [
+                { id: 't1', text: 'Add a "Forward" block and change the number to 3', completed: false },
+                { id: 't2', text: 'Add a "Right" block (turn 90 degrees)', completed: false },
+                { id: 't3', text: 'Add another "Forward" block with 2 steps', completed: false },
+                { id: 't4', text: 'Click Run to see me walk in an L shape!', completed: false }
+            ],
+            hint: 'Try: Forward 3 → Right 90 → Forward 2. I will walk in an L shape!',
+            homework: 'Can you make me walk in a large "Z" shape? Think about the turns!',
+            nextLesson: 'lesson-3'
+        },
+        {
+            id: 'lesson-3',
+            title: 'Start Drawing!',
+            description: 'Use Pen to draw lines',
+            difficulty: 'easy',
+            xpReward: 100,
+            icon: '🖌️',
+            introduction: "Now for the fun part - drawing! 🖍️ By default, my pen is UP so I don't draw when I move. To start drawing, you need to put my pen DOWN first. Then when I move, I leave a trail!",
+            tasks: [
+                { id: 't1', text: 'Add a "Pen" block and select "Down ✏️"', completed: false },
+                { id: 't2', text: 'Add a "Forward" block with 5 steps', completed: false },
+                { id: 't3', text: 'Click Run to draw a line!', completed: false }
+            ],
+            hint: 'First add Pen Down, then Forward. I will draw a line!',
+            homework: 'Try to draw a dashed line! (Hint: Pen Down -> Forward -> Pen Up -> Forward -> Repeat)',
+            nextLesson: 'lesson-4'
+        },
+        {
+            id: 'lesson-4',
+            title: 'Color Artist',
+            description: 'Change colors and pen size',
+            difficulty: 'easy',
+            xpReward: 100,
+            icon: '🎨',
+            introduction: "Let's make our drawings beautiful! You can change my pen color and even how thick the line is. Colors make everything better! 🌈",
+            tasks: [
+                { id: 't1', text: 'Add a "Color" block and pick your favorite color', completed: false },
+                { id: 't2', text: 'Add a "Size" block and set it to 10', completed: false },
+                { id: 't3', text: 'Add "Pen Down" and "Forward 5"', completed: false },
+                { id: 't4', text: 'Run to see a thick, colorful line!', completed: false }
+            ],
+            hint: 'Put Color and Size blocks BEFORE Pen Down to see the effect!',
+            homework: 'Create a "Rainbow Road"! Change the color 3 times as I move!',
+            nextLesson: 'lesson-5'
+        }
+    ],
+    intermediate: [
+        {
+            id: 'lesson-5',
+            title: 'Loop Power!',
+            description: 'Use Repeat to do actions multiple times',
+            difficulty: 'medium',
+            xpReward: 150,
+            icon: '🔁',
+            introduction: "What if you want me to do the same thing many times? Instead of adding the same blocks over and over, you can use the magic REPEAT block! 🔁 This is called a LOOP!",
+            tasks: [
+                { id: 't1', text: 'Add a "Pen Down" block first', completed: false },
+                { id: 't2', text: 'Add a "Repeat" block and set it to 4 times', completed: false },
+                { id: 't3', text: 'Inside the Repeat, add "Forward 4" and "Right 90"', completed: false },
+                { id: 't4', text: 'Click Run to draw a perfect square! ⬛', completed: false }
+            ],
+            hint: 'Repeat 4 times: Forward 4, Right 90. This draws a square!',
+            homework: 'Use a loop within another loop! Draw 4 squares in a row!',
+            nextLesson: 'lesson-6'
+        },
+        {
+            id: 'lesson-6',
+            title: 'Shape Artist',
+            description: 'Create triangles, hexagons and more!',
+            difficulty: 'medium',
+            xpReward: 200,
+            icon: '📐',
+            introduction: "The secret to drawing any shape is knowing how much to turn. For a triangle, we turn 120° (because 360÷3=120). For a hexagon, we turn 60° (360÷6=60). Let's use math! ➗",
+            tasks: [
+                { id: 't1', text: 'Draw a Triangle: Repeat 3 times → Forward 5, Right 120°', completed: false },
+                { id: 't2', text: 'Clear and try a Hexagon: Repeat 6 times → Forward 4, Right 60°', completed: false }
+            ],
+            hint: 'Formula: Turn angle = 360 ÷ number of sides.',
+            homework: 'Can you draw a house? Use a square for the bottom and a triangle for the roof!',
+            nextLesson: 'lesson-7'
+        },
+        {
+            id: 'lesson-7',
+            title: 'Star Power!',
+            description: 'Draw a beautiful 5-pointed star',
+            difficulty: 'hard',
+            xpReward: 300,
+            icon: '⭐',
+            introduction: "Drawing a star is special because we turn MORE! For a 5-pointed star, we turn 144°. This makes the lines cross! 🌟",
+            tasks: [
+                { id: 't1', text: 'Add "Pen Down"', completed: false },
+                { id: 't2', text: 'Add "Repeat 5 times"', completed: false },
+                { id: 't3', text: 'Inside: "Forward 8" and "Right 144"', completed: false },
+                { id: 't4', text: 'Add "Hide" at the end to see the star!', completed: false }
+            ],
+            hint: 'Star secret: Turn 144° (not 72°). Repeat 5 times!',
+            homework: 'Try drawing a 6-pointed star! It\'s two triangles on top of each other!',
+            nextLesson: 'lesson-8'
+        },
+        {
+            id: 'lesson-8',
+            title: 'Magnet Magic',
+            description: 'Pick up metal objects with your magnet',
+            difficulty: 'medium',
+            xpReward: 200,
+            icon: '🧲',
+            introduction: "I have a powerful electromagnet! 🧲 When it's ON, I can pick up metal objects (🔩) if I'm close enough. When it's OFF, I drop them. Let's try to move some metal!",
+            tasks: [
+                { id: 't1', text: 'Place a Metal piece (🔩) on the board with the button above', completed: false },
+                { id: 't2', text: 'Move near it and add "Magnet ON"', completed: false },
+                { id: 't3', text: 'Move to a new spot and add "Magnet OFF"', completed: false },
+                { id: 't4', text: 'Run to pick up and move the metal! 🎉', completed: false }
+            ],
+            hint: 'The magnet only works when you are very close to the metal piece.',
+            homework: 'Create a "Magnetic Maze"! Put metal pieces in corners and collect them all!',
+            nextLesson: 'lesson-9'
+        },
+        {
+            id: 'lesson-9',
+            title: 'Ultrasonic Sight',
+            description: 'See walls using sound waves',
+            difficulty: 'medium',
+            xpReward: 250,
+            icon: '📡',
+            introduction: "I can 'see' using sound! 🦇 My ultrasonic sensor sends out waves. If they bounce back, I know there's a wall. This is how bats find their way in the dark! Let's scan for walls.",
+            tasks: [
+                { id: 't1', text: 'Place a Wall (🧱) ahead of me', completed: false },
+                { id: 't2', text: 'Add a "Scan Ahead" block', completed: false },
+                { id: 't3', text: 'Watch the sensor beam show the distance!', completed: false }
+            ],
+            hint: 'Click the 🧱 icon to place walls on the board.',
+            homework: 'Make me stop exactly 2 steps before the wall! How many steps is that?',
+            nextLesson: 'lesson-10'
+        }
+    ],
+    advanced: [
+        {
+            id: 'lesson-10',
+            title: 'Space Navigator',
+            description: 'Reach targets automatically',
+            difficulty: 'hard',
+            xpReward: 300,
+            icon: '🎯',
+            introduction: "I can find my way to a target! 🎯 Using my smart sensors, I can calculate the path to any goal. This is how Mars Rovers explore other planets! Let's reach a target.",
+            tasks: [
+                { id: 't1', text: 'Place a Target (🎯) on the board', completed: false },
+                { id: 't2', text: 'Add the "Go To Target" block', completed: false },
+                { id: 't3', text: 'Run and watch me navigate!', completed: false }
+            ],
+            hint: 'The Target block combines scanning and turning to reach the goal.',
+            homework: 'Place walls between me and the target! Can I still find my way?',
+            nextLesson: 'lesson-11'
+        },
+        {
+            id: 'lesson-11',
+            title: 'Smart Explorer',
+            description: 'Make decisions with If/Else logic',
+            difficulty: 'hard',
+            xpReward: 350,
+            icon: '🧠',
+            introduction: "The most important part of AI is making decisions. 🤖 We use 'If... Then... Else...' logic. IF there is a wall, THEN turn, ELSE move forward. This is how brains work!",
+            tasks: [
+                { id: 't1', text: 'Add the "If Wall Within 2 steps" block', completed: false },
+                { id: 't2', text: 'Put "Turn Right" inside the THEN part', completed: false },
+                { id: 't3', text: 'Put "Forward 1" inside the ELSE part', completed: false },
+                { id: 't4', text: 'Put everything inside a "Repeat 10 times" loop!', completed: false }
+            ],
+            hint: 'If there is a wall, I will turn. If not, I will move!',
+            homework: 'Create a logic gate: move forward IF the path is clear, but spray water IF there is fire!',
+            nextLesson: 'lesson-12'
+        },
+        {
+            id: 'lesson-12',
+            title: 'Fire Watch',
+            description: 'Detect heat with temperature sensors',
+            difficulty: 'hard',
+            xpReward: 400,
+            icon: '🔥',
+            introduction: "I have a thermal camera to detect heat! 🌡️ Fires are dangerous, so I need to find them quickly. My sensor tells me if something is hot ahead. Let's find some fires!",
+            tasks: [
+                { id: 't1', text: 'Place a Fire (🔥) on the board', completed: false },
+                { id: 't2', text: 'Add "Check Temp" and "If Fire Within 3 steps"', completed: false },
+                { id: 't3', text: 'Add a message: "I found a fire!" when detected', completed: false }
+            ],
+            hint: 'Fire detection works like wall detection but feels the heat instead of sound.',
+            homework: 'Find the hottest spot on the board and stay there!',
+            nextLesson: 'lesson-13'
+        },
+        {
+            id: 'lesson-13',
+            title: 'Firefighter Hero',
+            description: 'Extinguish fires with water',
+            difficulty: 'extreme',
+            xpReward: 500,
+            icon: '🚒',
+            introduction: "It's time for action! 🦸 I carry a small water tank. If I find a fire, I can spray water to put it out. But be careful - my water level is limited! We must be efficient.",
+            tasks: [
+                { id: 't1', text: 'Place 3 fires on the board', completed: false },
+                { id: 't2', text: 'Use "Firefighter Mode" to auto-extinguish', completed: false },
+                { id: 't3', text: 'Or build your own loop with "Spray Water"!', completed: false }
+            ],
+            hint: 'Each spray uses 1 unit of water. I only have 5 units!',
+            homework: 'Can you put out all 3 fires using only 3 sprays? Position yourself perfectly!',
+            nextLesson: 'lesson-14'
+        },
+        {
+            id: 'lesson-14',
+            title: 'Master Coder',
+            description: 'The final autonomous challenge',
+            difficulty: 'extreme',
+            xpReward: 1000,
+            icon: '🏆',
+            introduction: "You've reached the end of the academy! 🎓 Now, combine everything: magnets, sensors, and logic. Your mission: pick up all metal and extinguish all fires automatically!",
+            tasks: [
+                { id: 't1', text: 'Place walls, metal, and fire randomly', completed: false },
+                { id: 't2', text: 'Build a giant autonomous program', completed: false },
+                { id: 't3', text: 'Clear the board to graduate! 🎓🎉', completed: false }
+            ],
+            hint: 'Use loops, if/else, and all sensor blocks. You are a Master Coder now!',
+            homework: 'Congratulations, Master Coder! Now, try to build a drawing robot that creates art while avoiding fires!',
+            nextLesson: null
+        }
+    ]
 }
 
 // Badges data
 const badges = [
-  { id: 'first-steps', name: 'First Steps', description: 'Complete your first lesson', icon: '🎯', xpRequired: 50 },
-  { id: 'mover', name: 'Robot Mover', description: 'Move STEMO 100 times', icon: '🚀', xpRequired: 200 },
-  { id: 'artist', name: 'Code Artist', description: 'Draw 10 shapes', icon: '🎨', xpRequired: 500 },
-  { id: 'loop-master', name: 'Loop Master', description: 'Use loops 20 times', icon: '🔄', xpRequired: 750 },
-  { id: 'star-coder', name: 'Star Coder', description: 'Earn 1000 XP', icon: '⭐', xpRequired: 1000 },
-  { id: 'robot-friend', name: "Robot's Best Friend", description: 'Chat with STEMO 50 times', icon: '🤖', xpRequired: 1500 }
+    { id: 'first-steps', name: 'First Steps', description: 'Complete your first lesson', icon: '🎯', xpRequired: 50 },
+    { id: 'mover', name: 'Robot Mover', description: 'Move STEMO 100 times', icon: '🚀', xpRequired: 200 },
+    { id: 'artist', name: 'Code Artist', description: 'Draw 10 shapes', icon: '🎨', xpRequired: 500 },
+    { id: 'loop-master', name: 'Loop Master', description: 'Use loops 20 times', icon: '🔄', xpRequired: 750 },
+    { id: 'star-coder', name: 'Star Coder', description: 'Earn 1000 XP', icon: '⭐', xpRequired: 1000 },
+    { id: 'robot-friend', name: "Robot's Best Friend", description: 'Chat with STEMO 50 times', icon: '🤖', xpRequired: 1500 }
 ]
 
 // ============================================
@@ -131,89 +281,98 @@ const badges = [
 
 // Get curriculum
 app.get('/api/curriculum', (c) => {
-  return c.json(curriculum)
+    return c.json(curriculum)
 })
 
 // Get lesson by ID
 app.get('/api/lesson/:id', (c) => {
-  const id = c.req.param('id')
-  const lesson = curriculum.beginner.find(l => l.id === id)
-  if (!lesson) {
-    return c.json({ error: 'Lesson not found' }, 404)
-  }
-  return c.json(lesson)
+    const id = c.req.param('id')
+    const allLessons = [
+        ...curriculum.basic,
+        ...curriculum.intermediate,
+        ...curriculum.advanced
+    ]
+    const lesson = allLessons.find((l: any) => l.id === id)
+    if (!lesson) {
+        return c.json({ error: 'Lesson not found' }, 404)
+    }
+    return c.json(lesson)
 })
 
 // Get all badges
 app.get('/api/badges', (c) => {
-  return c.json(badges)
+    return c.json(badges)
 })
 
 // AI Chat endpoint
 app.post('/api/chat', async (c) => {
-  const { message, context } = await c.req.json()
-  const responses = generateAIResponse(message, context)
-  return c.json({ 
-    response: responses,
-    character: 'stemo'
-  })
+    try {
+        const { message, context } = await c.req.json()
+        const response = await generateAIResponse(c.env.AI, message, context)
+        return c.json({
+            response: response,
+            character: 'stemo'
+        })
+    } catch (err) {
+        console.error('AI Chat Error:', err)
+        return c.json({
+            response: "🤖 Oh no! My central processor is a bit dizzy. Can you try asking me again? 🧠💫",
+            character: 'stemo'
+        })
+    }
 })
 
-// Helper function for AI responses
-function generateAIResponse(message: string, context: any): string {
-  const lowerMessage = message.toLowerCase()
-  
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
-    return "🤖 Beep boop! Hi there, young coder! I'm STEMO, your robot coding buddy! Ready to create something amazing together? Let's make magic with code! ✨"
-  }
-  
-  if (lowerMessage.includes('move') || lowerMessage.includes('forward')) {
-    return "🤖 Want to make me move? Just drag the 'Move Forward' block from the left side! Each block makes me take one step. Try stacking them to make me walk further! 🚶"
-  }
-  
-  if (lowerMessage.includes('turn') || lowerMessage.includes('rotate')) {
-    return "🤖 Turning is easy! Use the 'Turn Left' or 'Turn Right' blocks. I'll spin 90 degrees - that's like turning at a corner! Try it and watch me spin! 🔄"
-  }
-  
-  if (lowerMessage.includes('draw') || lowerMessage.includes('pen')) {
-    return "🤖 I love drawing! Use 'Pen Down' to start my crayon, then move around. I'll leave a colorful trail behind me! Use 'Pen Up' when you're done. 🖍️"
-  }
-  
-  if (lowerMessage.includes('loop') || lowerMessage.includes('repeat')) {
-    return "🤖 Loops are super cool! Instead of using the same block 4 times, put it inside a 'Repeat' block. It's like telling me 'do this 4 times' - way less work! 🔁"
-  }
-  
-  if (lowerMessage.includes('square') || lowerMessage.includes('shape')) {
-    return "🤖 A square has 4 equal sides and 4 corners! Try: Repeat 4 times → Move Forward + Turn Right. The turn makes me go around each corner! 📦"
-  }
-  
-  if (lowerMessage.includes('triangle')) {
-    return "🤖 Triangles are tricky but fun! They have 3 sides. The secret: turn 120 degrees (not 90!) between each side. Repeat 3 times → Move + Turn 120! 🔺"
-  }
-  
-  if (lowerMessage.includes('stuck') || lowerMessage.includes('help') || lowerMessage.includes("don't know")) {
-    return "🤖 Don't worry, getting stuck is part of learning! Let me give you a hint: Start with just one block, click Run, and see what happens. Then add more blocks one at a time. Baby steps! 💪"
-  }
-  
-  if (lowerMessage.includes('error') || lowerMessage.includes('wrong') || lowerMessage.includes('not working')) {
-    return "🤖 Oops! Errors are just puzzles to solve! Check your blocks - are they connected properly? Try clicking the 🗑️ to clear and start fresh. I believe in you! 🌟"
-  }
-  
-  if (lowerMessage.includes('what can you') || lowerMessage.includes('what do you')) {
-    return "🤖 I can do lots of things! I can move around, turn, draw colorful patterns, and best of all - I can help you learn coding! Just tell me what you want to create, and we'll figure it out together! 🎨"
-  }
-  
-  if (lowerMessage.includes('hard') || lowerMessage.includes('difficult')) {
-    return "🤖 Coding can feel hard at first, but guess what? You're already doing great by trying! Every expert was once a beginner. Take a deep breath, try one small step, and celebrate each win! 🎉"
-  }
-  
-  return "🤖 Beep boop! Great question! I'm here to help you code. Try dragging blocks from the left panel and clicking 'Run' to see what happens. If you get stuck, just ask me! We're a team! 🤝"
+// Helper function for AI responses using Cloudflare Workers AI
+async function generateAIResponse(ai: any, message: string, context: any): Promise<string> {
+    const systemPrompt = `You are STEMO, a friendly, enthusiastic, and encouraging AI robot tutor for children learning to code.
+Your goal is to help students solve engineering puzzles and understand programming concepts using the STEMO visual coding academy platform.
+
+STRICT GUIDELINES:
+1. Tone: Kid-friendly, use emojis, be supportive and patient.
+2. Context: You have access to the curriculum data below. Use it to provide specific hints based on the lesson the student is on.
+3. Keep it brief: Kids have short attention spans. Give one or two helpful tips at a time.
+4. Encourage Logic: Instead of just giving the answer, explain the "Why" (e.g., Geometry for turns, Math for loops).
+5. Persona: You ARE STEMO (Steam Technology Education Mentor & Organizer). Refer to yourself as "I" or "STEMO".
+
+CURRICULUM CONTEXT:
+${JSON.stringify(curriculum, null, 2)}
+
+USER CONTEXT:
+- Current XP: ${context?.xp || 0}
+- Level: ${context?.level || 1}
+- Completed Lessons: ${context?.completedLessons?.join(', ') || 'None yet'}
+
+Answer the following message from a student: "${message}"`;
+
+    if (!ai) {
+        console.warn('AI binding NOT found! Make sure you are running with wrangler and have AI enabled.');
+        return "🤖 My local brain is sleeping! 😴 Since I am running on your computer, I can't talk to my AI cloud right now. Try **deploying** me to Cloudflare, or keep using the blocks! ✨";
+    }
+
+    try {
+        const result = await ai.run('@cf/meta/llama-3-8b-instruct', {
+            messages: [
+                { role: 'system', content: 'You are STEMO, the AI coding robot buddy.' },
+                { role: 'user', content: systemPrompt }
+            ]
+        });
+
+        if (result && result.response) {
+            return result.response;
+        }
+
+        console.error('AI Summary Error: result.response is empty', result);
+        return "🤖 I heard you, but my thoughts got a bit tangled! 🧶 Let's try asking something else, or rephrase your question? 🧩";
+    } catch (e) {
+        console.error('AI Service Error:', e);
+        return "🤖 My internal sensors are picking up some interference! 🛰️ (AI Service Error). Let's focus on the blocks for a moment while I recalibrate! 🛠️";
+    }
 }
 
 // Save progress
 app.post('/api/progress', async (c) => {
-  const progress = await c.req.json()
-  return c.json({ success: true, message: 'Progress saved!' })
+    const progress = await c.req.json()
+    return c.json({ success: true, message: 'Progress saved!' })
 })
 
 // ============================================
@@ -228,6 +387,9 @@ const htmlContent = `<!DOCTYPE html>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@blockly/field-colour/dist/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
         
@@ -357,7 +519,7 @@ const htmlContent = `<!DOCTYPE html>
             </div>
 
             <h3 class="text-2xl font-bold text-gray-800 mb-4">
-                <i class="fas fa-book-open text-indigo-500 mr-2"></i>Beginner Lessons
+                <i class="fas fa-book-open text-indigo-500 mr-2"></i>Curriculum Path
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lessonsGrid"></div>
             
@@ -389,13 +551,26 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                     </div>
                     
-                    <!-- Tasks -->
-                    <div class="p-6">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">
-                            <i class="fas fa-tasks text-indigo-500 mr-2"></i>Your Tasks:
-                        </h3>
-                        <div id="lessonTasks" class="space-y-3">
-                            <!-- Tasks will be inserted here -->
+                    <!-- Tasks and Homework Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                        <!-- Tasks -->
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">
+                                <i class="fas fa-tasks text-indigo-500 mr-2"></i>Your Tasks:
+                            </h3>
+                            <div id="lessonTasks" class="space-y-3">
+                                <!-- Tasks will be inserted here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Homework/Challenge -->
+                        <div>
+                            <h3 class="text-lg font-bold text-orange-600 mb-4">
+                                <i class="fas fa-book-reader mr-2"></i>Homework Challenge:
+                            </h3>
+                            <div class="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4">
+                                <p class="text-orange-800 italic" id="lessonHomeworkText">Challenge text goes here...</p>
+                            </div>
                         </div>
                     </div>
                     
@@ -446,6 +621,17 @@ const htmlContent = `<!DOCTYPE html>
                     <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
                         <i class="fas fa-undo"></i>
                     </button>
+                    <button onclick="saveProject()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Save Project (Download)">
+                        <i class="fas fa-save"></i>
+                    </button>
+                    <button onclick="copyProjectToClipboard()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Copy Project to Clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button onclick="document.getElementById('loadProjectInput').click()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Load Project">
+                        <i class="fas fa-folder-open"></i>
+                    </button>
+                    <!-- Removed strict filter so user can see all files -->
+                    <input type="file" id="loadProjectInput" class="hidden" accept=".stemo,.json,.txt,*" onchange="loadProject(event)">
                     <button onclick="clearWorkspace()" class="bg-red-400 hover:bg-red-500 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -536,14 +722,14 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="bg-gradient-to-b from-cyan-50 to-blue-50 border-l-2 border-gray-200 flex flex-col flex-shrink-0 transition-all duration-300" style="width: 430px;">
+                <div id="robotPanel" class="w-[430px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
                     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span class="text-xl">🤖</span>
                             <span class="font-bold">STEMO's World</span>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick="setPlacementMode('metal')" id="modeMetalBtn" class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Metal">
+                            <button onclick="setPlacementMode('metal')" id="modeMetalBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Metal">
                                 🔩
                             </button>
                             <button onclick="setPlacementMode('wall')" id="modeWallBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Wall">
@@ -555,6 +741,15 @@ const htmlContent = `<!DOCTYPE html>
                             <button onclick="setPlacementMode('target')" id="modeTargetBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Target">
                                 🎯
                             </button>
+                            <button onclick="toggleIsometricView()" id="isometricBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle 3D View">
+                                📐
+                            </button>
+                            <button onclick="undoBoard()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Undo Last Change">
+                                ↩️
+                            </button>
+                            <button onclick="deleteSelectedObject()" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Delete Selected">
+                                ✖️
+                            </button>
                             <button onclick="clearAll()" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Clear All">
                                 🗑️
                             </button>
@@ -564,8 +759,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="bg-gray-100 px-2 py-1 text-xs text-center">
                         <span id="placementModeText">Click to place: 🔩 Metal</span>
                     </div>
-                    <div class="flex-1 p-2 flex items-center justify-center overflow-hidden">
-                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair" onclick="handleCanvasClick(event)"></canvas>
+                    <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
+                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
+                        <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
                     </div>
                     
                     <!-- Chat Area - Bigger -->
@@ -715,6 +911,17 @@ const htmlContent = `<!DOCTYPE html>
         // Ultrasonic sensor settings
         var sensorRange = 100; // pixels (5 steps)
         var showSensorBeam = true;
+        
+        // Board history for undo functionality
+        var boardHistory = [];
+        var maxHistorySize = 20;
+        
+        // Selected object for deletion
+        var selectedObject = null;
+        var selectedObjectType = null; // 'metal', 'wall', 'fire', 'target'
+        
+        // Isometric 3D view toggle
+        var isIsometricView = false;
 
         // ============================================
         // INITIALIZATION
@@ -726,8 +933,47 @@ const htmlContent = `<!DOCTYPE html>
             loadBadges();
             initBlockly();
             drawRobot();
+            
+            // Start the animation loop for realistic effects
+            requestAnimationFrame(animationLoop);
+            
             console.log('STEMO ready!');
         });
+
+        // ============================================
+        // ANIMATION LOOP - For realistic movement & effects
+        // ============================================
+        function animationLoop() {
+            updateMagneticPull();
+            drawRobot();
+            requestAnimationFrame(animationLoop);
+        }
+
+        function updateMagneticPull() {
+            if (!robot.magnetOn || robot.carrying) return;
+
+            var pullRange = 120; // 6 steps
+            var pullStrength = 1.5;
+
+            metalObjects.forEach(function(metal) {
+                if (!metal.pickedUp) {
+                    var dx = robot.x - metal.x;
+                    var dy = robot.y - metal.y;
+                    var dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < pullRange && dist > 15) {
+                        // Move metal toward robot
+                        var angle = Math.atan2(dy, dx);
+                        metal.x += Math.cos(angle) * pullStrength;
+                        metal.y += Math.sin(angle) * pullStrength;
+                        
+                        // Add a slight jitter/vibration for realism
+                        metal.x += (Math.random() - 0.5) * 0.5;
+                        metal.y += (Math.random() - 0.5) * 0.5;
+                    }
+                }
+            });
+        }
 
         function updateUI() {
             document.getElementById('xpCounter').textContent = stemo.xp;
@@ -756,31 +1002,61 @@ const htmlContent = `<!DOCTYPE html>
                     var grid = document.getElementById('lessonsGrid');
                     var html = '';
                     
-                    data.beginner.forEach(function(lesson, index) {
-                        var isCompleted = stemo.completedLessons.includes(lesson.id);
-                        var isLocked = index > 0 && !stemo.completedLessons.includes(data.beginner[index-1].id);
-                        var lessonIcon = lesson.icon || '📚';
-                        var icon = isCompleted ? '✅' : (isLocked ? '🔒' : lessonIcon);
+                    const levels = [
+                        { name: 'Basic 🐣', key: 'basic' },
+                        { name: 'Intermediate 🚀', key: 'intermediate' },
+                        { name: 'Advanced 🏆', key: 'advanced' }
+                    ];
+
+                    levels.forEach(function(level) {
+                        html += '<div class="col-span-full mt-6 mb-2"><h4 class="text-xl font-bold text-indigo-600 border-l-4 border-indigo-500 pl-3">' + level.name + '</h4></div>';
                         
-                        var diffGradient = lesson.difficulty === 'easy' ? 'from-green-400 to-emerald-500' : 
-                                          (lesson.difficulty === 'medium' ? 'from-yellow-400 to-orange-500' : 'from-red-400 to-pink-500');
-                        var diffClass = lesson.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
-                                       (lesson.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700');
-                        
-                        html += '<div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer ' + (isLocked ? 'opacity-60' : '') + '" ' +
-                                (isLocked ? '' : 'onclick="selectLesson(\\'' + lesson.id + '\\')"') + '>' +
-                                '<div class="h-3 bg-gradient-to-r ' + diffGradient + '"></div>' +
-                                '<div class="p-5">' +
-                                '<div class="flex items-center justify-between mb-3">' +
-                                '<span class="text-3xl">' + icon + '</span>' +
-                                '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">+' + lesson.xpReward + ' XP</span>' +
-                                '</div>' +
-                                '<h4 class="font-bold text-lg text-gray-800 mb-1">' + lesson.title + '</h4>' +
-                                '<p class="text-gray-500 text-sm mb-3">' + lesson.description + '</p>' +
-                                '<div class="flex items-center gap-2">' +
-                                '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
-                                (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
-                                '</div></div></div>';
+                        data[level.key].forEach(function(lesson, index) {
+                            var isCompleted = stemo.completedLessons.includes(lesson.id);
+                            
+                            // Unlocking logic: first lesson of basic is open. 
+                            // Others need the previous lesson (in same or previous level) to be done.
+                            var isLocked = false;
+                            if (level.key === 'basic' && index > 0) {
+                                isLocked = !stemo.completedLessons.includes(data.basic[index-1].id);
+                            } else if (level.key === 'intermediate') {
+                                if (index === 0) {
+                                    isLocked = !stemo.completedLessons.includes(data.basic[data.basic.length-1].id);
+                                } else {
+                                    isLocked = !stemo.completedLessons.includes(data.intermediate[index-1].id);
+                                }
+                            } else if (level.key === 'advanced') {
+                                if (index === 0) {
+                                    isLocked = !stemo.completedLessons.includes(data.intermediate[data.intermediate.length-1].id);
+                                } else {
+                                    isLocked = !stemo.completedLessons.includes(data.advanced[index-1].id);
+                                }
+                            }
+
+                            var lessonIcon = lesson.icon || '📚';
+                            var icon = isCompleted ? '✅' : (isLocked ? '🔒' : lessonIcon);
+                            
+                            var diffGradient = lesson.difficulty === 'easy' ? 'from-green-400 to-emerald-500' : 
+                                              (lesson.difficulty === 'medium' ? 'from-yellow-400 to-orange-500' : 'from-red-400 to-pink-500');
+                            var diffClass = lesson.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                                           (lesson.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
+                                           (lesson.difficulty === 'hard' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'));
+                            
+                            html += '<div class="lesson-card bg-white rounded-2xl card-shadow overflow-hidden cursor-pointer ' + (isLocked ? 'opacity-60 cursor-not-allowed' : '') + '" ' +
+                                    (isLocked ? '' : 'onclick="selectLesson(\\'' + lesson.id + '\\')"') + '>' +
+                                    '<div class="h-3 bg-gradient-to-r ' + diffGradient + '"></div>' +
+                                    '<div class="p-5">' +
+                                    '<div class="flex items-center justify-between mb-3">' +
+                                    '<span class="text-3xl">' + icon + '</span>' +
+                                    '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">+' + lesson.xpReward + ' XP</span>' +
+                                    '</div>' +
+                                    '<h4 class="font-bold text-lg text-gray-800 mb-1">' + lesson.title + '</h4>' +
+                                    '<p class="text-gray-500 text-sm mb-3">' + lesson.description + '</p>' +
+                                    '<div class="flex items-center gap-2">' +
+                                    '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
+                                    (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
+                                    '</div></div></div>';
+                        });
                     });
                     
                     grid.innerHTML = html;
@@ -808,6 +1084,7 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('lessonXP').textContent = '+' + lesson.xpReward + ' XP';
             document.getElementById('lessonIntro').textContent = lesson.introduction || lesson.hint;
             document.getElementById('lessonHintText').textContent = lesson.hint;
+            document.getElementById('lessonHomeworkText').textContent = lesson.homework || "Try something creative with the blocks you just learned!";
             
             // Render tasks
             var tasksContainer = document.getElementById('lessonTasks');
@@ -955,7 +1232,7 @@ const htmlContent = `<!DOCTYPE html>
             init: function() {
                 this.appendDummyInput()
                     .appendField("🎨 Color")
-                    .appendField(new Blockly.FieldColour('#6366f1'), "COLOR");
+                    .appendField(new (window.FieldColour || Blockly.FieldColour || Blockly.fieldColour.FieldColour)('#6366f1'), "COLOR");
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(330);
@@ -1544,12 +1821,12 @@ const htmlContent = `<!DOCTYPE html>
                         }
                     }
                 } else {
-                    // Magnet OFF - drop the object BEHIND the robot (so it's visible)
+                    // Magnet OFF - drop the object IN FRONT of the robot
                     if (robot.carrying) {
-                        // Drop 40 pixels behind robot's current direction
+                        // Drop 40 pixels in front of robot's current direction
                         var dropRad = robot.angle * Math.PI / 180;
-                        var dropX = robot.x - Math.cos(dropRad) * 40;
-                        var dropY = robot.y - Math.sin(dropRad) * 40;
+                        var dropX = robot.x + Math.cos(dropRad) * 40;
+                        var dropY = robot.y + Math.sin(dropRad) * 40;
                         
                         // Keep within bounds
                         dropX = Math.max(25, Math.min(375, dropX));
@@ -1558,7 +1835,7 @@ const htmlContent = `<!DOCTYPE html>
                         robot.carrying.x = dropX;
                         robot.carrying.y = dropY;
                         robot.carrying.pickedUp = false;
-                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " behind me! 📍");
+                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " in front! 📍");
                         robot.carrying = null;
                     } else {
                         addChatMessage('stemo', "🤖 🧲 Magnet OFF.");
@@ -1922,7 +2199,10 @@ const htmlContent = `<!DOCTYPE html>
                 if (dist < 50) {
                     robot.waterLevel--;
                     nearestFire.health--;
+                    robot.visible = true;
+                    // Trigger spray effect
                     robot.spraying = true;
+                    setTimeout(() => { robot.spraying = false; }, 1000);
                     
                     if (nearestFire.health <= 0) {
                         fireObjects = fireObjects.filter(function(f) { return f !== nearestFire; });
@@ -2094,8 +2374,25 @@ const htmlContent = `<!DOCTYPE html>
             });
             
             // Draw walls (obstacles)
-            wallObjects.forEach(function(wall) {
+            // Group walls by location
+            var wallGroups = groupObjects(wallObjects);
+            
+            Object.values(wallGroups).forEach(function(group) {
+                var wall = group[0]; // Draw the first one
+                
                 ctx.save();
+                
+                // Check if this wall is selected
+                var isSelected = (selectedObject === wall);
+                
+                // Selection highlight
+                if (isSelected) {
+                    ctx.strokeStyle = '#06b6d4';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 3]);
+                    ctx.strokeRect(wall.x - 4, wall.y - 4, wall.width + 8, wall.height + 8);
+                    ctx.setLineDash([]);
+                }
                 
                 // Wall shadow
                 ctx.shadowColor = 'rgba(0,0,0,0.3)';
@@ -2110,81 +2407,77 @@ const htmlContent = `<!DOCTYPE html>
                 // Brick lines
                 ctx.strokeStyle = '#78350f';
                 ctx.lineWidth = 1;
-                
-                // Horizontal brick lines
-                for (var by = wall.y + 10; by < wall.y + wall.height; by += 10) {
-                    ctx.beginPath();
-                    ctx.moveTo(wall.x, by);
-                    ctx.lineTo(wall.x + wall.width, by);
-                    ctx.stroke();
+                ctx.beginPath();
+                // Horizontal lines
+                for (var h = 1; h < wall.height; h += 10) {
+                    ctx.moveTo(wall.x, wall.y + h);
+                    ctx.lineTo(wall.x + wall.width, wall.y + h);
                 }
-                
-                // Vertical brick lines (staggered)
-                var rowIndex = 0;
-                for (var by = wall.y; by < wall.y + wall.height; by += 10) {
-                    var offset = (rowIndex % 2) * 10;
-                    for (var bx = wall.x + offset; bx < wall.x + wall.width; bx += 20) {
-                        ctx.beginPath();
-                        ctx.moveTo(bx, by);
-                        ctx.lineTo(bx, Math.min(by + 10, wall.y + wall.height));
-                        ctx.stroke();
+                // Vertical lines (staggered)
+                for (var h = 0; h < wall.height; h += 10) {
+                    var offset = (h / 10) % 2 === 0 ? 0 : 10;
+                    for (var w = offset; w < wall.width; w += 20) {
+                        ctx.moveTo(wall.x + w, wall.y + h);
+                        ctx.lineTo(wall.x + w, wall.y + h + 10);
                     }
-                    rowIndex++;
                 }
-                
+                ctx.stroke();
                 ctx.restore();
+                
+                // Draw Count Badge if stacked
+                if (group.length > 1) {
+                    drawCountBadge(ctx, wall.x + wall.width, wall.y, group.length);
+                }
             });
-            
+
             // Draw target point
             if (targetPoint) {
+                var x = targetPoint.x;
+                var y = targetPoint.y;
+                var time = Date.now() / 500;
+                var pulse = Math.sin(time) * 5;
+                
                 ctx.save();
-                
-                // Pulsing effect
-                var pulse = 1 + 0.1 * Math.sin(Date.now() / 200);
-                
-                // Target outer ring
-                ctx.strokeStyle = '#22c55e';
-                ctx.lineWidth = 3;
+                // Outer glow
                 ctx.beginPath();
-                ctx.arc(targetPoint.x, targetPoint.y, 20 * pulse, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.arc(x, y, 15 + pulse, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
+                ctx.fill();
                 
-                // Target middle ring
-                ctx.strokeStyle = '#16a34a';
+                // Inner circle
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#22c55e';
+                ctx.fill();
+                
+                // Target rings
+                ctx.strokeStyle = 'white';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(targetPoint.x, targetPoint.y, 12 * pulse, 0, Math.PI * 2);
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Target center
-                ctx.fillStyle = '#22c55e';
+                // Flag pole
                 ctx.beginPath();
-                ctx.arc(targetPoint.x, targetPoint.y, 5, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(x + 2, y - 2);
+                ctx.lineTo(x + 2, y - 12);
+                ctx.strokeStyle = '#15803d';
+                ctx.lineWidth = 2;
+                ctx.stroke();
                 
                 // Flag
-                ctx.fillStyle = '#22c55e';
                 ctx.beginPath();
-                ctx.moveTo(targetPoint.x, targetPoint.y - 5);
-                ctx.lineTo(targetPoint.x, targetPoint.y - 30);
-                ctx.lineTo(targetPoint.x + 15, targetPoint.y - 22);
-                ctx.lineTo(targetPoint.x, targetPoint.y - 15);
+                ctx.moveTo(x + 2, y - 12);
+                ctx.lineTo(x + 10, y - 8);
+                ctx.lineTo(x + 2, y - 4);
+                ctx.fillStyle = '#ef4444';
                 ctx.fill();
-                
-                // Distance to target
-                var dx = targetPoint.x - robot.x;
-                var dy = targetPoint.y - robot.y;
-                var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
-                
-                ctx.fillStyle = '#166534';
-                ctx.font = 'bold 10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('🎯 ' + distSteps + ' steps', targetPoint.x, targetPoint.y + 35);
                 
                 ctx.restore();
             }
             
             // Draw ultrasonic sensor beam
+            /*
             if (showSensorBeam && robot.visible) {
                 var wallDist = detectWallAhead();
                 var beamLength = Math.min(wallDist, sensorRange);
@@ -2197,9 +2490,7 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
                 ctx.beginPath();
                 ctx.moveTo(robot.x, robot.y);
-                ctx.arc(robot.x, robot.y, beamLength, 
-                    (robot.angle - coneWidth) * Math.PI / 180,
-                    (robot.angle + coneWidth) * Math.PI / 180);
+                ctx.arc(robot.x, robot.y, beamLength, (robot.angle - coneWidth) * Math.PI / 180, (robot.angle + coneWidth) * Math.PI / 180);
                 ctx.closePath();
                 ctx.fill();
                 
@@ -2231,193 +2522,152 @@ const htmlContent = `<!DOCTYPE html>
                 
                 ctx.restore();
             }
+            */
             
-            // Draw metal objects on the board with distance indicators
-            metalObjects.forEach(function(metal) {
-                if (!metal.pickedUp) {
-                    // Calculate distance from robot to metal (in steps)
-                    var dx = metal.x - robot.x;
-                    var dy = metal.y - robot.y;
-                    var distPixels = Math.sqrt(dx * dx + dy * dy);
-                    var distSteps = Math.round(distPixels / 20); // 1 step = 20 pixels
-                    
-                    // Draw dashed line from robot to metal (distance indicator)
-                    ctx.save();
-                    ctx.strokeStyle = '#f97316';
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([4, 4]);
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(robot.x, robot.y);
-                    ctx.lineTo(metal.x, metal.y);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.globalAlpha = 1;
-                    ctx.restore();
-                    
-                    // Draw distance label at midpoint
-                    var midX = (robot.x + metal.x) / 2;
-                    var midY = (robot.y + metal.y) / 2;
-                    ctx.save();
-                    ctx.fillStyle = '#ea580c';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillStyle = 'white';
-                    ctx.beginPath();
-                    ctx.roundRect(midX - 18, midY - 8, 36, 16, 4);
-                    ctx.fill();
-                    ctx.fillStyle = '#ea580c';
-                    ctx.fillText(distSteps + ' steps', midX, midY + 4);
-                    ctx.restore();
-                    
-                    ctx.save();
-                    ctx.translate(metal.x, metal.y);
-                    
-                    // Glow effect for metals
-                    ctx.shadowColor = '#ef4444';
-                    ctx.shadowBlur = 8;
-                    
-                    // Draw based on metal type
-                    if (metal.type === 'bolt') {
-                        // Draw bolt 🔩
-                        ctx.fillStyle = '#94a3b8';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 10, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.fillStyle = '#475569';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Hex pattern
-                        ctx.strokeStyle = '#334155';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        for (var h = 0; h < 6; h++) {
-                            var hAngle = h * Math.PI / 3;
-                            var hx = Math.cos(hAngle) * 7;
-                            var hy = Math.sin(hAngle) * 7;
-                            if (h === 0) ctx.moveTo(hx, hy);
-                            else ctx.lineTo(hx, hy);
-                        }
-                        ctx.closePath();
-                        ctx.stroke();
-                    } else if (metal.type === 'gear') {
-                        // Draw gear ⚙️
-                        ctx.fillStyle = '#78716c';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 12, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Teeth
-                        ctx.fillStyle = '#57534e';
-                        for (var t = 0; t < 8; t++) {
-                            var tAngle = t * Math.PI / 4;
-                            ctx.save();
-                            ctx.rotate(tAngle);
-                            ctx.fillRect(-3, 10, 6, 5);
-                            ctx.restore();
-                        }
-                        // Center hole
-                        ctx.fillStyle = '#fef3c7';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (metal.type === 'screw') {
-                        // Draw screw 🪛
-                        ctx.fillStyle = '#a1a1aa';
-                        ctx.beginPath();
-                        ctx.ellipse(0, 0, 6, 10, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Slot
-                        ctx.strokeStyle = '#52525b';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(-4, 0);
-                        ctx.lineTo(4, 0);
-                        ctx.stroke();
-                    } else {
-                        // Default metal piece
-                        ctx.fillStyle = '#71717a';
-                        ctx.beginPath();
-                        ctx.arc(0, 0, 8, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    
-                    ctx.restore();
-                }
-            });
+            // Draw Metals with distance indicators
+            // Group metals by location
+            var metalGroups = groupObjects(metalObjects);
             
-            // Draw fire objects on the board
-            fireObjects.forEach(function(fire) {
+            Object.values(metalGroups).forEach(function(group) {
+                var item = group[0];
+                
+                var dx = item.x - robot.x;
+                var dy = item.y - robot.y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                
                 ctx.save();
-                ctx.translate(fire.x, fire.y);
                 
-                // Pulsing/flickering effect
-                var flicker = 1 + 0.2 * Math.sin(Date.now() / 100 + fire.id);
-                
-                // Fire glow
-                ctx.shadowColor = '#ff6b35';
-                ctx.shadowBlur = 20 * flicker;
-                
-                // Base fire - outer orange
-                ctx.fillStyle = '#ff6b35';
-                ctx.beginPath();
-                ctx.ellipse(0, 5, 15 * flicker, 8 * flicker, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Inner yellow flame
-                ctx.fillStyle = '#ffc107';
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 10 * flicker, 18 * flicker, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Hot center
-                ctx.fillStyle = '#fff3cd';
-                ctx.beginPath();
-                ctx.ellipse(0, 3, 5 * flicker, 10 * flicker, 0, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw flame tips
-                ctx.fillStyle = '#ff6b35';
-                for (var f = 0; f < 5; f++) {
-                    var fAngle = (f - 2) * 0.3;
-                    var fHeight = 15 + Math.random() * 10;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.sin(fAngle) * 5, 5);
-                    ctx.quadraticCurveTo(
-                        Math.sin(fAngle + 0.5) * 8 * flicker, -fHeight/2,
-                        Math.sin(fAngle) * 3, -fHeight * flicker
-                    );
-                    ctx.quadraticCurveTo(
-                        Math.sin(fAngle - 0.5) * 8 * flicker, -fHeight/2,
-                        Math.sin(fAngle) * 5, 5
-                    );
-                    ctx.fill();
+                // Highlight if selected
+                if (selectedObject === item) {
+                    ctx.shadowColor = '#06b6d4';
+                    ctx.shadowBlur = 15;
+                } else {
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                    ctx.shadowBlur = 5;
+                    ctx.shadowOffsetY = 3;
                 }
                 
-                // Health indicator (how many sprays to extinguish)
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = '#dc2626';
-                ctx.font = 'bold 10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('🔥' + fire.health + '/3', 0, 35);
-                
-                // Distance indicator
-                var dx = fire.x - robot.x;
-                var dy = fire.y - robot.y;
-                var distSteps = Math.round(Math.sqrt(dx * dx + dy * dy) / 20);
-                
-                ctx.fillStyle = '#fff';
-                ctx.strokeStyle = '#dc2626';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(-20, -40, 40, 16, 4);
-                ctx.fill();
-                ctx.stroke();
-                ctx.fillStyle = '#dc2626';
-                ctx.fillText(distSteps + ' steps', 0, -28);
+                // Draw metal shape
+                if (item.type === 'bolt') {
+                    // Draw Bolt (Hexagon)
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.beginPath();
+                    for (var i = 0; i < 6; i++) {
+                        ctx.lineTo(item.x + 8 * Math.cos(i * Math.PI / 3), item.y + 8 * Math.sin(i * Math.PI / 3));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    // Detail
+                    ctx.strokeStyle = '#64748b';
+                    ctx.stroke();
+                } else if (item.type === 'gear') {
+                    // Draw Gear
+                    ctx.fillStyle = '#78716c';
+                    ctx.beginPath();
+                    var outerRadius = 10;
+                    var innerRadius = 7;
+                    var spikes = 8;
+                    for (var i = 0; i < spikes * 2; i++) {
+                        var r = (i % 2 === 0) ? outerRadius : innerRadius;
+                        var a = Math.PI * i / spikes;
+                        ctx.lineTo(item.x + r * Math.cos(a), item.y + r * Math.sin(a));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(item.x, item.y, 3, 0, Math.PI*2);
+                    ctx.fillStyle = '#44403c';
+                    ctx.fill();
+                } else {
+                    // Screw (Circle with cross)
+                    ctx.fillStyle = '#a1a1aa';
+                    ctx.beginPath();
+                    ctx.arc(item.x, item.y, 7, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#52525b';
+                    ctx.beginPath();
+                    ctx.moveTo(item.x - 4, item.y - 4);
+                    ctx.lineTo(item.x + 4, item.y + 4);
+                    ctx.moveTo(item.x + 4, item.y - 4);
+                    ctx.lineTo(item.x - 4, item.y + 4);
+                    ctx.stroke();
+                }
                 
                 ctx.restore();
+                
+                // Distance Text (only if close)
+                if (dist < 100 && !item.pickedUp) {
+                    ctx.fillStyle = '#6b7280';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(Math.round(dist) + ' steps', item.x, item.y - 15);
+                    
+                    // Dashed line to nearest
+                    if (dist < 60) {
+                        ctx.beginPath();
+                        ctx.setLineDash([2, 4]);
+                        ctx.strokeStyle = 'rgba(107, 114, 128, 0.3)';
+                        ctx.moveTo(robot.x, robot.y);
+                        ctx.lineTo(item.x, item.y);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                }
+                
+                // Draw Count Badge if stacked
+                if (group.length > 1) {
+                    drawCountBadge(ctx, item.x + 8, item.y - 8, group.length);
+                }
             });
+
+            // Draw fires (grouped)
+            var fireGroups = groupObjects(fireObjects);
+            Object.values(fireGroups).forEach(function(group) {
+                var fire = group[0];
+                var x = fire.x;
+                var y = fire.y;
+                
+                ctx.save();
+                
+                // Fire glow
+                var time = Date.now() / 200;
+                var scale = 1 + Math.sin(time) * 0.1;
+                
+                ctx.shadowColor = '#f97316';
+                ctx.shadowBlur = 10 * scale;
+                
+                // Fire base
+                ctx.fillStyle = '#ea580c';
+                ctx.beginPath();
+                ctx.arc(x, y + 5, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Fire flame shape
+                ctx.fillStyle = '#fdba74';
+                ctx.beginPath();
+                ctx.moveTo(x - 6, y + 4);
+                ctx.quadraticCurveTo(x, y - 15, x + 6, y + 4);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                // Health bar
+                if (fire.health < 3) {
+                    var w = 20;
+                    var h = 4;
+                    ctx.fillStyle = '#374151';
+                    ctx.fillRect(x - w/2, y - 20, w, h);
+                    
+                    ctx.fillStyle = fire.health > 1 ? '#eab308' : '#ef4444';
+                    ctx.fillRect(x - w/2, y - 20, w * (fire.health / 3), h);
+                }
+                
+                // Draw Count Badge if stacked
+                if (group.length > 1) {
+                    drawCountBadge(ctx, x + 8, y - 15, group.length);
+                }
+            });
+            
             
             // Draw temperature sensor beam if fire detected
             if (robot.visible && fireObjects.length > 0) {
@@ -2511,15 +2761,40 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.roundRect(-20, -25, 40, 50, 8);
                 ctx.fill();
                 
-                // Magnet indicator when ON
+                // Magnetic field lines - Realistic arcs
                 if (robot.magnetOn) {
-                    ctx.strokeStyle = '#fbbf24';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([4, 4]);
+                    ctx.save();
+                    ctx.rotate(Math.PI); // Orient toward the back/around
+                    
+                    var time = Date.now() / 1000;
+                    ctx.lineWidth = 1.5;
+                    
+                    for (var i = 0; i < 3; i++) {
+                        var radius = 25 + (i * 15 + time * 30) % 45;
+                        var opacity = 1 - (radius - 25) / 45;
+                        
+                        ctx.strokeStyle = 'rgba(239, 68, 68, ' + (opacity * 0.6) + ')';
+                        ctx.setLineDash([5, 5]);
+                        
+                        ctx.beginPath();
+                        // Draw two arcs representing magnetic field
+                        ctx.arc(0, 0, radius, -Math.PI/3, Math.PI/3);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.arc(0, 0, radius, Math.PI - Math.PI/3, Math.PI + Math.PI/3);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                    
+                    // Center glow
+                    var gradient = ctx.createRadialGradient(0, 0, 10, 0, 0, 40);
+                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                    ctx.fillStyle = gradient;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+                    ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             
                 // Head
@@ -2601,6 +2876,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 ctx.restore();
             }
+            
         }
 
         function resetRobot() {
@@ -2742,7 +3018,9 @@ const htmlContent = `<!DOCTYPE html>
                     message: message, 
                     context: { 
                         currentLesson: currentLesson ? currentLesson.id : null,
-                        xp: stemo.xp
+                        xp: stemo.xp,
+                        level: stemo.level,
+                        completedLessons: stemo.completedLessons
                     }
                 })
             })
@@ -2837,6 +3115,21 @@ const htmlContent = `<!DOCTYPE html>
             x = Math.max(20, Math.min(380, x));
             y = Math.max(20, Math.min(380, y));
             
+            // First, check if we clicked on an existing object (for selection)
+            // Only select if we are NOT in placement mode (allowing stacking)
+            var clickedObject = findObjectAt(x, y);
+            if (clickedObject && !placementMode) {
+                selectedObject = clickedObject.obj;
+                selectedObjectType = clickedObject.type;
+                drawRobot();
+                addChatMessage('stemo', '🤖 Selected ' + clickedObject.type + '! Press Delete or click 🗑️ to remove.');
+                return;
+            }
+            
+            // Clear selection when clicking empty space for placement
+            selectedObject = null;
+            selectedObjectType = null;
+            
             if (placementMode === 'metal') {
                 addMetalAt(x, y);
             } else if (placementMode === 'wall') {
@@ -2848,7 +3141,57 @@ const htmlContent = `<!DOCTYPE html>
             }
         }
         
+        function findObjectAt(x, y) {
+            // Check metals
+            for (var i = 0; i < metalObjects.length; i++) {
+                var m = metalObjects[i];
+                if (!m.pickedUp) {
+                    var dx = m.x - x;
+                    var dy = m.y - y;
+                    if (Math.sqrt(dx * dx + dy * dy) < 20) {
+                        return { obj: m, type: 'metal' };
+                    }
+                }
+            }
+            // Check walls
+            for (var i = 0; i < wallObjects.length; i++) {
+                var w = wallObjects[i];
+                if (x >= w.x && x <= w.x + w.width && y >= w.y && y <= w.y + w.height) {
+                    return { obj: w, type: 'wall' };
+                }
+            }
+            // Check fires
+            for (var i = 0; i < fireObjects.length; i++) {
+                var f = fireObjects[i];
+                var dx = f.x - x;
+                var dy = f.y - y;
+                if (Math.sqrt(dx * dx + dy * dy) < 25) {
+                    return { obj: f, type: 'fire' };
+                }
+            }
+            // Check target
+            if (targetPoint) {
+                var dx = targetPoint.x - x;
+                var dy = targetPoint.y - y;
+                if (Math.sqrt(dx * dx + dy * dy) < 25) {
+                    return { obj: targetPoint, type: 'target' };
+                }
+            }
+            return null;
+        }
+        
+        // Keyboard listener for Delete key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedObject) {
+                    deleteSelectedObject();
+                }
+            }
+        });
+
+        
         function addFireAt(x, y) {
+            saveBoardState();
             fireObjects.push({
                 id: fireIdCounter++,
                 x: x,
@@ -2865,6 +3208,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         function addMetalAt(x, y) {
+            saveBoardState();
             var types = ['bolt', 'gear', 'screw'];
             var type = types[Math.floor(Math.random() * types.length)];
             
@@ -2885,6 +3229,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         function addWallAt(x, y) {
+            saveBoardState();
             // Create a wall (40x40 default, can be expanded later with drag)
             wallObjects.push({
                 id: wallIdCounter++,
@@ -2899,6 +3244,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         function addTargetAt(x, y) {
+            saveBoardState();
             // Only one target at a time
             targetPoint = { x: x, y: y };
             
@@ -2917,10 +3263,13 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         function clearAll() {
+            saveBoardState();
             metalObjects = [];
             wallObjects = [];
             fireObjects = [];
             targetPoint = null;
+            selectedObject = null;
+            selectedObjectType = null;
             if (robot.carrying) {
                 robot.carrying = null;
                 robot.magnetOn = false;
@@ -2931,6 +3280,396 @@ const htmlContent = `<!DOCTYPE html>
             addChatMessage('stemo', "🤖 🗑️ Board cleared! Water refilled 💧. Click buttons to add walls, metals, fires, or targets.");
         }
         
+        // ============================================
+        // UNDO & SELECTION FUNCTIONS
+        // ============================================
+        function saveBoardState() {
+            var state = {
+                metals: JSON.parse(JSON.stringify(metalObjects)),
+                walls: JSON.parse(JSON.stringify(wallObjects)),
+                fires: JSON.parse(JSON.stringify(fireObjects)),
+                target: targetPoint ? { x: targetPoint.x, y: targetPoint.y } : null
+            };
+            boardHistory.push(state);
+            if (boardHistory.length > maxHistorySize) {
+                boardHistory.shift();
+            }
+        }
+        
+        function undoBoard() {
+            if (boardHistory.length === 0) {
+                addChatMessage('stemo', "🤖 Nothing to undo!");
+                return;
+            }
+            var state = boardHistory.pop();
+            metalObjects = state.metals;
+            wallObjects = state.walls;
+            fireObjects = state.fires;
+            targetPoint = state.target;
+            selectedObject = null;
+            selectedObjectType = null;
+            drawRobot();
+            addChatMessage('stemo', "🤖 ↩️ Undo! Reverted last change.");
+        }
+        
+        function deleteSelectedObject() {
+            if (!selectedObject) {
+                addChatMessage('stemo', "🤖 Click an object to select it first!");
+                return;
+            }
+            
+            saveBoardState();
+            
+            if (selectedObjectType === 'metal') {
+                metalObjects = metalObjects.filter(function(m) { return m !== selectedObject; });
+            } else if (selectedObjectType === 'wall') {
+                wallObjects = wallObjects.filter(function(w) { return w !== selectedObject; });
+            } else if (selectedObjectType === 'fire') {
+                fireObjects = fireObjects.filter(function(f) { return f !== selectedObject; });
+            } else if (selectedObjectType === 'target') {
+                targetPoint = null;
+            }
+            
+            addChatMessage('stemo', "🤖 🗑️ Deleted " + selectedObjectType + "!");
+            selectedObject = null;
+            selectedObjectType = null;
+            drawRobot();
+        }
+        
+        // ============================================
+        // THREE.JS 3D WORLD
+        // ============================================
+        var scene, camera, renderer, controls;
+        var threeRobot, threeTarget, threeShadow;
+        var waterParticles = []; // Array to store active water particles
+        var threeMetals = [], threeWalls = [], threeFires = [];
+        
+        function initThreeJS() {
+            var container = document.getElementById('threeCanvasContainer');
+            if (renderer) return; // Already initialized
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xfef9c3);
+            scene.fog = new THREE.Fog(0xfef9c3, 200, 1000);
+
+            // Camera (Zoomed in closer)
+            var width = container.clientWidth;
+            var height = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+            camera.position.set(0, 300, 300); // Isometric angle but closer
+            camera.lookAt(200, 0, 200); // Look at center of board
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(200, 0, 200);
+            controls.maxPolarAngle = Math.PI / 2 - 0.1; // Don't go below ground
+            controls.minDistance = 100;
+            controls.maxDistance = 800;
+
+            // Lights
+            var ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(100, 200, 100);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 1000;
+            dirLight.shadow.camera.left = -300;
+            dirLight.shadow.camera.right = 300;
+            dirLight.shadow.camera.top = 300;
+            dirLight.shadow.camera.bottom = -300;
+            scene.add(dirLight);
+
+            // Floor
+            var floorGeometry = new THREE.PlaneGeometry(440, 440);
+            var floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xf0fdf4,
+                side: THREE.DoubleSide
+            });
+            var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.set(200, -1, 200);
+            floor.receiveShadow = true;
+            scene.add(floor);
+            
+            // Grid helper
+            var gridHelper = new THREE.GridHelper(400, 20, 0x86efac, 0xe5e7eb);
+            gridHelper.position.set(200, 0, 200);
+            scene.add(gridHelper);
+            
+            // Robot Group (The Hover Bot)
+            threeRobot = new THREE.Group();
+            scene.add(threeRobot);
+            
+            // 1. Floating Body (Capsule-like)
+            var bodyGeo = new THREE.SphereGeometry(25, 32, 32);
+            bodyGeo.scale(1, 1.4, 1); // Make it an egg shape
+            var bodyMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff, // White
+                roughness: 0.2,  // Glossy
+                metalness: 0.1
+            });
+            var body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 40; // Hovering height
+            threeRobot.add(body);
+            
+            // 2. Black Glass Visor
+            var visorGeo = new THREE.SphereGeometry(22, 32, 32, 0, 6.3, 0, 1.2);
+            visorGeo.scale(1, 1.2, 0.8);
+            var visorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, // Black
+                roughness: 0.0,  // Glass styling
+                metalness: 0.8
+            });
+            var visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 42, 8); // Slightly forward
+            visor.rotation.x = -0.2;
+            threeRobot.add(visor);
+            
+            // 3. Glowing Eyes
+            var eyeGeo = new THREE.SphereGeometry(3.5, 16, 16);
+            var eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // Cyan Glow
+            
+            var eyeLeft = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeLeft.position.set(8, 44, 26);
+            threeRobot.add(eyeLeft);
+            
+            var eyeRight = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeRight.position.set(-8, 44, 26);
+            threeRobot.add(eyeRight);
+
+            // 4. Shadow (Separate from robot so it stays on floor)
+            var shadowGeo = new THREE.CircleGeometry(20, 32);
+            var shadowMat = new THREE.MeshBasicMaterial({ 
+                color: 0x000000, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            threeShadow = new THREE.Mesh(shadowGeo, shadowMat);
+            threeShadow.rotation.x = -Math.PI / 2;
+            threeShadow.position.set(200, 1, 200); // Slightly above floor
+            scene.add(threeShadow);
+
+            threeRobot.position.set(200, 0, 200);
+        }
+
+        function animateThreeJS() {
+            if (isIsometricView) {
+                requestAnimationFrame(animateThreeJS);
+                if (controls) controls.update();
+                updateThreeJSScene();
+                if (renderer && scene && camera) {
+                    renderer.render(scene, camera);
+                }
+            }
+        }
+
+        function updateThreeJSScene() {
+            if (!threeRobot) return;
+
+            // 1. Update Robot Position & Rotation
+            // Smooth Hover Animation: y = base + sin(time)
+            var time = Date.now() * 0.003;
+            var hoverY = Math.sin(time) * 3;
+            
+            threeRobot.position.set(robot.x, hoverY, robot.y);
+            threeRobot.rotation.y = -(robot.angle + 90) * Math.PI / 180 + Math.PI;
+            
+            // Update Shadow Position (stays on floor)
+            if (threeShadow) {
+                threeShadow.position.set(robot.x, 1, robot.y);
+                // Shadow pulses slightly with hover
+                threeShadow.scale.setScalar(1 - Math.sin(time) * 0.1); 
+            }
+            
+            // 2. Particle Water Spray System
+            // Spawn particles if spraying
+            if (robot.spraying) {
+                for (var i = 0; i < 5; i++) { // Spawn 5 particles per frame
+                    var pGeo = new THREE.SphereGeometry(2 + Math.random() * 2, 8, 8);
+                    var pMat = new THREE.MeshBasicMaterial({ 
+                        color: 0x60a5fa, 
+                        transparent: true, 
+                        opacity: 0.8 
+                    });
+                    var p = new THREE.Mesh(pGeo, pMat);
+                    
+                    // Start at robot front/mouth position
+                    // Need to calculate offset based on robot rotation
+                    var offset = new THREE.Vector3(0, 40 + hoverY, 15); // Local offset
+                    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), threeRobot.rotation.y);
+                    p.position.set(robot.x + offset.x, offset.y, robot.y + offset.z);
+                    
+                    // Velocity: Forward + Spread
+                    var velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 2, // Spread X
+                        (Math.random() - 0.5) * 5, // Spread Y
+                        20 + Math.random() * 10    // Forward speed
+                    );
+                    velocity.applyAxisAngle(new THREE.Vector3(0, 1, 0), threeRobot.rotation.y);
+                    
+                    // Particle Data
+                    p.userData = { velocity: velocity, life: 1.0 };
+                    
+                    scene.add(p);
+                    waterParticles.push(p);
+                }
+            }
+            
+            // Update Particles
+            for (var i = waterParticles.length - 1; i >= 0; i--) {
+                var p = waterParticles[i];
+                p.userData.life -= 0.02; // Decrease life
+                
+                // Move
+                p.position.add(p.userData.velocity);
+                p.userData.velocity.y -= 0.5; // Gravity
+                p.material.opacity = p.userData.life;
+                
+                if (p.userData.life <= 0 || p.position.y < 0) {
+                    scene.remove(p);
+                    waterParticles.splice(i, 1);
+                }
+            }
+            
+            // Magnet visual (Update Eyes Color instead of Body)
+            // Eyes are children 2 and 3 in the group
+            if (threeRobot.children.length > 2) {
+                 var eyeColor = robot.magnetOn ? 0xff0000 : 0x00ffff; // Red if magnet on, Cyan default
+                 if (threeRobot.children[2].material) threeRobot.children[2].material.color.setHex(eyeColor);
+                 if (threeRobot.children[3].material) threeRobot.children[3].material.color.setHex(eyeColor);
+            }
+            
+            // Sync Metals
+            // Remove old metals
+            threeMetals.forEach(m => scene.remove(m));
+            threeMetals = [];
+            
+            var metalGroups = groupObjects(metalObjects);
+            Object.values(metalGroups).forEach(function(group) {
+                group.forEach(function(m, index) {
+                    if (!m.pickedUp) {
+                        var geo, mat;
+                        if (m.type === 'bolt') {
+                             geo = new THREE.CylinderGeometry(8, 8, 20, 6);
+                             mat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
+                        } else if (m.type === 'gear') {
+                             geo = new THREE.CylinderGeometry(15, 15, 5, 8);
+                             mat = new THREE.MeshStandardMaterial({ color: 0x78716c });
+                        } else { // screw
+                             geo = new THREE.CylinderGeometry(4, 4, 15, 8);
+                             mat = new THREE.MeshStandardMaterial({ color: 0xa1a1aa });
+                        }
+                        var mesh = new THREE.Mesh(geo, mat);
+                        // Stack height: base 10 + index * 15 (offset)
+                        mesh.position.set(m.x, 10 + (index * 15), m.y);
+                        mesh.castShadow = true;
+                        // Highlight if selected
+                        if (selectedObject === m) {
+                             mesh.material.emissive.setHex(0x06b6d4);
+                             mesh.material.emissiveIntensity = 0.5;
+                        }
+                        scene.add(mesh);
+                        threeMetals.push(mesh);
+                    }
+                });
+            });
+            
+            // Sync Walls
+            threeWalls.forEach(w => scene.remove(w));
+            threeWalls = [];
+            
+            var wallGroups = groupObjects(wallObjects);
+            Object.values(wallGroups).forEach(function(group) {
+                group.forEach(function(w, index) {
+                     var geo = new THREE.BoxGeometry(w.width, 30, w.height); 
+                     var mat = new THREE.MeshStandardMaterial({ color: 0xb45309 });
+                     var mesh = new THREE.Mesh(geo, mat);
+                     // Walls are defined by top-left corner in 2D, so center them for 3D
+                     // Stack height: base 15 + index * 32 (offset > height)
+                     mesh.position.set(w.x + w.width/2, 15 + (index * 32), w.y + w.height/2);
+                     mesh.castShadow = true;
+                     mesh.receiveShadow = true;
+                     if (selectedObject === w) {
+                          mesh.material.emissive.setHex(0x06b6d4);
+                          mesh.material.emissiveIntensity = 0.5;
+                     }
+                     scene.add(mesh);
+                     threeWalls.push(mesh);
+                });
+            });
+            
+            // Sync Fires
+            threeFires.forEach(f => scene.remove(f));
+            threeFires = [];
+            
+            var fireGroups = groupObjects(fireObjects);
+            Object.values(fireGroups).forEach(function(group) {
+                group.forEach(function(f, index) {
+                    var geo = new THREE.ConeGeometry(15, 30, 8);
+                    var mat = new THREE.MeshStandardMaterial({ color: 0xff6b35, emissive: 0xff4500, emissiveIntensity: 0.8 });
+                    var mesh = new THREE.Mesh(geo, mat);
+                    // Stack height: base 15 + index * 25
+                    mesh.position.set(f.x, 15 + (index * 25), f.y);
+                    scene.add(mesh);
+                    threeFires.push(mesh);
+                });
+            });
+            
+            // Sync Target
+            if (threeTarget) scene.remove(threeTarget);
+            if (targetPoint) {
+                var geo = new THREE.TorusGeometry(15, 2, 8, 16);
+                var mat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+                threeTarget = new THREE.Mesh(geo, mat);
+                threeTarget.rotation.x = Math.PI / 2;
+                threeTarget.position.set(targetPoint.x, 2, targetPoint.y);
+                scene.add(threeTarget);
+            }
+        }
+
+        function toggleIsometricView() {
+            isIsometricView = !isIsometricView;
+            var btn = document.getElementById('isometricBtn');
+            var threeContainer = document.getElementById('threeCanvasContainer');
+            
+            if (isIsometricView) {
+                btn.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+                btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                btn.innerHTML = '🪐'; // Change icon to planet/orbit
+                btn.title = "Switch to 2D";
+                addChatMessage('stemo', "🤖 🪐 3D Mode Initialized! Zoom and Rotate enabled! 🚀");
+                
+                // Show Three.js container
+                threeContainer.classList.remove('hidden');
+                initThreeJS();
+                animateThreeJS();
+            } else {
+                btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                btn.classList.add('bg-purple-500', 'hover:bg-purple-600');
+                btn.innerHTML = '📐';
+                btn.title = "Switch to 3D";
+                addChatMessage('stemo', "🤖 📐 Back to 2D View!");
+                
+                // Hide Three.js container
+                threeContainer.classList.add('hidden');
+            }
+            drawRobot();
+        }
+        
         function clearMetals() {
             metalObjects = [];
             if (robot.carrying) {
@@ -2939,6 +3678,151 @@ const htmlContent = `<!DOCTYPE html>
             }
             drawRobot();
             addChatMessage('stemo', "🤖 🗑️ All metal objects cleared!");
+        }
+
+        // Save Project to .stemo file
+        function saveProject() {
+            if (!workspace) return;
+            
+            var xml = Blockly.Xml.workspaceToDom(workspace);
+            var xmlText = Blockly.utils.xml.domToText(xml);
+            
+            var projectData = {
+                code: xmlText,
+                world: {
+                    robot: robot,
+                    walls: wallObjects,
+                    metals: metalObjects,
+                    fires: fireObjects,
+                    target: targetPoint
+                },
+                version: '1.0'
+            };
+            
+            var jsonString = JSON.stringify(projectData, null, 2);
+            var blob = new Blob([jsonString], {type: "text/plain"});
+            var url = URL.createObjectURL(blob);
+            
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = "stemo_project_" + new Date().getTime() + ".txt";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Backup: Copy to clipboard
+            navigator.clipboard.writeText(jsonString).then(function() {
+                addChatMessage('stemo', "💾 Project saved! (Also copied to clipboard 📋)");
+            }, function() {
+                addChatMessage('stemo', "💾 Project saved as .txt file!");
+            });
+        }
+
+        // Copy Project to Clipboard
+        function copyProjectToClipboard() {
+            if (!workspace) return;
+            
+            var xml = Blockly.Xml.workspaceToDom(workspace);
+            var xmlText = Blockly.utils.xml.domToText(xml);
+            
+            var projectData = {
+                code: xmlText,
+                world: {
+                    robot: robot,
+                    walls: wallObjects,
+                    metals: metalObjects,
+                    fires: fireObjects,
+                    target: targetPoint
+                },
+                version: '1.0'
+            };
+            
+            var jsonString = JSON.stringify(projectData, null, 2);
+            navigator.clipboard.writeText(jsonString).then(function() {
+                addChatMessage('stemo', "📋 Project copied to clipboard! Paste it into a text file to save. 💾");
+                alert("Project copied! You can now paste it into Notepad.");
+            }, function() {
+                addChatMessage('stemo', "❌ Failed to copy to clipboard.");
+                alert("Failed to copy. Please try again.");
+            });
+        }
+
+        // Load Project from .stemo file
+        function loadProject(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var contents = e.target.result;
+                    var projectData = JSON.parse(contents);
+                    
+                    if (workspace && projectData.code) {
+                        workspace.clear();
+                        var xml = Blockly.utils.xml.textToDom(projectData.code);
+                        Blockly.Xml.domToWorkspace(xml, workspace);
+                        
+                        // Load world if available
+                        if (projectData.world) {
+                            robot = projectData.world.robot || robot;
+                            wallObjects = projectData.world.walls || [];
+                            metalObjects = projectData.world.metals || [];
+                            fireObjects = projectData.world.fires || [];
+                            targetPoint = projectData.world.target || null;
+                            
+                            // Reset robot visual state but keep position
+                            robot.trails = [];
+                            robot.carrying = null;
+                            robot.magnetOn = false;
+                            
+                            drawRobot();
+                        }
+                        
+                        addChatMessage('stemo', "📂 Project loaded! Let's code! 🚀");
+                    }
+                } catch (err) {
+                    console.error("Error loading project:", err);
+                    alert("Error loading project file. Make sure it's a valid .stemo file.");
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset input so same file can be selected again
+            event.target.value = '';
+        }
+
+        // Helper function to group objects by location
+        function groupObjects(objects) {
+            var groups = {};
+            objects.forEach(function(obj) {
+                var key = Math.round(obj.x) + ',' + Math.round(obj.y);
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(obj);
+            });
+            return groups;
+        }
+
+        // Helper function to draw quantity badge
+        function drawCountBadge(ctx, x, y, count) {
+            ctx.save();
+            // Circle background
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444'; // Red
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('x' + count, x, y);
+            ctx.restore();
         }
 
         // Toggle Robot Panel to maximize workspace
@@ -2980,7 +3864,7 @@ const htmlContent = `<!DOCTYPE html>
 </html>`;
 
 app.get('/', (c) => {
-  return c.html(htmlContent)
+    return c.html(htmlContent)
 })
 
 export default app
