@@ -2017,18 +2017,27 @@ const htmlContent = `<!DOCTYPE html>
             if (withChallenge) {
                 var challenge = LESSON_CHALLENGES[currentLesson.id];
                 if (challenge) {
-                    // Populate the world
-                    challenge.setup();
                     // Set up mission objectives state
                     missionObjectives = challenge.objectives.map(function(obj) {
                         return { id: obj.id, label: obj.label, done: false, check: obj.check };
                     });
-                    // Show mission HUD
+                    // Show mission HUD immediately
                     document.getElementById('missionTitle').textContent = challenge.title;
                     document.getElementById('missionHUD').classList.remove('hidden');
                     updateMissionHUD();
-                    drawRobot();
                     addChatMessage('stemo', '🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪');
+                    // Defer world population to ensure canvas is ready after tab switch
+                    var lessonId = currentLesson.id;
+                    setTimeout(function() {
+                        metalObjects = []; wallObjects = []; fireObjects = [];
+                        targetPoint = null;
+                        robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
+                        var ch = LESSON_CHALLENGES[lessonId];
+                        if (ch) {
+                            ch.setup();
+                            drawRobot();
+                        }
+                    }, 200);
                 }
             } else {
                 document.getElementById('missionHUD').classList.add('hidden');
@@ -3496,25 +3505,48 @@ const htmlContent = `<!DOCTYPE html>
                     ctx.shadowOffsetY = 3;
                 }
                 
-                // Draw metal shape
+                // Draw metal shape - larger and bright in challenge mode
+                var mR = challengeMode ? 16 : 10; // radius / size scale
                 if (item.type === 'bolt') {
-                    // Draw Bolt (Hexagon)
-                    ctx.fillStyle = '#94a3b8';
+                    // Glow ring in challenge mode
+                    if (challengeMode) {
+                        ctx.beginPath();
+                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
+                        ctx.fill();
+                    }
+                    // Hexagon body
+                    ctx.fillStyle = challengeMode ? '#f59e0b' : '#94a3b8';
                     ctx.beginPath();
                     for (var i = 0; i < 6; i++) {
-                        ctx.lineTo(item.x + 8 * Math.cos(i * Math.PI / 3), item.y + 8 * Math.sin(i * Math.PI / 3));
+                        ctx.lineTo(item.x + mR * Math.cos(i * Math.PI / 3 - Math.PI/6), item.y + mR * Math.sin(i * Math.PI / 3 - Math.PI/6));
                     }
                     ctx.closePath();
                     ctx.fill();
-                    // Detail
-                    ctx.strokeStyle = '#64748b';
+                    ctx.strokeStyle = challengeMode ? '#d97706' : '#64748b';
+                    ctx.lineWidth = challengeMode ? 2.5 : 1.5;
                     ctx.stroke();
-                } else if (item.type === 'gear') {
-                    // Draw Gear
-                    ctx.fillStyle = '#78716c';
+                    // Inner hex detail
+                    ctx.fillStyle = challengeMode ? '#fcd34d' : '#cbd5e1';
                     ctx.beginPath();
-                    var outerRadius = 10;
-                    var innerRadius = 7;
+                    for (var i = 0; i < 6; i++) {
+                        ctx.lineTo(item.x + (mR*0.5) * Math.cos(i * Math.PI / 3 - Math.PI/6), item.y + (mR*0.5) * Math.sin(i * Math.PI / 3 - Math.PI/6));
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (item.type === 'gear') {
+                    // Glow ring in challenge mode
+                    if (challengeMode) {
+                        ctx.beginPath();
+                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+                        ctx.fill();
+                    }
+                    // Gear body
+                    ctx.fillStyle = challengeMode ? '#6366f1' : '#78716c';
+                    ctx.beginPath();
+                    var outerRadius = mR;
+                    var innerRadius = mR * 0.68;
                     var spikes = 8;
                     for (var i = 0; i < spikes * 2; i++) {
                         var r = (i % 2 === 0) ? outerRadius : innerRadius;
@@ -3523,39 +3555,63 @@ const htmlContent = `<!DOCTYPE html>
                     }
                     ctx.closePath();
                     ctx.fill();
+                    ctx.strokeStyle = challengeMode ? '#4338ca' : '#57534e';
+                    ctx.lineWidth = challengeMode ? 2 : 1;
+                    ctx.stroke();
                     ctx.beginPath();
-                    ctx.arc(item.x, item.y, 3, 0, Math.PI*2);
-                    ctx.fillStyle = '#44403c';
+                    ctx.arc(item.x, item.y, mR * 0.28, 0, Math.PI*2);
+                    ctx.fillStyle = challengeMode ? '#a5b4fc' : '#44403c';
                     ctx.fill();
                 } else {
-                    // Screw (Circle with cross)
-                    ctx.fillStyle = '#a1a1aa';
+                    // Screw — circle with cross
+                    if (challengeMode) {
+                        ctx.beginPath();
+                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+                        ctx.fill();
+                    }
+                    ctx.fillStyle = challengeMode ? '#10b981' : '#a1a1aa';
                     ctx.beginPath();
-                    ctx.arc(item.x, item.y, 7, 0, Math.PI * 2);
+                    ctx.arc(item.x, item.y, mR, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.strokeStyle = '#52525b';
+                    ctx.strokeStyle = challengeMode ? '#059669' : '#52525b';
+                    ctx.lineWidth = challengeMode ? 2.5 : 1.5;
+                    ctx.stroke();
+                    var cx = mR * 0.55;
                     ctx.beginPath();
-                    ctx.moveTo(item.x - 4, item.y - 4);
-                    ctx.lineTo(item.x + 4, item.y + 4);
-                    ctx.moveTo(item.x + 4, item.y - 4);
-                    ctx.lineTo(item.x - 4, item.y + 4);
+                    ctx.moveTo(item.x - cx, item.y - cx);
+                    ctx.lineTo(item.x + cx, item.y + cx);
+                    ctx.moveTo(item.x + cx, item.y - cx);
+                    ctx.lineTo(item.x - cx, item.y + cx);
+                    ctx.strokeStyle = challengeMode ? '#d1fae5' : '#e4e4e7';
+                    ctx.lineWidth = challengeMode ? 3 : 2;
                     ctx.stroke();
                 }
                 
                 ctx.restore();
                 
+                // In challenge mode: always show type label above metal
+                if (challengeMode && !item.pickedUp) {
+                    var emoji = item.type === 'bolt' ? '🔩' : item.type === 'gear' ? '⚙️' : '🪛';
+                    ctx.font = 'bold 13px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#1f2937';
+                    ctx.fillText(emoji, item.x, item.y - mR - 4);
+                }
+                
                 // Distance Text (only if close)
                 if (dist < 100 && !item.pickedUp) {
-                    ctx.fillStyle = '#6b7280';
-                    ctx.font = '10px Arial';
+                    ctx.fillStyle = challengeMode ? '#1d4ed8' : '#6b7280';
+                    ctx.font = challengeMode ? 'bold 10px Arial' : '10px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText(Math.round(dist) + ' steps', item.x, item.y - 15);
+                    ctx.fillText(Math.round(dist/20) + ' steps', item.x, item.y + mR + 14);
                     
                     // Dashed line to nearest
-                    if (dist < 60) {
+                    if (dist < 80) {
                         ctx.beginPath();
-                        ctx.setLineDash([2, 4]);
-                        ctx.strokeStyle = 'rgba(107, 114, 128, 0.3)';
+                        ctx.setLineDash([3, 5]);
+                        ctx.strokeStyle = challengeMode ? 'rgba(99,102,241,0.4)' : 'rgba(107, 114, 128, 0.3)';
+                        ctx.lineWidth = challengeMode ? 2 : 1;
                         ctx.moveTo(robot.x, robot.y);
                         ctx.lineTo(item.x, item.y);
                         ctx.stroke();
