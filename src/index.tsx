@@ -1279,7 +1279,7 @@ const htmlContent = `<!DOCTYPE html>
                             </div>
                         </div>
                         <!-- Exit challenge button -->
-                        <div id="missionExitBtn" class="hidden absolute bottom-4 right-4 z-30">
+                        <div id="missionExitBtn" class="hidden absolute top-2 right-2 z-30">
                             <button onclick="exitChallengeMode()" class="bg-white/90 text-rose-600 border border-rose-300 rounded-full shadow px-3 py-1 text-xs font-bold hover:bg-rose-50">✕ Exit Challenge</button>
                         </div>
                     </div>
@@ -3568,16 +3568,41 @@ const htmlContent = `<!DOCTYPE html>
 
             // L-shaped step guides to ALL uncollected metals — drawn BEFORE metals
             if (challengeMode) {
+                // Shared pill draw helper — dark text for readability on yellow canvas
+                function drawStepPill(ctx2, txt, cx, cy, bgCol, bold) {
+                    ctx2.font = (bold ? 'bold ' : '') + '11px Arial';
+                    var tw = ctx2.measureText(txt).width + 16;
+                    var ph = 16; // pill height
+                    var px = cx - tw / 2;
+                    var py = cy - ph / 2;
+                    // Shadow for pop
+                    ctx2.shadowColor = 'rgba(0,0,0,0.25)'; ctx2.shadowBlur = 4; ctx2.shadowOffsetY = 1;
+                    ctx2.fillStyle = bgCol;
+                    ctx2.beginPath();
+                    ctx2.arc(px + 8,        py + ph/2, ph/2, Math.PI/2, -Math.PI/2);
+                    ctx2.arc(px + tw - 8,   py + ph/2, ph/2, -Math.PI/2, Math.PI/2);
+                    ctx2.closePath();
+                    ctx2.fill();
+                    ctx2.shadowColor = 'transparent'; ctx2.shadowBlur = 0; ctx2.shadowOffsetY = 0;
+                    // Dark text so it pops on any bg
+                    ctx2.fillStyle = bold ? '#431407' : '#1e1b4b';
+                    ctx2.textAlign = 'center';
+                    ctx2.fillText(txt, cx, cy + 4);
+                }
+
                 metalObjects.forEach(function(metal, mIdx) {
                     if (metal.pickedUp) return;
                     var isAct = (metal === activeMetal);
                     var mhSteps = Math.round((metal.x - robot.x) / 20);
                     var mvSteps = Math.round((metal.y - robot.y) / 20);
+                    // Vertical offset per metal so horizontal labels don't stack
+                    var hLabelOffset = mIdx * 18;
+
                     ctx.save();
-                    // Active: bold amber; others: soft blue
+                    // Active: bold amber; others: soft indigo
                     ctx.setLineDash(isAct ? [7, 4] : [5, 6]);
                     ctx.lineWidth = isAct ? 2.5 : 1.5;
-                    ctx.strokeStyle = isAct ? 'rgba(245,158,11,0.85)' : 'rgba(99,102,241,0.45)';
+                    ctx.strokeStyle = isAct ? 'rgba(245,158,11,0.9)' : 'rgba(99,102,241,0.5)';
                     ctx.lineCap = 'round';
                     // Horizontal leg
                     ctx.beginPath();
@@ -3596,36 +3621,19 @@ const htmlContent = `<!DOCTYPE html>
                     ctx.fillStyle = isAct ? '#f59e0b' : '#6366f1';
                     ctx.fill();
 
-                    // Pill helper — draws a small rounded label
-                    function drawPill(txt, px, py, col, align) {
-                        ctx.font = (isAct ? 'bold' : '') + ' 11px Arial';
-                        var tw = ctx.measureText(txt).width + 14;
-                        ctx.fillStyle = col;
-                        ctx.globalAlpha = isAct ? 1 : 0.75;
-                        ctx.beginPath();
-                        ctx.arc(px + 7,        py - 7, 7, Math.PI/2, -Math.PI/2);
-                        ctx.arc(px + tw - 7,   py - 7, 7, -Math.PI/2, Math.PI/2);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.globalAlpha = 1;
-                        ctx.fillStyle = '#fff';
-                        ctx.textAlign = 'left';
-                        ctx.fillText(txt, px + 7, py + 4);
-                    }
-
-                    // Horizontal label (above the horizontal leg)
+                    // Horizontal label — staggered above horizontal leg per mIdx
                     if (Math.abs(mhSteps) > 0) {
                         var hMid = (robot.x + metal.x) / 2;
                         var hTxt = (mhSteps > 0 ? '→ ' : '← ') + Math.abs(mhSteps) + ' steps';
-                        ctx.font = (isAct ? 'bold ' : '') + '11px Arial';
-                        var htw = ctx.measureText(hTxt).width + 14;
-                        drawPill(hTxt, hMid - htw/2, robot.y - 6, isAct ? '#f59e0b' : '#6366f1', 'center');
+                        var hLabelY = robot.y - 10 - hLabelOffset;
+                        drawStepPill(ctx, hTxt, hMid, hLabelY, isAct ? '#fde68a' : '#c7d2fe', isAct);
                     }
-                    // Vertical label (right of the vertical leg)
+                    // Vertical label — on the right side of the vertical leg, staggered by mIdx
                     if (Math.abs(mvSteps) > 0) {
                         var vMid = (robot.y + metal.y) / 2;
                         var vTxt = (mvSteps > 0 ? '↓ ' : '↑ ') + Math.abs(mvSteps) + ' steps';
-                        drawPill(vTxt, metal.x + 6, vMid, isAct ? '#f59e0b' : '#6366f1', 'left');
+                        var vLabelX = metal.x + 30 + (mIdx * 4);
+                        drawStepPill(ctx, vTxt, vLabelX, vMid, isAct ? '#fde68a' : '#c7d2fe', isAct);
                     }
                     ctx.restore();
                 });
