@@ -936,10 +936,9 @@ const htmlContent = `<!DOCTYPE html>
     <nav class="gradient-bg text-white py-3 px-6 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-10 object-contain">
+                <img src="/steam-logo.png" alt="STEAM Academy" class="h-10 object-contain">
                 <div>
                     <h1 class="logo-text text-2xl tracking-wide">STEMO</h1>
-                    <p class="text-xs text-purple-200">by STEAM Academy</p>
                 </div>
             </div>
             
@@ -1428,8 +1427,7 @@ const htmlContent = `<!DOCTYPE html>
 
     <!-- Footer -->
     <footer class="text-center py-8 mt-6 border-t border-purple-100 bg-white/60">
-        <img src="/steam-logo-color.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain">
-        <p class="text-gray-400 text-sm">© 2026 STEAM Academy · Science Games</p>
+        <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
         <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
     </footer>
 
@@ -4683,9 +4681,8 @@ const loginPage = `<!DOCTYPE html>
 <body class="gradient-bg min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-20 mx-auto mb-4 object-contain drop-shadow-lg">
+            <img src="/steam-logo.png" alt="STEAM Academy" class="h-20 mx-auto mb-4 object-contain drop-shadow-lg">
             <h1 class="text-5xl text-white mb-2">STEMO</h1>
-            <p class="text-purple-200 text-lg">by STEAM Academy</p>
         </div>
         <div class="card rounded-3xl p-8 shadow-2xl">
             <h2 class="text-2xl text-gray-800 mb-6 text-center">Welcome Back!</h2>
@@ -4762,8 +4759,7 @@ const loginPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain opacity-80">
-        <p class="text-purple-200 text-sm">© 2026 STEAM Academy · Science Games</p>
+        <p class="text-purple-200 text-sm">© 2026 STEMO · Science Games</p>
         <p class="text-purple-300 text-xs">أكاديمية ستيم لألعاب العلوم</p>
     </div>
 </body>
@@ -4786,8 +4782,8 @@ const adminDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">STEMO Admin</h1><p class="text-purple-300 text-xs">STEAM Academy · System Dashboard</p></div>
+            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <div><h1 class="text-2xl">STEMO Admin</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5093,8 +5089,7 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <img src="/steam-logo-color.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain">
-    <p class="text-gray-400 text-sm">© 2026 STEAM Academy · Science Games</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
     <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
 </footer>
 </body>
@@ -5119,8 +5114,8 @@ const teacherDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">Teacher Dashboard</h1><p class="text-purple-300 text-xs">STEAM Academy · STEMO</p></div>
+            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <div><h1 class="text-2xl">Teacher Dashboard</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5551,8 +5546,7 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <img src="/steam-logo-color.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain">
-    <p class="text-gray-400 text-sm">© 2026 STEAM Academy · Science Games</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
     <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
 </footer>
 </body>
@@ -5575,8 +5569,8 @@ const parentDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">Parent View</h1><p class="text-purple-300 text-xs">STEAM Academy · STEMO</p></div>
+            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <div><h1 class="text-2xl">Parent View</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5645,8 +5639,7 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-4xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <img src="/steam-logo-color.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain">
-    <p class="text-gray-400 text-sm">© 2026 STEAM Academy · Science Games</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
     <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
 </footer>
 </body>
@@ -5673,9 +5666,8 @@ const registerPage = `<!DOCTYPE html>
 <body class="gradient-bg min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-16 mx-auto mb-4 object-contain drop-shadow-lg">
+            <img src="/steam-logo.png" alt="STEAM Academy" class="h-16 mx-auto mb-4 object-contain drop-shadow-lg">
             <h1 class="text-4xl text-white mb-1">Join STEMO!</h1>
-            <p class="text-purple-200">Create your STEAM Academy account</p>
         </div>
         <div class="card rounded-3xl p-8 shadow-2xl">
             <!-- Success state -->
@@ -5798,8 +5790,7 @@ const registerPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <img src="/steam-logo-white.png" alt="STEAM Academy" class="h-10 mx-auto mb-2 object-contain opacity-80">
-        <p class="text-purple-200 text-sm">© 2026 STEAM Academy · Science Games</p>
+        <p class="text-purple-200 text-sm">© 2026 STEMO · Science Games</p>
         <p class="text-purple-300 text-xs">أكاديمية ستيم لألعاب العلوم</p>
     </div>
 </body>
