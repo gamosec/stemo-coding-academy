@@ -2811,6 +2811,7 @@ const htmlContent = `<!DOCTYPE html>
                                 robot.carrying = metal;
                                 metal.pickedUp = true;
                                 addChatMessage('stemo', "🤖 🧲 Picked up " + metal.type + "! 🎉");
+                                checkChallengeObjectives();
                                 break;
                             }
                         }
@@ -2846,6 +2847,7 @@ const htmlContent = `<!DOCTYPE html>
                                 robot.carrying = metal;
                                 metal.pickedUp = true;
                                 addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
+                                checkChallengeObjectives();
                                 break;
                             }
                         }
