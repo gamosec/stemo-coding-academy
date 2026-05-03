@@ -1253,9 +1253,21 @@ const htmlContent = `<!DOCTYPE html>
                             </button>
                         </div>
                     </div>
-                    <!-- Placement mode indicator -->
-                    <div class="bg-gray-100 px-2 py-1 text-xs text-center">
-                        <span id="placementModeText">Click to place: 🔩 Metal</span>
+                    <!-- Placement / challenge bar — lives OUTSIDE the canvas -->
+                    <div class="bg-gray-100 border-b border-gray-200 px-2 py-1 text-xs flex items-center justify-between gap-2 min-h-[28px]">
+                        <!-- Left: mission badge (shown during challenge) -->
+                        <div id="missionBadge" class="hidden">
+                            <div class="bg-orange-500 text-white rounded-full shadow px-2 py-0.5 flex items-center gap-1 text-xs font-bold cursor-pointer" onclick="toggleMissionToast()">
+                                <span>🏆</span>
+                                <span id="missionBadgeText">0 left</span>
+                            </div>
+                        </div>
+                        <!-- Center: placement hint -->
+                        <span id="placementModeText" class="flex-1 text-center">Click to place: 🔩 Metal</span>
+                        <!-- Right: exit button (shown during challenge) -->
+                        <div id="missionExitBtn" class="hidden">
+                            <button onclick="exitChallengeMode()" class="bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow px-3 py-0.5 text-xs font-bold transition-colors">✕ Exit Challenge</button>
+                        </div>
                     </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
                         <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
@@ -1270,17 +1282,6 @@ const htmlContent = `<!DOCTYPE html>
                                 <div class="font-bold text-sm mb-2" id="missionTitle">Complete the mission!</div>
                                 <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
                             </div>
-                        </div>
-                        <!-- Persistent mini badge (always visible during challenge) -->
-                        <div id="missionBadge" class="hidden absolute top-4 right-4 z-30">
-                            <div class="bg-orange-500 text-white rounded-full shadow-lg px-2 py-1 flex items-center gap-1 text-xs font-bold cursor-pointer" onclick="toggleMissionToast()">
-                                <span>🏆</span>
-                                <span id="missionBadgeText">0 left</span>
-                            </div>
-                        </div>
-                        <!-- Exit challenge button -->
-                        <div id="missionExitBtn" class="hidden absolute top-2 right-2 z-30">
-                            <button onclick="exitChallengeMode()" class="bg-white/90 text-rose-600 border border-rose-300 rounded-full shadow px-3 py-1 text-xs font-bold hover:bg-rose-50">✕ Exit Challenge</button>
                         </div>
                     </div>
                     
