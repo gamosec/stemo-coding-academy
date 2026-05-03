@@ -3566,65 +3566,69 @@ const htmlContent = `<!DOCTYPE html>
                 }
             }
 
-            // L-shaped step guide to active metal — drawn BEFORE metals so it's behind them
-            if (challengeMode && activeMetal) {
-                var hSteps = Math.round((activeMetal.x - robot.x) / 20);
-                var vSteps = Math.round((activeMetal.y - robot.y) / 20);
-                ctx.save();
-                ctx.setLineDash([7, 5]);
-                ctx.lineWidth = 2.5;
-                ctx.strokeStyle = 'rgba(245, 158, 11, 0.75)';
-                ctx.lineCap = 'round';
-                // Horizontal leg: robot → corner
-                ctx.beginPath();
-                ctx.moveTo(robot.x, robot.y);
-                ctx.lineTo(activeMetal.x, robot.y);
-                ctx.stroke();
-                // Vertical leg: corner → metal
-                ctx.beginPath();
-                ctx.moveTo(activeMetal.x, robot.y);
-                ctx.lineTo(activeMetal.x, activeMetal.y);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                // Corner dot
-                ctx.beginPath();
-                ctx.arc(activeMetal.x, robot.y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#f59e0b';
-                ctx.fill();
-                // Horizontal step pill label
-                if (Math.abs(hSteps) > 0) {
-                    var hMidX = (robot.x + activeMetal.x) / 2;
-                    var hLbl = (hSteps > 0 ? '→ ' : '← ') + Math.abs(hSteps) + ' steps';
-                    ctx.font = 'bold 11px Arial';
-                    var hw = ctx.measureText(hLbl).width + 14;
-                    ctx.fillStyle = '#f59e0b';
+            // L-shaped step guides to ALL uncollected metals — drawn BEFORE metals
+            if (challengeMode) {
+                metalObjects.forEach(function(metal, mIdx) {
+                    if (metal.pickedUp) return;
+                    var isAct = (metal === activeMetal);
+                    var mhSteps = Math.round((metal.x - robot.x) / 20);
+                    var mvSteps = Math.round((metal.y - robot.y) / 20);
+                    ctx.save();
+                    // Active: bold amber; others: soft blue
+                    ctx.setLineDash(isAct ? [7, 4] : [5, 6]);
+                    ctx.lineWidth = isAct ? 2.5 : 1.5;
+                    ctx.strokeStyle = isAct ? 'rgba(245,158,11,0.85)' : 'rgba(99,102,241,0.45)';
+                    ctx.lineCap = 'round';
+                    // Horizontal leg
                     ctx.beginPath();
-                    ctx.arc(hMidX - hw/2 + 7, robot.y - 13, 7, Math.PI/2, -Math.PI/2);
-                    ctx.arc(hMidX + hw/2 - 7, robot.y - 13, 7, -Math.PI/2, Math.PI/2);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillStyle = '#fff';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(hLbl, hMidX, robot.y - 8);
-                }
-                // Vertical step pill label
-                if (Math.abs(vSteps) > 0) {
-                    var vMidY = (robot.y + activeMetal.y) / 2;
-                    var vLbl = (vSteps > 0 ? '↓ ' : '↑ ') + Math.abs(vSteps) + ' steps';
-                    ctx.font = 'bold 11px Arial';
-                    var vw = ctx.measureText(vLbl).width + 14;
-                    var vPillX = activeMetal.x + 8;
-                    ctx.fillStyle = '#6366f1';
+                    ctx.moveTo(robot.x, robot.y);
+                    ctx.lineTo(metal.x, robot.y);
+                    ctx.stroke();
+                    // Vertical leg
                     ctx.beginPath();
-                    ctx.arc(vPillX + 7, vMidY - 7, 7, Math.PI/2, -Math.PI/2);
-                    ctx.arc(vPillX + vw - 7, vMidY - 7, 7, -Math.PI/2, Math.PI/2);
-                    ctx.closePath();
+                    ctx.moveTo(metal.x, robot.y);
+                    ctx.lineTo(metal.x, metal.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Corner dot
+                    ctx.beginPath();
+                    ctx.arc(metal.x, robot.y, isAct ? 4 : 3, 0, Math.PI * 2);
+                    ctx.fillStyle = isAct ? '#f59e0b' : '#6366f1';
                     ctx.fill();
-                    ctx.fillStyle = '#fff';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(vLbl, vPillX + 7, vMidY + 4);
-                }
-                ctx.restore();
+
+                    // Pill helper — draws a small rounded label
+                    function drawPill(txt, px, py, col, align) {
+                        ctx.font = (isAct ? 'bold' : '') + ' 11px Arial';
+                        var tw = ctx.measureText(txt).width + 14;
+                        ctx.fillStyle = col;
+                        ctx.globalAlpha = isAct ? 1 : 0.75;
+                        ctx.beginPath();
+                        ctx.arc(px + 7,        py - 7, 7, Math.PI/2, -Math.PI/2);
+                        ctx.arc(px + tw - 7,   py - 7, 7, -Math.PI/2, Math.PI/2);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                        ctx.fillStyle = '#fff';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(txt, px + 7, py + 4);
+                    }
+
+                    // Horizontal label (above the horizontal leg)
+                    if (Math.abs(mhSteps) > 0) {
+                        var hMid = (robot.x + metal.x) / 2;
+                        var hTxt = (mhSteps > 0 ? '→ ' : '← ') + Math.abs(mhSteps) + ' steps';
+                        ctx.font = (isAct ? 'bold ' : '') + '11px Arial';
+                        var htw = ctx.measureText(hTxt).width + 14;
+                        drawPill(hTxt, hMid - htw/2, robot.y - 6, isAct ? '#f59e0b' : '#6366f1', 'center');
+                    }
+                    // Vertical label (right of the vertical leg)
+                    if (Math.abs(mvSteps) > 0) {
+                        var vMid = (robot.y + metal.y) / 2;
+                        var vTxt = (mvSteps > 0 ? '↓ ' : '↑ ') + Math.abs(mvSteps) + ' steps';
+                        drawPill(vTxt, metal.x + 6, vMid, isAct ? '#f59e0b' : '#6366f1', 'left');
+                    }
+                    ctx.restore();
+                });
             }
 
             // Draw each metal
@@ -3640,8 +3644,8 @@ const htmlContent = `<!DOCTYPE html>
                 var dist = Math.sqrt(dx * dx + dy * dy);
                 
                 ctx.save();
-                // Dim locked (future) metals
-                if (isLocked) ctx.globalAlpha = 0.32;
+                // Slightly dim future metals so active stands out, but still readable
+                if (isLocked) ctx.globalAlpha = 0.75;
 
                 // Shadow / glow
                 if (selectedObject === item) {
