@@ -2799,7 +2799,7 @@ const htmlContent = `<!DOCTYPE html>
                 robot.y = Math.max(25, Math.min(375, newY));
                 
                 // Check if magnet is ON and can pick up nearby metal
-                if (robot.magnetOn && !robot.carrying) {
+                if (robot.magnetOn && (challengeMode || !robot.carrying)) {
                     var pickupRange = 35;
                     for (var m = 0; m < metalObjects.length; m++) {
                         var metal = metalObjects[m];
@@ -2808,10 +2808,16 @@ const htmlContent = `<!DOCTYPE html>
                             var dy = metal.y - robot.y;
                             var dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist < pickupRange) {
-                                robot.carrying = metal;
                                 metal.pickedUp = true;
-                                addChatMessage('stemo', "🤖 🧲 Picked up " + metal.type + "! 🎉");
-                                checkChallengeObjectives();
+                                if (challengeMode) {
+                                    // Challenge: auto-collect, no carrying needed
+                                    addChatMessage('stemo', "✅ Collected " + metal.type + "! Keep going! 🎉");
+                                    checkChallengeObjectives();
+                                } else {
+                                    robot.carrying = metal;
+                                    addChatMessage('stemo', "🤖 🧲 Picked up " + metal.type + "! 🎉");
+                                    checkChallengeObjectives();
+                                }
                                 break;
                             }
                         }
@@ -2836,22 +2842,31 @@ const htmlContent = `<!DOCTYPE html>
                 robot.magnetOn = cmd.value;
                 if (cmd.value) {
                     // Magnet ON - try to pick up nearby metal
-                    if (!robot.carrying) {
-                        var pickupRange = 35; // pixels distance to pick up
+                    if (challengeMode || !robot.carrying) {
+                        var pickupRange = 35;
+                        var gotOne = false;
                         for (var m = 0; m < metalObjects.length; m++) {
                             var metal = metalObjects[m];
-                            var dx = metal.x - robot.x;
-                            var dy = metal.y - robot.y;
-                            var dist = Math.sqrt(dx * dx + dy * dy);
-                            if (dist < pickupRange) {
-                                robot.carrying = metal;
-                                metal.pickedUp = true;
-                                addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
-                                checkChallengeObjectives();
-                                break;
+                            if (!metal.pickedUp) {
+                                var dx = metal.x - robot.x;
+                                var dy = metal.y - robot.y;
+                                var dist = Math.sqrt(dx * dx + dy * dy);
+                                if (dist < pickupRange) {
+                                    metal.pickedUp = true;
+                                    gotOne = true;
+                                    if (challengeMode) {
+                                        addChatMessage('stemo', "✅ Collected " + metal.type + "! Keep going! 🎉");
+                                        checkChallengeObjectives();
+                                    } else {
+                                        robot.carrying = metal;
+                                        addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
+                                        checkChallengeObjectives();
+                                    }
+                                    break;
+                                }
                             }
                         }
-                        if (!robot.carrying) {
+                        if (!gotOne && !robot.carrying) {
                             addChatMessage('stemo', "🤖 🧲 Magnet ON! Move closer to a metal object to pick it up.");
                         }
                     }
