@@ -1257,6 +1257,15 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="bg-gray-100 px-2 py-1 text-xs text-center">
                         <span id="placementModeText">Click to place: 🔩 Metal</span>
                     </div>
+                    <!-- Mission HUD (shown only in Challenge Mode) -->
+                    <div id="missionHUD" class="hidden bg-gradient-to-r from-orange-500 to-rose-500 text-white px-3 py-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-bold uppercase tracking-wide">🏆 Challenge Mission</span>
+                            <button onclick="exitChallengeMode()" class="text-white/70 hover:text-white text-xs underline">Exit Challenge</button>
+                        </div>
+                        <div class="font-bold text-sm mb-1" id="missionTitle">Complete the mission!</div>
+                        <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
+                    </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
                         <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
                         <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
@@ -1404,6 +1413,34 @@ const htmlContent = `<!DOCTYPE html>
         </div>
     </div>
 
+    <!-- Mode Picker Modal -->
+    <div id="modePickerModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-3" id="modePickerIcon">🤖</div>
+                <h2 class="text-2xl font-bold text-gray-800" id="modePickerTitle">Choose Your Mode</h2>
+                <p class="text-gray-500 text-sm mt-1" id="modePickerDesc">How do you want to start this lesson?</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Free Build -->
+                <button onclick="startFreeBuildMode()" class="group flex flex-col items-center gap-3 p-6 border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 rounded-2xl transition-all cursor-pointer">
+                    <div class="text-4xl group-hover:scale-110 transition-transform">🏗️</div>
+                    <div class="font-bold text-gray-800 text-lg">Free Build</div>
+                    <div class="text-gray-500 text-xs text-center">Place your own objects and experiment freely. No rules — just explore!</div>
+                    <div class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">Sandbox Mode</div>
+                </button>
+                <!-- Challenge Mode -->
+                <button onclick="startChallengeMode()" class="group flex flex-col items-center gap-3 p-6 border-2 border-orange-200 hover:border-orange-500 hover:bg-orange-50 rounded-2xl transition-all cursor-pointer">
+                    <div class="text-4xl group-hover:scale-110 transition-transform">🏆</div>
+                    <div class="font-bold text-gray-800 text-lg">Challenge</div>
+                    <div class="text-gray-500 text-xs text-center">A pre-set mission loads. Complete the objective to win XP!</div>
+                    <div class="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full" id="modePickerXP">+XP Challenge</div>
+                </button>
+            </div>
+            <button onclick="closeModePicker()" class="w-full mt-4 text-gray-400 hover:text-gray-600 text-sm py-2 transition-colors">← Back to lesson info</button>
+        </div>
+    </div>
+
     <!-- Success Modal -->
     <div id="successModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-3xl p-8 text-center max-w-md mx-4 transform scale-0 transition-transform" id="successModalContent">
@@ -1483,6 +1520,172 @@ const htmlContent = `<!DOCTYPE html>
         
         // Placement mode: 'none', 'wall', 'target', 'metal'
         var placementMode = 'metal';
+        
+        // ============================================
+        // CHALLENGE MODE STATE
+        // ============================================
+        var challengeMode = false;
+        var missionObjectives = null;
+        var challengeCompleted = false;
+
+        var MISSION_LESSON_IDS = ['lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+
+        // Pre-configured challenge worlds for each mission lesson
+        var LESSON_CHALLENGES = {
+            'lesson-8': {
+                title: 'Collect all 3 metal pieces!',
+                description: 'Activate your magnet and navigate to pick up every metal object on the board.',
+                setup: function() {
+                    metalObjects = [
+                        { id: metalIdCounter++, x: 100, y: 100, type: 'bolt',  pickedUp: false },
+                        { id: metalIdCounter++, x: 330, y: 110, type: 'gear',  pickedUp: false },
+                        { id: metalIdCounter++, x: 290, y: 320, type: 'screw', pickedUp: false }
+                    ];
+                },
+                objectives: [
+                    { id: 'collect3', label: '🔩 Collect 3 metals', check: function() {
+                        return metalObjects.filter(function(m){ return m.pickedUp; }).length >= 3;
+                    }}
+                ]
+            },
+            'lesson-9': {
+                title: 'Navigate the wall maze to the target!',
+                description: 'Use your ultrasonic sensor to detect walls and steer STEMO to the target.',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 140, y: 80,  width: 40, height: 120 },
+                        { id: wallIdCounter++, x: 240, y: 180, width: 40, height: 120 },
+                        { id: wallIdCounter++, x: 80,  y: 260, width: 120, height: 40 }
+                    ];
+                    targetPoint = { x: 330, y: 330 };
+                },
+                objectives: [
+                    { id: 'reach', label: '🎯 Reach the target', check: function() {
+                        if (!targetPoint) return false;
+                        var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                    }}
+                ]
+            },
+            'lesson-10': {
+                title: 'Reach the target point!',
+                description: 'Obstacles are in your way. Program STEMO to navigate around them and reach the goal.',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 140, y: 120, width: 40, height: 120 },
+                        { id: wallIdCounter++, x: 220, y: 220, width: 120, height: 40 }
+                    ];
+                    targetPoint = { x: 330, y: 330 };
+                },
+                objectives: [
+                    { id: 'reach', label: '🎯 Reach the target', check: function() {
+                        if (!targetPoint) return false;
+                        var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                    }}
+                ]
+            },
+            'lesson-11': {
+                title: 'Solve the branching maze!',
+                description: 'There is a wall blocking the middle. Use If/Else logic to find the correct path to the target.',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 180, y: 60,  width: 40, height: 130 },
+                        { id: wallIdCounter++, x: 180, y: 250, width: 40, height: 110 }
+                    ];
+                    targetPoint = { x: 330, y: 200 };
+                },
+                objectives: [
+                    { id: 'reach', label: '🎯 Reach the target', check: function() {
+                        if (!targetPoint) return false;
+                        var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                    }}
+                ]
+            },
+            'lesson-12': {
+                title: 'Detect both fires with your sensor!',
+                description: 'Fires are hidden around the board. Scan with your temperature sensor to locate them.',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 160, y: 140, width: 40, height: 40 }
+                    ];
+                    fireObjects = [
+                        { id: fireIdCounter++, x: 110, y: 310, health: 3 },
+                        { id: fireIdCounter++, x: 320, y: 140, health: 3 }
+                    ];
+                },
+                objectives: [
+                    { id: 'detect1', label: '🌡️ Find fire 1', targetFire: 0, check: function() {
+                        if (fireObjects.length < 1) return false;
+                        var f = fireObjects[0];
+                        var dx = robot.x - f.x, dy = robot.y - f.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 65;
+                    }},
+                    { id: 'detect2', label: '🌡️ Find fire 2', targetFire: 1, check: function() {
+                        if (fireObjects.length < 2) return false;
+                        var f = fireObjects[1];
+                        var dx = robot.x - f.x, dy = robot.y - f.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 65;
+                    }}
+                ]
+            },
+            'lesson-13': {
+                title: 'Extinguish all 3 fires!',
+                description: 'Navigate around walls and spray water on every fire before your tank runs out!',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 140, y: 120, width: 100, height: 40 },
+                        { id: wallIdCounter++, x: 250, y: 230, width: 40, height: 100 }
+                    ];
+                    fireObjects = [
+                        { id: fireIdCounter++, x: 90,  y: 200, health: 3 },
+                        { id: fireIdCounter++, x: 210, y: 110, health: 3 },
+                        { id: fireIdCounter++, x: 320, y: 320, health: 3 }
+                    ];
+                    robot.waterLevel = 9;
+                },
+                objectives: [
+                    { id: 'extinguish', label: '💧 Extinguish all fires', check: function() {
+                        return fireObjects.length > 0 && fireObjects.every(function(f){ return f.health <= 0; });
+                    }}
+                ]
+            },
+            'lesson-14': {
+                title: 'The Ultimate Challenge!',
+                description: 'Collect metals, extinguish fires, and reach the target. Use everything you have learned!',
+                setup: function() {
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 130, y: 100, width: 40, height: 100 },
+                        { id: wallIdCounter++, x: 230, y: 180, width: 100, height: 40 },
+                        { id: wallIdCounter++, x: 175, y: 285, width: 90, height: 40 }
+                    ];
+                    metalObjects = [
+                        { id: metalIdCounter++, x: 90,  y: 310, type: 'bolt', pickedUp: false },
+                        { id: metalIdCounter++, x: 330, y: 90,  type: 'gear', pickedUp: false }
+                    ];
+                    fireObjects = [
+                        { id: fireIdCounter++, x: 75,  y: 150, health: 3 },
+                        { id: fireIdCounter++, x: 320, y: 290, health: 3 }
+                    ];
+                    targetPoint = { x: 330, y: 200 };
+                    robot.waterLevel = 6;
+                },
+                objectives: [
+                    { id: 'metal', label: '🔩 Collect 1+ metal', check: function() {
+                        return metalObjects.some(function(m){ return m.pickedUp; });
+                    }},
+                    { id: 'fire', label: '💧 Extinguish fires', check: function() {
+                        return fireObjects.length > 0 && fireObjects.every(function(f){ return f.health <= 0; });
+                    }},
+                    { id: 'reach', label: '🎯 Reach target', check: function() {
+                        if (!targetPoint) return false;
+                        var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
+                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                    }}
+                ]
+            }
+        };
         
         // Ultrasonic sensor settings
         var sensorRange = 100; // pixels (5 steps)
@@ -1748,19 +1951,125 @@ const htmlContent = `<!DOCTYPE html>
         function startLessonFromDetail() {
             if (!currentLesson) return;
             
-            // Set up the code view
+            // If this is a mission lesson, show the mode picker first
+            if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
+                var challenge = LESSON_CHALLENGES[currentLesson.id];
+                document.getElementById('modePickerIcon').textContent = currentLesson.icon || '🤖';
+                document.getElementById('modePickerTitle').textContent = currentLesson.title;
+                document.getElementById('modePickerDesc').textContent = currentLesson.description;
+                document.getElementById('modePickerXP').textContent = '+' + currentLesson.xpReward + ' XP · Challenge';
+                document.getElementById('modePickerModal').classList.remove('hidden');
+                return;
+            }
+            
+            // Non-mission lesson: go straight to free build
+            _launchLesson(false);
+        }
+
+        function closeModePicker() {
+            document.getElementById('modePickerModal').classList.add('hidden');
+        }
+
+        function startFreeBuildMode() {
+            document.getElementById('modePickerModal').classList.add('hidden');
+            _launchLesson(false);
+        }
+
+        function startChallengeMode() {
+            document.getElementById('modePickerModal').classList.add('hidden');
+            _launchLesson(true);
+        }
+
+        function exitChallengeMode() {
+            challengeMode = false;
+            challengeCompleted = false;
+            missionObjectives = null;
+            document.getElementById('missionHUD').classList.add('hidden');
+            clearAll();
+            addChatMessage('stemo', '🤖 Exited challenge mode. Board cleared — build freely!');
+        }
+
+        function _launchLesson(withChallenge) {
+            if (!currentLesson) return;
+            
+            challengeMode = withChallenge;
+            challengeCompleted = false;
+
+            // Set up the code view header
             document.getElementById('currentLessonTitle').textContent = currentLesson.title;
             document.getElementById('currentLessonDesc').textContent = currentLesson.description;
             document.getElementById('hintText').textContent = currentLesson.hint;
             document.getElementById('hintPanel').classList.remove('hidden');
             
-            // Hide lesson detail and switch to code
+            // Hide lesson detail and switch to code tab
             document.getElementById('lessonDetailPanel').classList.add('hidden');
             document.getElementById('lessonsGrid').style.display = 'grid';
             
             switchTab('code');
             resetRobot();
             clearWorkspace();
+
+            // Clear board objects (without animation/messages)
+            metalObjects = []; wallObjects = []; fireObjects = [];
+            targetPoint = null; selectedObject = null; selectedObjectType = null;
+            robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
+
+            if (withChallenge) {
+                var challenge = LESSON_CHALLENGES[currentLesson.id];
+                if (challenge) {
+                    // Populate the world
+                    challenge.setup();
+                    // Set up mission objectives state
+                    missionObjectives = challenge.objectives.map(function(obj) {
+                        return { id: obj.id, label: obj.label, done: false, check: obj.check };
+                    });
+                    // Show mission HUD
+                    document.getElementById('missionTitle').textContent = challenge.title;
+                    document.getElementById('missionHUD').classList.remove('hidden');
+                    updateMissionHUD();
+                    drawRobot();
+                    addChatMessage('stemo', '🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪');
+                }
+            } else {
+                document.getElementById('missionHUD').classList.add('hidden');
+                missionObjectives = null;
+                drawRobot();
+                addChatMessage('stemo', '🏗️ Free Build mode! Place your own objects and experiment!');
+            }
+        }
+
+        function updateMissionHUD() {
+            if (!missionObjectives) return;
+            var list = document.getElementById('missionObjectivesList');
+            list.innerHTML = missionObjectives.map(function(obj) {
+                return '<span class="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ' +
+                    (obj.done ? 'bg-green-500 line-through opacity-70' : 'bg-white/20') + '">' +
+                    (obj.done ? '✅ ' : '⬜ ') + obj.label + '</span>';
+            }).join('');
+        }
+
+        function checkChallengeObjectives() {
+            if (!challengeMode || !missionObjectives || challengeCompleted) return;
+            var allDone = true;
+            var anyChanged = false;
+            missionObjectives.forEach(function(obj) {
+                var wasDone = obj.done;
+                obj.done = obj.check();
+                if (obj.done && !wasDone) anyChanged = true;
+                if (!obj.done) allDone = false;
+            });
+            if (anyChanged) updateMissionHUD();
+            if (allDone && !challengeCompleted) {
+                challengeCompleted = true;
+                setTimeout(function() {
+                    addChatMessage('stemo', '🎉 MISSION COMPLETE! Amazing work! 🏆');
+                    if (currentLesson && !stemo.completedLessons.includes(currentLesson.id)) {
+                        completeLesson(currentLesson);
+                    } else {
+                        showSuccessModal(0);
+                    }
+                }, 400);
+            }
         }
 
         function startFirstLesson() {
@@ -2336,6 +2645,7 @@ const htmlContent = `<!DOCTYPE html>
                         setTimeout(executeNext, 200);
                     } else {
                         executeGoToTarget(function() {
+                            if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
                         });
                     }
@@ -2367,6 +2677,7 @@ const htmlContent = `<!DOCTYPE html>
                         setTimeout(executeNext, 200);
                     } else {
                         executeFirefighterMode(function() {
+                            if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
                         });
                     }
@@ -2375,6 +2686,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 executeCommand(cmd);
                 drawRobot();
+                if (challengeMode) checkChallengeObjectives();
                 
                 setTimeout(executeNext, 200);
             }
@@ -3555,7 +3867,13 @@ const htmlContent = `<!DOCTYPE html>
         function checkLessonCompletion() {
             if (!currentLesson) return;
             
-            // Complete lesson if robot moved or drew anything
+            // In challenge mode, completion is handled by checkChallengeObjectives()
+            if (challengeMode) {
+                checkChallengeObjectives();
+                return;
+            }
+            
+            // Free build / non-mission: complete lesson if robot moved or drew anything
             var robotMoved = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90;
             var robotDrew = robot.trails.length > 0;
             
