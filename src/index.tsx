@@ -1551,8 +1551,8 @@ const htmlContent = `<!DOCTYPE html>
                 setup: function() {
                     metalObjects = [
                         { id: metalIdCounter++, x: 100, y: 100, type: 'bolt',  pickedUp: false },
-                        { id: metalIdCounter++, x: 330, y: 110, type: 'gear',  pickedUp: false },
-                        { id: metalIdCounter++, x: 290, y: 320, type: 'screw', pickedUp: false }
+                        { id: metalIdCounter++, x: 300, y: 120, type: 'gear',  pickedUp: false },
+                        { id: metalIdCounter++, x: 340, y: 320, type: 'screw', pickedUp: false }
                     ];
                 },
                 objectives: [
