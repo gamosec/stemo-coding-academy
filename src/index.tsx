@@ -1556,8 +1556,14 @@ const htmlContent = `<!DOCTYPE html>
                     ];
                 },
                 objectives: [
-                    { id: 'collect3', label: '🔩 Collect 3 metals', check: function() {
-                        return metalObjects.filter(function(m){ return m.pickedUp; }).length >= 3;
+                    { id: 'metal-1', label: '🔩 Step 1: Pick up metal #1', check: function() {
+                        return metalObjects.length > 0 && metalObjects[0].pickedUp;
+                    }},
+                    { id: 'metal-2', label: '🔩 Step 2: Pick up metal #2', check: function() {
+                        return metalObjects.length > 1 && metalObjects[1].pickedUp;
+                    }},
+                    { id: 'metal-3', label: '🔩 Step 3: Pick up metal #3', check: function() {
+                        return metalObjects.length > 2 && metalObjects[2].pickedUp;
                     }}
                 ]
             },
@@ -2116,17 +2122,30 @@ const htmlContent = `<!DOCTYPE html>
             if (!challengeMode || !missionObjectives || challengeCompleted) return;
             var allDone = true;
             var anyChanged = false;
-            missionObjectives.forEach(function(obj) {
+            missionObjectives.forEach(function(obj, idx) {
                 var wasDone = obj.done;
                 obj.done = obj.check();
-                if (obj.done && !wasDone) anyChanged = true;
+                if (obj.done && !wasDone) {
+                    anyChanged = true;
+                    // Per-step celebration
+                    var remaining = missionObjectives.filter(function(o) { return !o.done; }).length;
+                    if (remaining > 0) {
+                        var stepNum = idx + 1;
+                        var msgs = [
+                            '✅ Step ' + stepNum + ' done! Great job! Now find the next one! 🎯',
+                            '🌟 Awesome! Step ' + stepNum + ' complete! Keep going!',
+                            '💪 Step ' + stepNum + ' checked off! You\'re on a roll!'
+                        ];
+                        addChatMessage('stemo', msgs[stepNum % msgs.length]);
+                    }
+                }
                 if (!obj.done) allDone = false;
             });
             if (anyChanged) updateMissionHUD();
             if (allDone && !challengeCompleted) {
                 challengeCompleted = true;
                 setTimeout(function() {
-                    addChatMessage('stemo', '🎉 MISSION COMPLETE! Amazing work! 🏆');
+                    addChatMessage('stemo', '🎉 ALL STEPS COMPLETE! Amazing work! 🏆🏆🏆');
                     if (currentLesson && !stemo.completedLessons.includes(currentLesson.id)) {
                         completeLesson(currentLesson);
                     } else {
@@ -3537,147 +3556,187 @@ const htmlContent = `<!DOCTYPE html>
             }
             */
             
-            // Draw Metals with distance indicators
-            // Group metals by location
+            // Draw Metals
+            // In challenge mode: find active metal (first uncollected in order)
+            var activeMetal = null;
+            var activeMetalIndex = -1;
+            if (challengeMode) {
+                for (var mi = 0; mi < metalObjects.length; mi++) {
+                    if (!metalObjects[mi].pickedUp) { activeMetal = metalObjects[mi]; activeMetalIndex = mi; break; }
+                }
+            }
+
+            // L-shaped step guide to active metal — drawn BEFORE metals so it's behind them
+            if (challengeMode && activeMetal) {
+                var hSteps = Math.round((activeMetal.x - robot.x) / 20);
+                var vSteps = Math.round((activeMetal.y - robot.y) / 20);
+                ctx.save();
+                ctx.setLineDash([7, 5]);
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.75)';
+                ctx.lineCap = 'round';
+                // Horizontal leg: robot → corner
+                ctx.beginPath();
+                ctx.moveTo(robot.x, robot.y);
+                ctx.lineTo(activeMetal.x, robot.y);
+                ctx.stroke();
+                // Vertical leg: corner → metal
+                ctx.beginPath();
+                ctx.moveTo(activeMetal.x, robot.y);
+                ctx.lineTo(activeMetal.x, activeMetal.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                // Corner dot
+                ctx.beginPath();
+                ctx.arc(activeMetal.x, robot.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+                // Horizontal step pill label
+                if (Math.abs(hSteps) > 0) {
+                    var hMidX = (robot.x + activeMetal.x) / 2;
+                    var hLbl = (hSteps > 0 ? '→ ' : '← ') + Math.abs(hSteps) + ' steps';
+                    ctx.font = 'bold 11px Arial';
+                    var hw = ctx.measureText(hLbl).width + 14;
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(hMidX - hw/2 + 7, robot.y - 13, 7, Math.PI/2, -Math.PI/2);
+                    ctx.arc(hMidX + hw/2 - 7, robot.y - 13, 7, -Math.PI/2, Math.PI/2);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(hLbl, hMidX, robot.y - 8);
+                }
+                // Vertical step pill label
+                if (Math.abs(vSteps) > 0) {
+                    var vMidY = (robot.y + activeMetal.y) / 2;
+                    var vLbl = (vSteps > 0 ? '↓ ' : '↑ ') + Math.abs(vSteps) + ' steps';
+                    ctx.font = 'bold 11px Arial';
+                    var vw = ctx.measureText(vLbl).width + 14;
+                    var vPillX = activeMetal.x + 8;
+                    ctx.fillStyle = '#6366f1';
+                    ctx.beginPath();
+                    ctx.arc(vPillX + 7, vMidY - 7, 7, Math.PI/2, -Math.PI/2);
+                    ctx.arc(vPillX + vw - 7, vMidY - 7, 7, -Math.PI/2, Math.PI/2);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(vLbl, vPillX + 7, vMidY + 4);
+                }
+                ctx.restore();
+            }
+
+            // Draw each metal
             var metalGroups = groupObjects(metalObjects);
-            
             Object.values(metalGroups).forEach(function(group) {
                 var item = group[0];
-                
+                var stepIdx = metalObjects.indexOf(item); // 0-based order
+                var isActive = (challengeMode && item === activeMetal);
+                var isLocked = (challengeMode && !item.pickedUp && !isActive);
+
                 var dx = item.x - robot.x;
                 var dy = item.y - robot.y;
                 var dist = Math.sqrt(dx * dx + dy * dy);
                 
                 ctx.save();
-                
-                // Highlight if selected
+                // Dim locked (future) metals
+                if (isLocked) ctx.globalAlpha = 0.32;
+
+                // Shadow / glow
                 if (selectedObject === item) {
-                    ctx.shadowColor = '#06b6d4';
-                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#06b6d4'; ctx.shadowBlur = 15;
+                } else if (isActive) {
+                    ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 18;
                 } else {
-                    ctx.shadowColor = 'rgba(0,0,0,0.2)';
-                    ctx.shadowBlur = 5;
-                    ctx.shadowOffsetY = 3;
+                    ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = 5; ctx.shadowOffsetY = 3;
                 }
-                
-                // Draw metal shape - larger and bright in challenge mode
-                var mR = challengeMode ? 16 : 10; // radius / size scale
+
+                var mR = challengeMode ? 16 : 10;
+
                 if (item.type === 'bolt') {
-                    // Glow ring in challenge mode
                     if (challengeMode) {
-                        ctx.beginPath();
-                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(251,191,36,0.25)'; ctx.fill();
                     }
-                    // Hexagon body
                     ctx.fillStyle = challengeMode ? '#f59e0b' : '#94a3b8';
                     ctx.beginPath();
-                    for (var i = 0; i < 6; i++) {
-                        ctx.lineTo(item.x + mR * Math.cos(i * Math.PI / 3 - Math.PI/6), item.y + mR * Math.sin(i * Math.PI / 3 - Math.PI/6));
-                    }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.strokeStyle = challengeMode ? '#d97706' : '#64748b';
-                    ctx.lineWidth = challengeMode ? 2.5 : 1.5;
-                    ctx.stroke();
-                    // Inner hex detail
+                    for (var i = 0; i < 6; i++) ctx.lineTo(item.x + mR * Math.cos(i * Math.PI/3 - Math.PI/6), item.y + mR * Math.sin(i * Math.PI/3 - Math.PI/6));
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = challengeMode ? '#d97706' : '#64748b'; ctx.lineWidth = challengeMode ? 2.5 : 1.5; ctx.stroke();
                     ctx.fillStyle = challengeMode ? '#fcd34d' : '#cbd5e1';
                     ctx.beginPath();
-                    for (var i = 0; i < 6; i++) {
-                        ctx.lineTo(item.x + (mR*0.5) * Math.cos(i * Math.PI / 3 - Math.PI/6), item.y + (mR*0.5) * Math.sin(i * Math.PI / 3 - Math.PI/6));
-                    }
-                    ctx.closePath();
-                    ctx.fill();
+                    for (var i = 0; i < 6; i++) ctx.lineTo(item.x + mR*0.5 * Math.cos(i * Math.PI/3 - Math.PI/6), item.y + mR*0.5 * Math.sin(i * Math.PI/3 - Math.PI/6));
+                    ctx.closePath(); ctx.fill();
                 } else if (item.type === 'gear') {
-                    // Glow ring in challenge mode
                     if (challengeMode) {
-                        ctx.beginPath();
-                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(99,102,241,0.25)'; ctx.fill();
                     }
-                    // Gear body
                     ctx.fillStyle = challengeMode ? '#6366f1' : '#78716c';
                     ctx.beginPath();
-                    var outerRadius = mR;
-                    var innerRadius = mR * 0.68;
-                    var spikes = 8;
-                    for (var i = 0; i < spikes * 2; i++) {
-                        var r = (i % 2 === 0) ? outerRadius : innerRadius;
-                        var a = Math.PI * i / spikes;
-                        ctx.lineTo(item.x + r * Math.cos(a), item.y + r * Math.sin(a));
+                    for (var i = 0; i < 16; i++) {
+                        var r2 = (i % 2 === 0) ? mR : mR*0.68;
+                        ctx.lineTo(item.x + r2 * Math.cos(Math.PI*i/8), item.y + r2 * Math.sin(Math.PI*i/8));
                     }
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.strokeStyle = challengeMode ? '#4338ca' : '#57534e';
-                    ctx.lineWidth = challengeMode ? 2 : 1;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.arc(item.x, item.y, mR * 0.28, 0, Math.PI*2);
-                    ctx.fillStyle = challengeMode ? '#a5b4fc' : '#44403c';
-                    ctx.fill();
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = challengeMode ? '#4338ca' : '#57534e'; ctx.lineWidth = challengeMode ? 2 : 1; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(item.x, item.y, mR*0.28, 0, Math.PI*2);
+                    ctx.fillStyle = challengeMode ? '#a5b4fc' : '#44403c'; ctx.fill();
                 } else {
-                    // Screw — circle with cross
                     if (challengeMode) {
-                        ctx.beginPath();
-                        ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(item.x, item.y, mR + 6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(16,185,129,0.25)'; ctx.fill();
                     }
                     ctx.fillStyle = challengeMode ? '#10b981' : '#a1a1aa';
-                    ctx.beginPath();
-                    ctx.arc(item.x, item.y, mR, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = challengeMode ? '#059669' : '#52525b';
-                    ctx.lineWidth = challengeMode ? 2.5 : 1.5;
-                    ctx.stroke();
+                    ctx.beginPath(); ctx.arc(item.x, item.y, mR, 0, Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = challengeMode ? '#059669' : '#52525b'; ctx.lineWidth = challengeMode ? 2.5 : 1.5; ctx.stroke();
                     var cx = mR * 0.55;
                     ctx.beginPath();
-                    ctx.moveTo(item.x - cx, item.y - cx);
-                    ctx.lineTo(item.x + cx, item.y + cx);
-                    ctx.moveTo(item.x + cx, item.y - cx);
-                    ctx.lineTo(item.x - cx, item.y + cx);
-                    ctx.strokeStyle = challengeMode ? '#d1fae5' : '#e4e4e7';
-                    ctx.lineWidth = challengeMode ? 3 : 2;
-                    ctx.stroke();
+                    ctx.moveTo(item.x-cx, item.y-cx); ctx.lineTo(item.x+cx, item.y+cx);
+                    ctx.moveTo(item.x+cx, item.y-cx); ctx.lineTo(item.x-cx, item.y+cx);
+                    ctx.strokeStyle = challengeMode ? '#d1fae5' : '#e4e4e7'; ctx.lineWidth = challengeMode ? 3 : 2; ctx.stroke();
                 }
-                
+
                 ctx.restore();
-                
-                // In challenge mode: always show type label above metal
+
+                // Step number badge (challenge mode, not pickedUp)
                 if (challengeMode && !item.pickedUp) {
-                    var emoji = item.type === 'bolt' ? '🔩' : item.type === 'gear' ? '⚙️' : '🪛';
-                    ctx.font = 'bold 13px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillStyle = '#1f2937';
-                    ctx.fillText(emoji, item.x, item.y - mR - 4);
+                    var stepNum = stepIdx + 1;
+                    var badgeColor = isActive ? '#f59e0b' : '#94a3b8';
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(item.x + mR - 2, item.y - mR + 2, 9, 0, Math.PI * 2);
+                    ctx.fillStyle = badgeColor; ctx.fill();
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(stepNum, item.x + mR - 2, item.y - mR + 2);
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.restore();
                 }
-                
-                // Distance Text (only if close)
-                if (dist < 100 && !item.pickedUp) {
-                    ctx.fillStyle = challengeMode ? '#1d4ed8' : '#6b7280';
-                    ctx.font = challengeMode ? 'bold 10px Arial' : '10px Arial';
-                    ctx.textAlign = 'center';
+
+                // Emoji label above (active only, or free build)
+                if (!item.pickedUp && (isActive || !challengeMode)) {
+                    var emoji = item.type === 'bolt' ? '🔩' : item.type === 'gear' ? '⚙️' : '🪛';
+                    ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.fillStyle = '#1f2937';
+                    ctx.fillText(emoji, item.x, item.y - mR - 5);
+                }
+
+                // Free-build: distance text when close
+                if (!challengeMode && dist < 100 && !item.pickedUp) {
+                    ctx.fillStyle = '#6b7280'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
                     ctx.fillText(Math.round(dist/20) + ' steps', item.x, item.y + mR + 14);
-                    
-                    // Dashed line to nearest
                     if (dist < 80) {
-                        ctx.beginPath();
-                        ctx.setLineDash([3, 5]);
-                        ctx.strokeStyle = challengeMode ? 'rgba(99,102,241,0.4)' : 'rgba(107, 114, 128, 0.3)';
-                        ctx.lineWidth = challengeMode ? 2 : 1;
-                        ctx.moveTo(robot.x, robot.y);
-                        ctx.lineTo(item.x, item.y);
-                        ctx.stroke();
+                        ctx.beginPath(); ctx.setLineDash([3,5]);
+                        ctx.strokeStyle = 'rgba(107,114,128,0.3)'; ctx.lineWidth = 1;
+                        ctx.moveTo(robot.x, robot.y); ctx.lineTo(item.x, item.y); ctx.stroke();
                         ctx.setLineDash([]);
                     }
                 }
-                
-                // Draw Count Badge if stacked
-                if (group.length > 1) {
-                    drawCountBadge(ctx, item.x + 8, item.y - 8, group.length);
-                }
+
+                // Stacked count badge
+                if (group.length > 1) drawCountBadge(ctx, item.x + 8, item.y - 8, group.length);
             });
 
             // Draw fires (grouped)
