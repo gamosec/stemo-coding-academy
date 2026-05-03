@@ -936,9 +936,9 @@ const htmlContent = `<!DOCTYPE html>
     <nav class="gradient-bg text-white py-3 px-6 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-10 object-contain">
+                <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-10 object-contain">
                 <div>
-                    <h1 class="logo-text text-2xl tracking-wide">STEMO</h1>
+                    <h1 class="logo-text text-2xl tracking-wide">STEMO Coding</h1>
                 </div>
             </div>
             
@@ -4782,8 +4782,8 @@ const adminDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">STEMO Admin</h1></div>
+            <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-9 object-contain">
+            <div><h1 class="text-2xl">STEMO Coding — Admin</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5114,8 +5114,8 @@ const teacherDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">Teacher Dashboard</h1></div>
+            <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-9 object-contain">
+            <div><h1 class="text-2xl">STEMO Coding — Teacher</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5569,8 +5569,8 @@ const parentDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
-            <div><h1 class="text-2xl">Parent View</h1></div>
+            <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-9 object-contain">
+            <div><h1 class="text-2xl">STEMO Coding — Parent</h1></div>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
@@ -5797,6 +5797,369 @@ const registerPage = `<!DOCTYPE html>
 </html>`
 
 // ============================================
+// LANDING PAGE
+// ============================================
+const landingPage = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEMO Coding — AI-Powered Coding & Robotics for Kids</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body { font-family: 'Nunito', sans-serif; }
+        .fredoka { font-family: 'Fredoka One', cursive; }
+        .hero-gradient { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 40%, #7c3aed 70%, #4338ca 100%); }
+        .feature-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .feature-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(109,40,217,0.18); }
+        .stat-card { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); }
+        .section-divider { background: linear-gradient(90deg, transparent, #7c3aed, transparent); height: 2px; }
+        .glow { box-shadow: 0 0 30px rgba(139,92,246,0.4); }
+        .badge-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(139,92,246,0.12); color: #6d28d9; border: 1px solid rgba(139,92,246,0.3); border-radius: 999px; padding: 4px 14px; font-size: 13px; font-weight: 700; }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        .float-anim { animation: float 3.5s ease-in-out infinite; }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+        .fade-in { animation: fadeInUp 0.7s ease both; }
+        .step-connector { position: absolute; top: 32px; left: 50%; right: -50%; height: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); z-index: 0; }
+    </style>
+</head>
+<body class="bg-white overflow-x-hidden">
+
+<!-- ========== NAVBAR ========== -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-purple-100">
+    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+            <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-10 object-contain" style="filter: invert(27%) sepia(90%) saturate(700%) hue-rotate(240deg) brightness(80%);">
+            <span class="fredoka text-2xl text-purple-700 tracking-wide">STEMO Coding</span>
+        </a>
+        <div class="flex items-center gap-3">
+            <a href="/login" class="px-5 py-2 rounded-full border-2 border-purple-600 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm">Login</a>
+            <a href="/register" class="px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register Free</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ========== HERO ========== -->
+<section class="hero-gradient min-h-screen flex items-center pt-20 pb-16 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-10 left-10 text-9xl">🤖</div>
+        <div class="absolute top-40 right-20 text-7xl">⭐</div>
+        <div class="absolute bottom-20 left-32 text-8xl">🚀</div>
+        <div class="absolute bottom-10 right-10 text-9xl">💻</div>
+        <div class="absolute top-1/2 left-1/4 text-6xl">🧩</div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div class="text-white fade-in">
+                <div class="badge-pill mb-6" style="background:rgba(255,255,255,0.15);color:#e9d5ff;border-color:rgba(255,255,255,0.3);">
+                    <span>🏆</span> Trusted by schools across the region
+                </div>
+                <h1 class="fredoka text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
+                    Where Kids Learn<br>
+                    <span style="color:#fbbf24;">Coding & Robotics</span><br>
+                    Through Play!
+                </h1>
+                <p class="text-xl text-purple-200 mb-8 leading-relaxed max-w-lg">
+                    STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="/register" class="px-8 py-4 rounded-full bg-yellow-400 text-gray-900 font-extrabold text-lg hover:bg-yellow-300 transition-all shadow-xl glow hover:scale-105">
+                        🚀 Start for Free
+                    </a>
+                    <a href="/login" class="px-8 py-4 rounded-full bg-white/20 text-white font-bold text-lg hover:bg-white/30 transition-all border border-white/30">
+                        🔐 Login to Platform
+                    </a>
+                </div>
+                <div class="mt-10 flex flex-wrap gap-6">
+                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
+                        <i class="fas fa-check-circle text-green-400"></i> No credit card required
+                    </div>
+                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
+                        <i class="fas fa-check-circle text-green-400"></i> Free for students
+                    </div>
+                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
+                        <i class="fas fa-check-circle text-green-400"></i> Teacher-approved content
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center lg:justify-end">
+                <div class="relative float-anim">
+                    <div class="w-64 h-64 md:w-80 md:h-80 rounded-full bg-white/10 flex items-center justify-center border-4 border-white/20 shadow-2xl" style="box-shadow:0 0 60px rgba(167,139,250,0.5);">
+                        <img src="/static/steam-logo-white.png" alt="STEMO Robot" class="w-48 md:w-64 object-contain drop-shadow-2xl">
+                    </div>
+                    <div class="absolute -top-4 -right-4 bg-yellow-400 text-gray-900 rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">⭐ +50 XP!</div>
+                    <div class="absolute -bottom-4 -left-4 bg-green-500 text-white rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">🏆 Level Up!</div>
+                    <div class="absolute top-1/2 -left-8 bg-blue-500 text-white rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">🧩 Block Done!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== STATS ========== -->
+<section class="bg-purple-700 py-12">
+    <div class="max-w-5xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div class="stat-card rounded-2xl p-6">
+                <div class="fredoka text-4xl text-white mb-1">10+</div>
+                <div class="text-purple-200 text-sm font-semibold">Interactive Lessons</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6">
+                <div class="fredoka text-4xl text-white mb-1">4</div>
+                <div class="text-purple-200 text-sm font-semibold">User Roles</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6">
+                <div class="fredoka text-4xl text-white mb-1">100%</div>
+                <div class="text-purple-200 text-sm font-semibold">Interactive Learning</div>
+            </div>
+            <div class="stat-card rounded-2xl p-6">
+                <div class="fredoka text-4xl text-white mb-1">∞</div>
+                <div class="text-purple-200 text-sm font-semibold">Fun Guaranteed</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== HOW IT WORKS ========== -->
+<section class="py-24 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16">
+            <span class="badge-pill mb-4">⚡ Simple & Powerful</span>
+            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">How STEMO Coding Works</h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto">From registration to mastering robotics — it's a smooth, guided journey for every child.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white rounded-3xl p-8 text-center shadow-lg feature-card relative">
+                <div class="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center text-3xl mx-auto mb-6">1️⃣</div>
+                <h3 class="fredoka text-2xl text-gray-800 mb-3">Register & Join a Class</h3>
+                <p class="text-gray-500 leading-relaxed">Students sign up, get approved by their teacher, and are placed in a class. Parents can also create accounts to monitor progress.</p>
+            </div>
+            <div class="bg-white rounded-3xl p-8 text-center shadow-lg feature-card">
+                <div class="w-16 h-16 rounded-2xl bg-yellow-100 flex items-center justify-center text-3xl mx-auto mb-6">2️⃣</div>
+                <h3 class="fredoka text-2xl text-gray-800 mb-3">Learn with STEMO Robot</h3>
+                <p class="text-gray-500 leading-relaxed">Drag and drop colorful coding blocks to control the STEMO robot. Complete missions, earn XP, and unlock badges as you progress.</p>
+            </div>
+            <div class="bg-white rounded-3xl p-8 text-center shadow-lg feature-card">
+                <div class="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center text-3xl mx-auto mb-6">3️⃣</div>
+                <h3 class="fredoka text-2xl text-gray-800 mb-3">Grow & Get Recognized</h3>
+                <p class="text-gray-500 leading-relaxed">Climb the leaderboard, complete homework challenges, and receive certificates. Teachers track progress and assign custom lessons.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FEATURES ========== -->
+<section class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center mb-16">
+            <span class="badge-pill mb-4">🎯 Platform Features</span>
+            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">Everything Kids Need to Thrive</h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto">A complete ecosystem built for modern STEAM education — engaging, measurable, and fun.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-purple-50 to-violet-100 border border-purple-100">
+                <div class="text-4xl mb-4">🤖</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">AI Robot Guide (STEMO)</h3>
+                <p class="text-gray-600 leading-relaxed">A friendly AI-powered robot character who teaches, encourages, and guides students through every lesson with personality and humor.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-100">
+                <div class="text-4xl mb-4">🧩</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Block-Based Programming</h3>
+                <p class="text-gray-600 leading-relaxed">Visual drag-and-drop coding blocks make programming intuitive — no typing required. Kids learn logic, loops, conditions, and sensors.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-yellow-50 to-amber-100 border border-yellow-100">
+                <div class="text-4xl mb-4">⭐</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Gamification & XP System</h3>
+                <p class="text-gray-600 leading-relaxed">Earn XP points, level up, unlock badges, and maintain daily streaks. Learning feels like a game — kids come back every day.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-green-50 to-emerald-100 border border-green-100">
+                <div class="text-4xl mb-4">📊</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Teacher Dashboard</h3>
+                <p class="text-gray-600 leading-relaxed">Teachers manage classes, approve students, assign specific lessons, monitor progress in real-time, and reset passwords easily.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-pink-50 to-rose-100 border border-pink-100">
+                <div class="text-4xl mb-4">👨‍👩‍👧</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Parent Monitoring Portal</h3>
+                <p class="text-gray-600 leading-relaxed">Parents stay connected with a dedicated portal to view their child's XP, completed lessons, badges earned, and daily streaks.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-orange-50 to-red-100 border border-orange-100">
+                <div class="text-4xl mb-4">🏆</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Live Leaderboard</h3>
+                <p class="text-gray-600 leading-relaxed">A class-wide leaderboard ranks students by XP and level, creating healthy competition and motivating every learner to push further.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-teal-50 to-cyan-100 border border-teal-100">
+                <div class="text-4xl mb-4">📡</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Robotics Simulation</h3>
+                <p class="text-gray-600 leading-relaxed">Students program a virtual robot with sensors, magnets, ultrasonic sight, and movement commands — real robotics concepts made accessible.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-indigo-50 to-blue-100 border border-indigo-100">
+                <div class="text-4xl mb-4">💬</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">AI Chat Assistant</h3>
+                <p class="text-gray-600 leading-relaxed">Students can ask STEMO questions anytime. The AI assistant explains concepts in kid-friendly language, keeping learning fun and self-directed.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-violet-50 to-purple-100 border border-violet-100">
+                <div class="text-4xl mb-4">🎯</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Structured Curriculum</h3>
+                <p class="text-gray-600 leading-relaxed">10+ carefully designed lessons covering movement, drawing, loops, sensors, magnets, and advanced challenges — progressive and comprehensive.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FOR SCHOOLS ========== -->
+<section class="py-24 bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-5 text-9xl flex flex-wrap gap-8 p-8">
+        <span>🏫</span><span>📚</span><span>🎓</span><span>🌟</span><span>💡</span><span>🏫</span><span>📚</span>
+    </div>
+    <div class="max-w-6xl mx-auto px-6 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div>
+                <span class="badge-pill mb-6" style="background:rgba(255,255,255,0.1);color:#c4b5fd;border-color:rgba(255,255,255,0.2);">🏫 For Schools & Teachers</span>
+                <h2 class="fredoka text-4xl md:text-5xl text-white mb-6 leading-tight">Give Your Students a<br><span class="text-yellow-400">Coding Superpower</span></h2>
+                <p class="text-purple-200 text-lg mb-8 leading-relaxed">STEMO Coding integrates seamlessly into your curriculum. No special hardware needed — just a browser and curiosity.</p>
+                <div class="space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700 flex items-center justify-center text-xl flex-shrink-0">✅</div>
+                        <div>
+                            <div class="text-white font-bold">Curriculum-aligned lessons</div>
+                            <div class="text-purple-300 text-sm">Each lesson maps to real STEAM learning objectives for ages 7–16</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700 flex items-center justify-center text-xl flex-shrink-0">✅</div>
+                        <div>
+                            <div class="text-white font-bold">Zero setup complexity</div>
+                            <div class="text-purple-300 text-sm">Students register, teachers approve — classes are running in minutes</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700 flex items-center justify-center text-xl flex-shrink-0">✅</div>
+                        <div>
+                            <div class="text-white font-bold">Full control for teachers</div>
+                            <div class="text-purple-300 text-sm">Assign specific lessons, monitor every student's progress, reset passwords</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-purple-700 flex items-center justify-center text-xl flex-shrink-0">✅</div>
+                        <div>
+                            <div class="text-white font-bold">Engaging for every learning style</div>
+                            <div class="text-purple-300 text-sm">Visual blocks, interactive robot, AI chat, games — keeps every student involved</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20">
+                <div class="text-center mb-6">
+                    <div class="text-6xl mb-4">🎓</div>
+                    <h3 class="fredoka text-2xl text-white mb-2">What Teachers Say</h3>
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-white/10 rounded-2xl p-4 border border-white/10">
+                        <p class="text-purple-100 italic text-sm leading-relaxed">"My students were coding their first robot program in 15 minutes. The excitement in the classroom was unreal!"</p>
+                        <div class="text-purple-300 text-xs mt-2 font-bold">— Grade 5 Teacher</div>
+                    </div>
+                    <div class="bg-white/10 rounded-2xl p-4 border border-white/10">
+                        <p class="text-purple-100 italic text-sm leading-relaxed">"STEMO makes it easy to assign differentiated lessons. Every student works at their own pace while I track everyone from one dashboard."</p>
+                        <div class="text-purple-300 text-xs mt-2 font-bold">— STEAM Coordinator</div>
+                    </div>
+                    <div class="bg-white/10 rounded-2xl p-4 border border-white/10">
+                        <p class="text-purple-100 italic text-sm leading-relaxed">"The kids ask me 'Can we do STEMO today?' every single morning. That says everything."</p>
+                        <div class="text-purple-300 text-xs mt-2 font-bold">— Primary School Teacher</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FOR PARENTS ========== -->
+<section class="py-24 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16">
+            <span class="badge-pill mb-4">👨‍👩‍👧 For Parents</span>
+            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">Stay Connected to Your Child's Learning</h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto">STEMO Coding keeps parents informed and involved — because learning happens best as a family.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white rounded-3xl p-6 text-center shadow-md feature-card">
+                <div class="text-4xl mb-4">📈</div>
+                <h3 class="font-extrabold text-gray-800 mb-2">Track Progress</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">See how many lessons completed, XP earned, and current level — updated in real-time.</p>
+            </div>
+            <div class="bg-white rounded-3xl p-6 text-center shadow-md feature-card">
+                <div class="text-4xl mb-4">🔥</div>
+                <h3 class="font-extrabold text-gray-800 mb-2">Daily Streaks</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Know if your child is logging in and learning consistently with streak tracking.</p>
+            </div>
+            <div class="bg-white rounded-3xl p-6 text-center shadow-md feature-card">
+                <div class="text-4xl mb-4">🏅</div>
+                <h3 class="font-extrabold text-gray-800 mb-2">Badge Gallery</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Watch your child earn badges and achievements as they complete challenges and milestones.</p>
+            </div>
+            <div class="bg-white rounded-3xl p-6 text-center shadow-md feature-card">
+                <div class="text-4xl mb-4">🔗</div>
+                <h3 class="font-extrabold text-gray-800 mb-2">Easy Linking</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Link to your child's account with one step and access their full learning profile anytime.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== CTA / LOGIN+REGISTER ========== -->
+<section class="hero-gradient py-24 relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10 text-8xl flex flex-wrap gap-10 p-10">
+        <span>🚀</span><span>⭐</span><span>🤖</span><span>🏆</span><span>💡</span><span>🔬</span><span>🎮</span>
+    </div>
+    <div class="max-w-5xl mx-auto px-6 relative z-10 text-center">
+        <h2 class="fredoka text-4xl md:text-6xl text-white mb-6">Ready to Start the<br><span class="text-yellow-400">Adventure?</span></h2>
+        <p class="text-purple-200 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">Join STEMO Coding today — it's free for students and takes less than 2 minutes to get started.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div class="bg-white rounded-3xl p-8 text-center shadow-2xl">
+                <div class="text-5xl mb-4">🔐</div>
+                <h3 class="fredoka text-2xl text-gray-800 mb-2">Already a Member?</h3>
+                <p class="text-gray-500 text-sm mb-6">Students, teachers, parents and admins — log in to your dashboard.</p>
+                <a href="/login" class="block w-full py-3 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all shadow-lg">🚀 Login Now</a>
+            </div>
+            <div class="bg-gradient-to-br from-yellow-400 to-orange-400 rounded-3xl p-8 text-center shadow-2xl">
+                <div class="text-5xl mb-4">✏️</div>
+                <h3 class="fredoka text-2xl text-gray-900 mb-2">New Student?</h3>
+                <p class="text-gray-800 text-sm mb-6 opacity-80">Register for free and start your coding journey with STEMO today!</p>
+                <a href="/register" class="block w-full py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all shadow-lg">🎉 Register Free</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-10 object-contain opacity-80">
+                <div>
+                    <div class="fredoka text-xl text-white">STEMO Coding</div>
+                    <div class="text-xs text-gray-500">AI-Powered Coding & Robotics for Kids</div>
+                </div>
+            </div>
+            <div class="flex gap-8 text-sm">
+                <a href="/login" class="hover:text-white transition-colors">Login</a>
+                <a href="/register" class="hover:text-white transition-colors">Register</a>
+            </div>
+            <div class="text-sm text-center">
+                <div>© 2026 STEMO Coding · Science Games</div>
+                <div class="text-xs mt-1">أكاديمية ستيم لألعاب العلوم</div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>`
+
+// ============================================
 // PAGE ROUTES
 // ============================================
 
@@ -5821,14 +6184,14 @@ app.get('/academy', async (c) => {
     return c.html(page)
 })
 
-// Main app - check auth and redirect students, allow access with user info
+// Main app - show landing page if not logged in, else redirect to dashboard
 app.get('/', async (c) => {
     const cookie = c.req.header('cookie') || ''
     const token = getCookieToken(cookie)
-    if (!token) return c.redirect('/login')
+    if (!token) return c.html(landingPage)
     const payload = await verifyToken(token)
-    if (!payload) return c.redirect('/login')
-    // Redirect non-students to their dashboards
+    if (!payload) return c.html(landingPage)
+    // Redirect authenticated users to their dashboards
     if (payload.role === 'admin') return c.redirect('/dashboard/admin')
     if (payload.role === 'teacher') return c.redirect('/dashboard/teacher')
     if (payload.role === 'parent') return c.redirect('/dashboard/parent')
