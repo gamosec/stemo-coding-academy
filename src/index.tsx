@@ -2134,7 +2134,7 @@ const htmlContent = `<!DOCTYPE html>
                         var msgs = [
                             '✅ Step ' + stepNum + ' done! Great job! Now find the next one! 🎯',
                             '🌟 Awesome! Step ' + stepNum + ' complete! Keep going!',
-                            '💪 Step ' + stepNum + ' checked off! You\'re on a roll!'
+                            '💪 Step ' + stepNum + ' checked off! You are on a roll!'
                         ];
                         addChatMessage('stemo', msgs[stepNum % msgs.length]);
                     }
