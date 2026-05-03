@@ -1257,18 +1257,31 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="bg-gray-100 px-2 py-1 text-xs text-center">
                         <span id="placementModeText">Click to place: 🔩 Metal</span>
                     </div>
-                    <!-- Mission HUD (shown only in Challenge Mode) -->
-                    <div id="missionHUD" class="hidden bg-gradient-to-r from-orange-500 to-rose-500 text-white px-3 py-2">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold uppercase tracking-wide">🏆 Challenge Mission</span>
-                            <button onclick="exitChallengeMode()" class="text-white/70 hover:text-white text-xs underline">Exit Challenge</button>
-                        </div>
-                        <div class="font-bold text-sm mb-1" id="missionTitle">Complete the mission!</div>
-                        <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
-                    </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
                         <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
                         <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
+                        <!-- Mission Toast: appears briefly over canvas then fades out -->
+                        <div id="missionHUD" class="hidden absolute top-4 left-4 right-4 z-30 pointer-events-none">
+                            <div class="bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl shadow-xl px-4 py-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-base">🏆</span>
+                                    <span class="text-xs font-bold uppercase tracking-widest opacity-90">Challenge Mission</span>
+                                </div>
+                                <div class="font-bold text-sm mb-2" id="missionTitle">Complete the mission!</div>
+                                <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
+                            </div>
+                        </div>
+                        <!-- Persistent mini badge (always visible during challenge) -->
+                        <div id="missionBadge" class="hidden absolute top-4 right-4 z-30">
+                            <div class="bg-orange-500 text-white rounded-full shadow-lg px-2 py-1 flex items-center gap-1 text-xs font-bold cursor-pointer" onclick="toggleMissionToast()">
+                                <span>🏆</span>
+                                <span id="missionBadgeText">0 left</span>
+                            </div>
+                        </div>
+                        <!-- Exit challenge button -->
+                        <div id="missionExitBtn" class="hidden absolute bottom-4 right-4 z-30">
+                            <button onclick="exitChallengeMode()" class="bg-white/90 text-rose-600 border border-rose-300 rounded-full shadow px-3 py-1 text-xs font-bold hover:bg-rose-50">✕ Exit Challenge</button>
+                        </div>
                     </div>
                     
                     <!-- Chat Area - Bigger -->
@@ -1985,8 +1998,34 @@ const htmlContent = `<!DOCTYPE html>
             challengeCompleted = false;
             missionObjectives = null;
             document.getElementById('missionHUD').classList.add('hidden');
+            document.getElementById('missionBadge').classList.add('hidden');
+            document.getElementById('missionExitBtn').classList.add('hidden');
             clearAll();
             addChatMessage('stemo', '🤖 Exited challenge mode. Board cleared — build freely!');
+        }
+
+        var missionToastTimer = null;
+        function showMissionToast() {
+            var hud = document.getElementById('missionHUD');
+            hud.classList.remove('hidden');
+            hud.style.opacity = '1';
+            hud.style.transition = '';
+            if (missionToastTimer) clearTimeout(missionToastTimer);
+            missionToastTimer = setTimeout(function() {
+                hud.style.transition = 'opacity 0.8s ease';
+                hud.style.opacity = '0';
+                setTimeout(function() { hud.classList.add('hidden'); hud.style.opacity = '1'; hud.style.transition = ''; }, 800);
+            }, 3500);
+        }
+
+        function toggleMissionToast() {
+            var hud = document.getElementById('missionHUD');
+            if (hud.classList.contains('hidden')) {
+                showMissionToast();
+            } else {
+                hud.classList.add('hidden');
+                if (missionToastTimer) { clearTimeout(missionToastTimer); missionToastTimer = null; }
+            }
         }
 
         function _launchLesson(withChallenge) {
@@ -2021,9 +2060,8 @@ const htmlContent = `<!DOCTYPE html>
                     missionObjectives = challenge.objectives.map(function(obj) {
                         return { id: obj.id, label: obj.label, done: false, check: obj.check };
                     });
-                    // Show mission HUD immediately
+                    // Prime the toast content
                     document.getElementById('missionTitle').textContent = challenge.title;
-                    document.getElementById('missionHUD').classList.remove('hidden');
                     updateMissionHUD();
                     addChatMessage('stemo', '🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪');
                     // Defer world population to ensure canvas is ready after tab switch
@@ -2036,11 +2074,18 @@ const htmlContent = `<!DOCTYPE html>
                         if (ch) {
                             ch.setup();
                             drawRobot();
+                            // Show toast briefly over the now-populated canvas
+                            showMissionToast();
+                            // Show persistent badge + exit button
+                            document.getElementById('missionBadge').classList.remove('hidden');
+                            document.getElementById('missionExitBtn').classList.remove('hidden');
                         }
                     }, 200);
                 }
             } else {
                 document.getElementById('missionHUD').classList.add('hidden');
+                document.getElementById('missionBadge').classList.add('hidden');
+                document.getElementById('missionExitBtn').classList.add('hidden');
                 missionObjectives = null;
                 drawRobot();
                 addChatMessage('stemo', '🏗️ Free Build mode! Place your own objects and experiment!');
@@ -2055,6 +2100,16 @@ const htmlContent = `<!DOCTYPE html>
                     (obj.done ? 'bg-green-500 line-through opacity-70' : 'bg-white/20') + '">' +
                     (obj.done ? '✅ ' : '⬜ ') + obj.label + '</span>';
             }).join('');
+            // Update mini badge counter
+            var remaining = missionObjectives.filter(function(o) { return !o.done; }).length;
+            var badgeEl = document.getElementById('missionBadgeText');
+            if (badgeEl) {
+                badgeEl.textContent = remaining === 0 ? '✅ Done!' : remaining + ' left';
+            }
+            var badge = document.getElementById('missionBadge');
+            if (badge) {
+                badge.querySelector('div').style.background = remaining === 0 ? '#22c55e' : '';
+            }
         }
 
         function checkChallengeObjectives() {
