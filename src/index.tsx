@@ -1500,6 +1500,9 @@ const htmlContent = `<!DOCTYPE html>
         // Lesson assigned by teacher (lesson ID string, e.g. 'lesson-3')
         var assignedLessonId = null;
 
+        // Client-side curriculum cache (populated by loadLessons)
+        var curriculumData = null;
+
         // ============================================
         // INITIALIZATION
         // ============================================
@@ -1623,6 +1626,7 @@ const htmlContent = `<!DOCTYPE html>
             fetch('/api/curriculum')
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
+                    curriculumData = data;
                     var grid = document.getElementById('lessonsGrid');
                     var html = '';
                     
@@ -3718,8 +3722,9 @@ const htmlContent = `<!DOCTYPE html>
                     // Assigned lesson — show banner on Profile AND Learn tabs
                     if (data.class.assigned_lesson_id) {
                         assignedLessonId = data.class.assigned_lesson_id;
-                        var lessonData = findLessonById(assignedLessonId);
-                        if (lessonData) {
+                        // Fetch lesson details from API (curriculum is server-side only)
+                        fetch('/api/lesson/' + assignedLessonId).then(function(r) { return r.json(); }).then(function(lessonData) {
+                            if (!lessonData || !lessonData.id) return;
                             // Profile banner
                             document.getElementById('profileLessonIcon').textContent = lessonData.icon || '📖';
                             document.getElementById('profileLessonTitle').textContent = lessonData.title;
@@ -3732,7 +3737,7 @@ const htmlContent = `<!DOCTYPE html>
                             document.getElementById('assignedLessonBanner').classList.remove('hidden');
                             // Re-render lessons so the card gets highlighted
                             loadLessons();
-                        }
+                        }).catch(function() {});
                     }
                 } else {
                     classHtml = '<div class="text-gray-400 text-sm">Not enrolled in any class yet</div>';
@@ -3760,9 +3765,10 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         function findLessonById(id) {
-            // Search curriculum — flatten all groups
-            for (var key in curriculum) {
-                var arr = curriculum[key];
+            // Search curriculumData (populated after loadLessons runs)
+            if (!curriculumData) return null;
+            for (var key in curriculumData) {
+                var arr = curriculumData[key];
                 for (var i = 0; i < arr.length; i++) {
                     if (arr[i].id === id) return arr[i];
                 }
