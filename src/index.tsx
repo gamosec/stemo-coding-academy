@@ -140,9 +140,12 @@ app.post('/api/admin/users/:id/approve', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const id = c.req.param('id')
-    const { action } = await c.req.json()
+    const { action, class_id } = await c.req.json()
     const status = action === 'approve' ? 'approved' : 'rejected'
     await c.env.DB.prepare('UPDATE users SET status = ? WHERE id = ?').bind(status, id).run()
+    if (action === 'approve' && class_id) {
+        await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(class_id, id).run()
+    }
     return c.json({ success: true, status })
 })
 
@@ -276,6 +279,33 @@ app.delete('/api/classes/:id/students/:studentId', authMiddleware, async (c) => 
     const studentId = c.req.param('studentId')
     await c.env.DB.prepare('DELETE FROM class_students WHERE class_id = ? AND student_id = ?').bind(classId, studentId).run()
     return c.json({ success: true })
+})
+
+// Get approved students not enrolled in ANY of this teacher's classes
+app.get('/api/students/unenrolled', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
+    let query: string
+    let args: any[]
+    if (me.role === 'teacher') {
+        query = `SELECT id, full_name, username FROM users
+            WHERE role = 'student' AND status = 'approved'
+            AND id NOT IN (
+                SELECT cs.student_id FROM class_students cs
+                JOIN classes c ON cs.class_id = c.id
+                WHERE c.teacher_id = ?
+            ) ORDER BY full_name`
+        args = [me.id]
+    } else {
+        query = `SELECT id, full_name, username FROM users
+            WHERE role = 'student' AND status = 'approved'
+            AND id NOT IN (SELECT DISTINCT student_id FROM class_students)
+            ORDER BY full_name`
+        args = []
+    }
+    const stmt = c.env.DB.prepare(query)
+    const { results } = await (args.length ? stmt.bind(...args) : stmt).all()
+    return c.json(results)
 })
 
 // Get approved students NOT yet in a specific class
@@ -5240,15 +5270,19 @@ async function loadPending() {
     else badge.classList.add('hidden');
     const list = document.getElementById('pendingList');
     if (!pending.length) { list.innerHTML = '<p class="text-gray-400 text-center py-8">✅ No pending registrations right now!</p>'; return; }
+    const classOpts = allClasses.map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('');
     list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
-        <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
-            <div>
-                <div class="font-bold text-gray-800">\${u.full_name}</div>
-                <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10)||'today'}</div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="approveUser(\${u.id},'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
-                <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
+        <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <div class="font-bold text-gray-800">\${u.full_name}</div>
+                    <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10)||'today'}</div>
+                </div>
+                <div class="flex gap-2 flex-wrap items-center">
+                    \${allClasses.length ? \`<select id="approveClass_\${u.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-green-400"><option value="">No class yet</option>\${classOpts}</select>\` : ''}
+                    <button onclick="approveAndEnroll(\${u.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
+                    <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
+                </div>
             </div>
         </div>\`).join('')}</div>\`;
 }
@@ -5333,6 +5367,37 @@ async function loadClasses() {
     }
     document.getElementById('statStudents').textContent = totalStudents;
     document.getElementById('statAvgXP').textContent = xpCount ? Math.round(totalXP/xpCount) : 0;
+
+    // Show unenrolled-students banner below class cards
+    const unenrolled = await fetch('/api/students/unenrolled').then(r=>r.json());
+    if (unenrolled.length) {
+        const classOpts = allClasses.map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('');
+        const banner = document.createElement('div');
+        banner.className = 'bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 mt-4';
+        banner.innerHTML = \`
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xl">⚠️</span>
+                <h3 class="font-bold text-amber-800">\${unenrolled.length} approved student\${unenrolled.length>1?'s are':' is'} not in any class</h3>
+            </div>
+            <div class="space-y-2">
+                \${unenrolled.map(s=>\`
+                <div class="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-amber-200 gap-3 flex-wrap">
+                    <div>
+                        <span class="font-semibold text-gray-800">\${s.full_name}</span>
+                        <span class="text-gray-400 text-xs ml-2">@\${s.username}</span>
+                    </div>
+                    \${allClasses.length ? \`<div class="flex gap-2 items-center">
+                        <select id="qaSel_\${s.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400">
+                            <option value="">Pick a class...</option>
+                            \${classOpts}
+                        </select>
+                        <button onclick="quickEnroll(\${s.id})" class="bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-blue-700">➕ Enrol</button>
+                    </div>\` : ''}
+                </div>\`).join('')}
+            </div>
+        \`;
+        container.appendChild(banner);
+    }
 }
 
 function renderCurriculum() {
@@ -5425,7 +5490,29 @@ async function approveUser(id, action) {
     await fetch('/api/admin/users/' + id + '/approve', {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action })
     });
+    await loadClasses();
     loadPending();
+}
+
+async function approveAndEnroll(id) {
+    const sel = document.getElementById('approveClass_' + id);
+    const classId = sel ? sel.value : '';
+    await fetch('/api/admin/users/' + id + '/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'approve', class_id: classId || null })
+    });
+    await loadClasses();
+    loadPending();
+}
+
+async function quickEnroll(studentId) {
+    const sel = document.getElementById('qaSel_' + studentId);
+    if (!sel || !sel.value) { alert('Please select a class first.'); return; }
+    await fetch('/api/classes/' + sel.value + '/students', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ student_id: studentId })
+    });
+    loadClasses();
 }
 
 function closePwModal(e) { document.getElementById('pwModal').classList.add('hidden'); }
