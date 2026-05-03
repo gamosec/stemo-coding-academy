@@ -1565,6 +1565,11 @@ const htmlContent = `<!DOCTYPE html>
                     }},
                     { id: 'metal-3', label: '🔩 Step 3: Pick up metal #3', check: function() {
                         return metalObjects.length > 2 && metalObjects[2].pickedUp;
+                    }},
+                    { id: 'go-home', label: '🏠 Step 4: Return home & Magnet OFF', check: function() {
+                        var allCollected = metalObjects.every(function(m) { return m.pickedUp; });
+                        var dx = robot.x - 200, dy = robot.y - 200;
+                        return allCollected && Math.sqrt(dx*dx + dy*dy) < 30 && !robot.magnetOn;
                     }}
                 ]
             },
@@ -2150,7 +2155,14 @@ const htmlContent = `<!DOCTYPE html>
                     if (currentLesson && !stemo.completedLessons.includes(currentLesson.id)) {
                         completeLesson(currentLesson);
                     } else {
-                        showSuccessModal(0);
+                        // Replay bonus — always award some XP for completing a challenge
+                        var bonusXP = currentLesson ? Math.max(25, Math.round(currentLesson.xpReward / 4)) : 25;
+                        stemo.xp += bonusXP;
+                        var newLevel = Math.floor(stemo.xp / 500) + 1;
+                        if (newLevel > stemo.level) stemo.level = newLevel;
+                        saveProgress();
+                        updateUI();
+                        showSuccessModal(bonusXP);
                     }
                 }, 400);
             }
