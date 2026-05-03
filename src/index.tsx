@@ -350,7 +350,7 @@ app.post('/api/classes/:id/assign-lesson', authMiddleware, async (c) => {
 // Get assigned lesson for a class
 app.get('/api/classes/:id/assigned-lesson', authMiddleware, async (c) => {
     const classId = c.req.param('id')
-    const lesson = await c.env.DB.prepare('SELECT * FROM assigned_lessons WHERE class_id = ? ORDER BY created_at DESC LIMIT 1').bind(classId).first()
+    const lesson = await c.env.DB.prepare('SELECT * FROM assigned_lessons WHERE class_id = ? LIMIT 1').bind(classId).first()
     return c.json(lesson || null)
 })
 
@@ -476,17 +476,21 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
 app.get('/api/student/profile', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
-    const user = await c.env.DB.prepare('SELECT id, full_name, username, created_at FROM users WHERE id = ?').bind(me.id).first()
-    const cls = await c.env.DB.prepare(`
-        SELECT c.id, c.name, u.full_name as teacher_name,
-               (SELECT lesson_id FROM assigned_lessons WHERE class_id = c.id ORDER BY created_at DESC LIMIT 1) as assigned_lesson_id
-        FROM class_students cs
-        JOIN classes c ON cs.class_id = c.id
-        LEFT JOIN users u ON c.teacher_id = u.id
-        WHERE cs.student_id = ?
-        LIMIT 1
-    `).bind(me.id).first()
-    return c.json({ user, class: cls || null })
+    try {
+        const user = await c.env.DB.prepare('SELECT id, full_name, username, created_at FROM users WHERE id = ?').bind(me.id).first()
+        const cls = await c.env.DB.prepare(`
+            SELECT c.id, c.name, u.full_name as teacher_name,
+                   (SELECT lesson_id FROM assigned_lessons WHERE class_id = c.id LIMIT 1) as assigned_lesson_id
+            FROM class_students cs
+            JOIN classes c ON cs.class_id = c.id
+            LEFT JOIN users u ON c.teacher_id = u.id
+            WHERE cs.student_id = ?
+            LIMIT 1
+        `).bind(me.id).first()
+        return c.json({ user, class: cls || null })
+    } catch (e: any) {
+        return c.json({ error: 'Profile load failed: ' + e.message }, 500)
+    }
 })
 
 // ============================================
