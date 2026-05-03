@@ -936,7 +936,7 @@ const htmlContent = `<!DOCTYPE html>
     <nav class="gradient-bg text-white py-3 px-6 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <img src="/steam-logo.png" alt="STEAM Academy" class="h-10 object-contain">
+                <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-10 object-contain">
                 <div>
                     <h1 class="logo-text text-2xl tracking-wide">STEMO</h1>
                 </div>
@@ -4681,7 +4681,7 @@ const loginPage = `<!DOCTYPE html>
 <body class="gradient-bg min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <img src="/steam-logo.png" alt="STEAM Academy" class="h-20 mx-auto mb-4 object-contain drop-shadow-lg">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-20 mx-auto mb-4 object-contain drop-shadow-lg">
             <h1 class="text-5xl text-white mb-2">STEMO</h1>
         </div>
         <div class="card rounded-3xl p-8 shadow-2xl">
@@ -4782,7 +4782,7 @@ const adminDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
             <div><h1 class="text-2xl">STEMO Admin</h1></div>
         </div>
         <div class="flex items-center gap-4">
@@ -5114,7 +5114,7 @@ const teacherDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
             <div><h1 class="text-2xl">Teacher Dashboard</h1></div>
         </div>
         <div class="flex items-center gap-4">
@@ -5569,7 +5569,7 @@ const parentDashboard = `<!DOCTYPE html>
 <nav class="bg-gradient-to-r from-purple-800 to-violet-900 text-white px-6 py-4 shadow-lg">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <img src="/steam-logo.png" alt="STEAM Academy" class="h-9 object-contain">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-9 object-contain">
             <div><h1 class="text-2xl">Parent View</h1></div>
         </div>
         <div class="flex items-center gap-4">
@@ -5666,7 +5666,7 @@ const registerPage = `<!DOCTYPE html>
 <body class="gradient-bg min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <img src="/steam-logo.png" alt="STEAM Academy" class="h-16 mx-auto mb-4 object-contain drop-shadow-lg">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-16 mx-auto mb-4 object-contain drop-shadow-lg">
             <h1 class="text-4xl text-white mb-1">Join STEMO!</h1>
         </div>
         <div class="card rounded-3xl p-8 shadow-2xl">
