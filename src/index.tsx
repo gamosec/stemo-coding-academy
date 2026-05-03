@@ -2858,20 +2858,23 @@ const htmlContent = `<!DOCTYPE html>
                 } else {
                     // Magnet OFF - drop the object IN FRONT of the robot
                     if (robot.carrying) {
-                        // Drop 40 pixels in front of robot's current direction
-                        var dropRad = robot.angle * Math.PI / 180;
-                        var dropX = robot.x + Math.cos(dropRad) * 40;
-                        var dropY = robot.y + Math.sin(dropRad) * 40;
-                        
-                        // Keep within bounds
-                        dropX = Math.max(25, Math.min(375, dropX));
-                        dropY = Math.max(25, Math.min(375, dropY));
-                        
-                        robot.carrying.x = dropX;
-                        robot.carrying.y = dropY;
-                        robot.carrying.pickedUp = false;
-                        addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " in front! 📍");
-                        robot.carrying = null;
+                        if (challengeMode) {
+                            // In challenge mode: metal is permanently collected — just release grip
+                            addChatMessage('stemo', "🤖 ✅ Collected the " + robot.carrying.type + "!");
+                            robot.carrying = null;
+                        } else {
+                            // Normal mode: drop in front of robot
+                            var dropRad = robot.angle * Math.PI / 180;
+                            var dropX = robot.x + Math.cos(dropRad) * 40;
+                            var dropY = robot.y + Math.sin(dropRad) * 40;
+                            dropX = Math.max(25, Math.min(375, dropX));
+                            dropY = Math.max(25, Math.min(375, dropY));
+                            robot.carrying.x = dropX;
+                            robot.carrying.y = dropY;
+                            robot.carrying.pickedUp = false;
+                            addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " in front! 📍");
+                            robot.carrying = null;
+                        }
                     } else {
                         addChatMessage('stemo', "🤖 🧲 Magnet OFF.");
                     }
@@ -3646,6 +3649,8 @@ const htmlContent = `<!DOCTYPE html>
             var metalGroups = groupObjects(metalObjects);
             Object.values(metalGroups).forEach(function(group) {
                 var item = group[0];
+                // In challenge mode, collected metals disappear from the canvas
+                if (challengeMode && item.pickedUp) return;
                 var stepIdx = metalObjects.indexOf(item); // 0-based order
                 var isActive = (challengeMode && item === activeMetal);
                 var isLocked = (challengeMode && !item.pickedUp && !isActive);
