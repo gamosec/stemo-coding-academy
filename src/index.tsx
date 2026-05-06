@@ -561,9 +561,14 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
                COALESCE(sp.level, 1) as level,
                COALESCE(sp.completed_lessons, '[]') as completed_lessons,
                COALESCE(sp.earned_badges, '[]') as earned_badges,
-               COALESCE(sp.streak, 0) as streak
+               COALESCE(sp.streak, 0) as streak,
+               c.name as class_name,
+               s.name as school_name
         FROM users u
         LEFT JOIN student_progress sp ON sp.student_id = u.id
+        LEFT JOIN class_students cs ON cs.student_id = u.id
+        LEFT JOIN classes c ON cs.class_id = c.id
+        LEFT JOIN schools s ON c.school_id = s.id
         WHERE u.role = 'student' AND u.status = 'approved'
         ORDER BY COALESCE(sp.xp, 0) DESC
         LIMIT 50
@@ -4441,6 +4446,40 @@ const htmlContent = `<!DOCTYPE html>
                 ];
                 const podiumSizes = ['h-28','h-20','h-16'];
 
+                // Helper: build one row for the full list
+                function lbRow(s, rank, isTop3) {
+                    var isMe = s.id == myId;
+                    var lessons = 0;
+                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
+                    var rankBadge = isTop3
+                        ? '<div class="text-2xl w-8 text-center">' + medals[rank-1] + '</div>'
+                        : '<div class="text-base font-bold text-gray-400 w-8 text-center">#' + rank + '</div>';
+                    var avatarGrad = isTop3 ? 'from-yellow-400 to-amber-500' : 'from-indigo-400 to-purple-500';
+                    var rowBg = isMe ? 'bg-indigo-50 border-2 border-indigo-400'
+                               : isTop3 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200'
+                               : 'border border-gray-100 hover:bg-gray-50';
+                    var schoolBit = s.school_name
+                        ? '<span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full">🏫 ' + s.school_name + '</span>'
+                        : '';
+                    var classBit = s.class_name
+                        ? '<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">🎒 ' + s.class_name + '</span>'
+                        : '';
+                    return '<div class="flex items-center gap-3 p-3 rounded-2xl ' + rowBg + ' transition-all">' +
+                        rankBadge +
+                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br ' + avatarGrad + ' flex items-center justify-center text-lg font-bold text-white shrink-0">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
+                        '<div class="flex-1 min-w-0">' +
+                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
+                            '<div class="text-gray-400 text-xs mb-1">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
+                            '<div class="flex flex-wrap gap-1">' + schoolBit + classBit + '</div>' +
+                        '</div>' +
+                        '<div class="text-right shrink-0">' +
+                            '<div class="font-bold text-yellow-500 text-base">⭐ ' + (s.xp || 0).toLocaleString() + '</div>' +
+                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons</div>' +
+                            '<div class="text-gray-400 text-xs">' + (s.streak || 0) + ' 🔥 streak</div>' +
+                        '</div>' +
+                    '</div>';
+                }
+
                 // Top 3 podium
                 var podiumHtml = '';
                 var podiumOrder = [1, 0, 2]; // silver, gold, bronze display order
@@ -4448,58 +4487,23 @@ const htmlContent = `<!DOCTYPE html>
                     var s = data[idx];
                     if (!s) return;
                     var isMe = s.id == myId;
-                    var lessons = 0;
-                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
-                    podiumHtml += '<div class="flex flex-col items-center gap-2 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
+                    podiumHtml += '<div class="flex flex-col items-center gap-1 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
                     podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
                     podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + (s.full_name || 'S')[0].toUpperCase() + '</div>';
-                    podiumHtml += '<div class="text-center"><div class="font-bold text-sm text-gray-800 max-w-20 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="text-indigo-500">★</span>' : '') + '</div>';
-                    podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0) + '</div></div>';
+                    podiumHtml += '<div class="text-center max-w-24">';
+                    podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
+                    podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0).toLocaleString() + '</div>';
+                    if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + s.school_name + '</div>';
+                    if (s.class_name) podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + s.class_name + '</div>';
+                    podiumHtml += '</div>';
                     podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
                     podiumHtml += '</div>';
                 });
                 document.getElementById('podiumRow').innerHTML = podiumHtml;
 
-                // Full list (skip first 3 in table, they appear in podium)
-                var listHtml = data.slice(3).map(function(s, i) {
-                    var rank = i + 4;
-                    var isMe = s.id == myId;
-                    var lessons = 0;
-                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
-                    return '<div class="flex items-center gap-4 p-4 rounded-2xl ' + (isMe ? 'bg-indigo-50 border-2 border-indigo-400' : 'border border-gray-100 hover:bg-gray-50') + ' transition-all">' +
-                        '<div class="text-lg font-bold text-gray-400 w-8 text-center">#' + rank + '</div>' +
-                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-lg font-bold text-white">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
-                        '<div class="flex-1 min-w-0">' +
-                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
-                            '<div class="text-gray-400 text-xs">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
-                        '</div>' +
-                        '<div class="text-right shrink-0">' +
-                            '<div class="font-bold text-yellow-500">⭐ ' + (s.xp || 0) + '</div>' +
-                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons · ' + (s.streak || 0) + '🔥</div>' +
-                        '</div>' +
-                    '</div>';
-                }).join('');
-
-                // Also show top 3 in full list with highlight
-                var top3Html = data.slice(0, 3).map(function(s, i) {
-                    var isMe = s.id == myId;
-                    var lessons = 0;
-                    try { lessons = JSON.parse(s.completed_lessons || '[]').length; } catch(e) {}
-                    return '<div class="flex items-center gap-4 p-4 rounded-2xl ' + (isMe ? 'bg-indigo-50 border-2 border-indigo-400' : 'bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200') + ' transition-all">' +
-                        '<div class="text-2xl w-8 text-center">' + medals[i] + '</div>' +
-                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-lg font-bold text-white">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
-                        '<div class="flex-1 min-w-0">' +
-                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
-                            '<div class="text-gray-400 text-xs">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
-                        '</div>' +
-                        '<div class="text-right shrink-0">' +
-                            '<div class="font-bold text-yellow-500">⭐ ' + (s.xp || 0) + '</div>' +
-                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons · ' + (s.streak || 0) + '🔥</div>' +
-                        '</div>' +
-                    '</div>';
-                }).join('');
-
-                document.getElementById('leaderboardList').innerHTML = '<div class="space-y-2 mb-4">' + top3Html + '</div>' + (listHtml ? '<div class="space-y-2">' + listHtml + '</div>' : '');
+                // Full ranked list (top 3 highlighted, rest normal)
+                var allRows = data.map(function(s, i) { return lbRow(s, i + 1, i < 3); }).join('');
+                document.getElementById('leaderboardList').innerHTML = '<div class="space-y-2">' + allRows + '</div>';
             } catch(e) {
                 document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">Unable to load leaderboard</p>';
             }
