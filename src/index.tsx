@@ -579,10 +579,12 @@ app.get('/api/student/profile', authMiddleware, async (c) => {
         const user = await c.env.DB.prepare('SELECT id, full_name, username, created_at FROM users WHERE id = ?').bind(me.id).first()
         const cls = await c.env.DB.prepare(`
             SELECT c.id, c.name, u.full_name as teacher_name,
-                   (SELECT lesson_id FROM assigned_lessons WHERE class_id = c.id LIMIT 1) as assigned_lesson_id
+                   (SELECT lesson_id FROM assigned_lessons WHERE class_id = c.id LIMIT 1) as assigned_lesson_id,
+                   s.name as school_name
             FROM class_students cs
             JOIN classes c ON cs.class_id = c.id
             LEFT JOIN users u ON c.teacher_id = u.id
+            LEFT JOIN schools s ON c.school_id = s.id
             WHERE cs.student_id = ?
             LIMIT 1
         `).bind(me.id).first()
@@ -4354,9 +4356,12 @@ const htmlContent = `<!DOCTYPE html>
                 // Class info
                 var classHtml = '';
                 if (data.class) {
-                    classHtml += '<div class="flex items-center gap-2"><span class="text-blue-500">🏫</span><span class="font-semibold text-gray-700">Class:</span><span class="text-gray-600">' + data.class.name + '</span></div>';
+                    if (data.class.school_name) {
+                        classHtml += '<div class="flex items-center gap-2"><span class="text-purple-500">🏫</span><span class="font-semibold text-gray-700">School:</span><span class="text-gray-600">' + data.class.school_name + '</span></div>';
+                    }
+                    classHtml += '<div class="flex items-center gap-2"><span class="text-blue-500">🎒</span><span class="font-semibold text-gray-700">Class:</span><span class="text-gray-600">' + data.class.name + '</span></div>';
                     if (data.class.teacher_name) {
-                        classHtml += '<div class="flex items-center gap-2"><span class="text-purple-500">👩‍🏫</span><span class="font-semibold text-gray-700">Teacher:</span><span class="text-gray-600">' + data.class.teacher_name + '</span></div>';
+                        classHtml += '<div class="flex items-center gap-2"><span class="text-indigo-500">👩‍🏫</span><span class="font-semibold text-gray-700">Teacher:</span><span class="text-gray-600">' + data.class.teacher_name + '</span></div>';
                     }
                     // Assigned lesson — show banner on Profile AND Learn tabs
                     if (data.class.assigned_lesson_id) {
