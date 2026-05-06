@@ -73,6 +73,12 @@ async function authMiddleware(c: any, next: any) {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
+// Global error handler — always return JSON so we can see the real error
+app.onError((err, c) => {
+    return c.json({ error: err.message, stack: err.stack?.slice(0, 500) }, 500)
+})
+
+
 // Enable CORS
 app.use('/api/*', cors())
 
@@ -221,62 +227,70 @@ app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
 // ============================================
 
 async function ensureSchoolsSchema(db: any) {
-    await db.prepare(`CREATE TABLE IF NOT EXISTS schools (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`).run()
     try {
-        await db.prepare('ALTER TABLE classes ADD COLUMN school_id INTEGER REFERENCES schools(id)').run()
-    } catch (_) { /* column already exists */ }
+        await db.prepare('CREATE TABLE IF NOT EXISTS schools (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT \'\', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)').run()
+    } catch (_) {}
+    try {
+        await db.prepare('ALTER TABLE classes ADD COLUMN school_id INTEGER').run()
+    } catch (_) {}
 }
 
 app.get('/api/admin/schools', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    await ensureSchoolsSchema(c.env.DB)
-    const { results } = await c.env.DB.prepare(`
-        SELECT s.*, COUNT(c.id) as class_count
-        FROM schools s LEFT JOIN classes c ON c.school_id = s.id
-        GROUP BY s.id ORDER BY s.name
-    `).all()
-    return c.json(results)
+    try {
+        await ensureSchoolsSchema(c.env.DB)
+        const { results } = await c.env.DB.prepare('SELECT s.id, s.name, s.description, s.created_at, COUNT(c.id) as class_count FROM schools s LEFT JOIN classes c ON c.school_id = s.id GROUP BY s.id ORDER BY s.name').all()
+        return c.json(results)
+    } catch (e: any) {
+        return c.json({ error: e?.message || 'DB error' }, 500)
+    }
 })
 
 app.post('/api/admin/schools', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    await ensureSchoolsSchema(c.env.DB)
-    const { name, description } = await c.req.json()
-    if (!name?.trim()) return c.json({ error: 'School name required' }, 400)
-    const result = await c.env.DB.prepare('INSERT INTO schools (name, description) VALUES (?, ?)').bind(name.trim(), description || '').run()
-    return c.json({ success: true, id: result.meta.last_row_id })
+    try {
+        await ensureSchoolsSchema(c.env.DB)
+        const { name, description } = await c.req.json()
+        if (!name?.trim()) return c.json({ error: 'School name required' }, 400)
+        const result = await c.env.DB.prepare('INSERT INTO schools (name, description) VALUES (?, ?)').bind(name.trim(), description || '').run()
+        return c.json({ success: true, id: result.meta.last_row_id })
+    } catch (e: any) {
+        return c.json({ error: e?.message || 'DB error' }, 500)
+    }
 })
 
 app.put('/api/admin/schools/:id', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    const id = c.req.param('id')
-    const { name, description } = await c.req.json()
-    if (!name?.trim()) return c.json({ error: 'School name required' }, 400)
-    await c.env.DB.prepare('UPDATE schools SET name = ?, description = ? WHERE id = ?').bind(name.trim(), description || '', id).run()
-    return c.json({ success: true })
+    try {
+        const id = c.req.param('id')
+        const { name, description } = await c.req.json()
+        if (!name?.trim()) return c.json({ error: 'School name required' }, 400)
+        await c.env.DB.prepare('UPDATE schools SET name = ?, description = ? WHERE id = ?').bind(name.trim(), description || '', id).run()
+        return c.json({ success: true })
+    } catch (e: any) {
+        return c.json({ error: e?.message || 'DB error' }, 500)
+    }
 })
 
 app.delete('/api/admin/schools/:id', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    const id = c.req.param('id')
-    // Remove students from classes that belong to this school, then delete classes, then school
-    const { results: schoolClasses } = await c.env.DB.prepare('SELECT id FROM classes WHERE school_id = ?').bind(id).all()
-    for (const cls of schoolClasses) {
-        await c.env.DB.prepare('DELETE FROM class_students WHERE class_id = ?').bind(cls.id).run()
-        await c.env.DB.prepare('DELETE FROM assigned_lessons WHERE class_id = ?').bind(cls.id).run()
-        await c.env.DB.prepare('DELETE FROM classes WHERE id = ?').bind(cls.id).run()
+    try {
+        const id = c.req.param('id')
+        const { results: schoolClasses } = await c.env.DB.prepare('SELECT id FROM classes WHERE school_id = ?').bind(id).all()
+        for (const cls of schoolClasses) {
+            await c.env.DB.prepare('DELETE FROM class_students WHERE class_id = ?').bind(cls.id).run()
+            await c.env.DB.prepare('DELETE FROM assigned_lessons WHERE class_id = ?').bind(cls.id).run()
+            await c.env.DB.prepare('DELETE FROM classes WHERE id = ?').bind(cls.id).run()
+        }
+        await c.env.DB.prepare('DELETE FROM schools WHERE id = ?').bind(id).run()
+        return c.json({ success: true })
+    } catch (e: any) {
+        return c.json({ error: e?.message || 'DB error' }, 500)
     }
-    await c.env.DB.prepare('DELETE FROM schools WHERE id = ?').bind(id).run()
-    return c.json({ success: true })
 })
 
 // ============================================
@@ -5595,16 +5609,36 @@ async function loadClasses() {
 }
 
 async function loadSchools() {
-    const [schools, allClasses] = await Promise.all([
-        fetch('/api/admin/schools').then(r=>r.json()),
-        fetch('/api/classes').then(r=>r.json())
-    ]);
-    cachedTeachers = await fetch('/api/teachers').then(r=>r.json());
+    const container = document.getElementById('schoolsList');
+    container.innerHTML = '<p class="text-gray-400 text-center py-4">Loading...</p>';
+
+    let schools, allClasses;
+    try {
+        const [schoolsRes, classesRes] = await Promise.all([
+            fetch('/api/admin/schools'),
+            fetch('/api/classes')
+        ]);
+        const schoolsText = await schoolsRes.text();
+        const classesText = await classesRes.text();
+        try { schools = JSON.parse(schoolsText); } catch(e) {
+            container.innerHTML = \`<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm"><b>Schools API error (status \${schoolsRes.status}):</b><br><pre class="mt-1 text-xs overflow-auto">\${schoolsText.slice(0,500)}</pre></div>\`;
+            return;
+        }
+        try { allClasses = JSON.parse(classesText); } catch(e) { allClasses = []; }
+        if (!Array.isArray(schools)) {
+            container.innerHTML = \`<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm"><b>Schools API returned an error:</b><br><pre class="mt-1 text-xs">\${JSON.stringify(schools,null,2)}</pre></div>\`;
+            return;
+        }
+    } catch(e) {
+        container.innerHTML = \`<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">Network error: \${e.message}</div>\`;
+        return;
+    }
+
+    cachedTeachers = await fetch('/api/teachers').then(r=>r.json()).catch(()=>[]);
 
     // Update stat counter (total classes across all schools)
-    document.getElementById('statClasses').textContent = allClasses.length;
+    document.getElementById('statClasses').textContent = Array.isArray(allClasses) ? allClasses.length : 0;
 
-    const container = document.getElementById('schoolsList');
     container.innerHTML = '';
 
     if (!schools.length) {
