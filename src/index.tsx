@@ -220,9 +220,22 @@ app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
 // SCHOOL MANAGEMENT ROUTES (admin only)
 // ============================================
 
+async function ensureSchoolsSchema(db: any) {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS schools (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`).run()
+    try {
+        await db.prepare('ALTER TABLE classes ADD COLUMN school_id INTEGER REFERENCES schools(id)').run()
+    } catch (_) { /* column already exists */ }
+}
+
 app.get('/api/admin/schools', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    await ensureSchoolsSchema(c.env.DB)
     const { results } = await c.env.DB.prepare(`
         SELECT s.*, COUNT(c.id) as class_count
         FROM schools s LEFT JOIN classes c ON c.school_id = s.id
@@ -234,6 +247,7 @@ app.get('/api/admin/schools', authMiddleware, async (c) => {
 app.post('/api/admin/schools', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    await ensureSchoolsSchema(c.env.DB)
     const { name, description } = await c.req.json()
     if (!name?.trim()) return c.json({ error: 'School name required' }, 400)
     const result = await c.env.DB.prepare('INSERT INTO schools (name, description) VALUES (?, ?)').bind(name.trim(), description || '').run()
