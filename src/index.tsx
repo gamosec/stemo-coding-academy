@@ -607,71 +607,79 @@ const curriculum = {
         {
             id: 'lesson-1',
             title: 'Meet STEMO!',
-            description: 'Discover coding blocks and understand the concept',
+            description: 'Discover what coding is and give your first command',
             difficulty: 'easy',
             xpReward: 50,
             icon: '👋',
-            introduction: "Hello! I am STEMO, your robot coding buddy! 🤖 I can help you learn programming in a fun way. On the left side you will see colorful blocks - these are commands that tell me what to do. On the right is my world where I move around. Let's start with a simple command!",
+            introduction: "Hello! I am STEMO — your robot coding buddy! 🤖 A computer program is simply a list of instructions that tells a robot (or computer) exactly what to do, step by step. Think of it like a recipe: if the recipe says 'add 2 eggs', the chef does exactly that — no more, no less! On the LEFT side you will see colourful BLOCKS — each block is one instruction. On the RIGHT is my world where I move around. The blocks go into the PROGRAM AREA in the middle. When you press the green RUN button, I read your blocks from top to bottom and follow every instruction. Let's write your very first program!",
             tasks: [
-                { id: 't1', text: 'Click the "Forward" block on the left panel', completed: false },
-                { id: 't2', text: 'Click the green "Run" button to make me move', completed: false },
-                { id: 't3', text: 'Watch me move forward! 🎉', completed: false }
+                { id: 't1', text: 'Look at the left panel — find the blue "Forward" block. Click it once to add it to your program!', completed: false },
+                { id: 't2', text: 'See the number inside the Forward block? Click it and change it to 3 steps', completed: false },
+                { id: 't3', text: 'Click the big green ▶ Run button and watch me move!', completed: false },
+                { id: 't4', text: 'Now add a second "Forward" block — I should move even further this time', completed: false },
+                { id: 't5', text: 'Click the 🗑️ Clear button to erase all blocks and start fresh', completed: false },
+                { id: 't6', text: 'Build your own program with exactly 4 Forward blocks. How far do I go? 🎉', completed: false }
             ],
-            hint: 'Click the Forward block on the left, then click the green Run button!',
-            homework: 'Try to make me move exactly 10 steps! How many blocks do you need?',
+            hint: 'Blocks are added by clicking them on the left panel. The number inside a block is how many steps I take. More blocks = more steps!',
+            homework: 'Try to make me move exactly 10 steps total! You can use 1 block set to 10, or 2 blocks set to 5 each — both work! Which do you prefer?',
             nextLesson: 'lesson-2'
         },
         {
             id: 'lesson-2',
             title: 'Movement Master',
-            description: 'Learn all movement: Forward, Back, Left, Right',
+            description: 'Learn all 4 directions and navigate like a pro',
             difficulty: 'easy',
             xpReward: 100,
             icon: '🚶',
-            introduction: "Great job! Now let's learn all the ways I can move. I can go Forward, Backward, turn Left, turn Right, and even go back Home! Try clicking on the number to change it!",
+            introduction: "Great job on your first program! 🎉 Now let's explore ALL the ways I can move. I can go Forward ⬆️, Backward ⬇️, turn Left ⬅️, and turn Right ➡️. Turning is measured in DEGREES — think of a clock face: 90° is a quarter turn (like turning a corner), 180° is a half turn (facing the opposite direction), and 360° is a full spin! Real robots like vacuum cleaners use these exact same turns to clean your whole house without missing a spot. I can also jump back Home 🏠 instantly. Let's master all the moves!",
             tasks: [
-                { id: 't1', text: 'Add a "Forward" block and change the number to 3', completed: false },
-                { id: 't2', text: 'Add a "Right" block (turn 90 degrees)', completed: false },
-                { id: 't3', text: 'Add another "Forward" block with 2 steps', completed: false },
-                { id: 't4', text: 'Click Run to see me walk in an L shape!', completed: false }
+                { id: 't1', text: 'Add "Forward 4" — I move up 4 steps', completed: false },
+                { id: 't2', text: 'Add "Right 90" — I turn to face right (a quarter turn)', completed: false },
+                { id: 't3', text: 'Add "Forward 3" — I move right 3 steps. Run it! I walk an L-shape! ↱', completed: false },
+                { id: 't4', text: 'Clear and try: Forward 3 → Left 90 → Forward 3 → Left 90 → Forward 3. What shape do I make?', completed: false },
+                { id: 't5', text: 'Add "Back 2" to the end — watch me reverse!', completed: false },
+                { id: 't6', text: 'Add "Home" as the very last block — I teleport back to the start! 🏠', completed: false }
             ],
-            hint: 'Try: Forward 3 → Right 90 → Forward 2. I will walk in an L shape!',
-            homework: 'Can you make me walk in a large "Z" shape? Think about the turns!',
+            hint: 'Think of a compass: Forward = North, Right = East, Back = South, Left = West. A 90° turn is always a perfect corner — just like the corners of a square room!',
+            homework: 'Can you make me walk in a "Z" shape? You need: Forward → diagonal move (Right turn, Forward, Left turn) → Forward. Try it!',
             nextLesson: 'lesson-3'
         },
         {
             id: 'lesson-3',
             title: 'Start Drawing!',
-            description: 'Use Pen to draw lines',
+            description: 'Lift and lower the pen to draw lines and patterns',
             difficulty: 'easy',
             xpReward: 100,
             icon: '🖌️',
-            introduction: "Now for the fun part - drawing! 🖍️ By default, my pen is UP so I don't draw when I move. To start drawing, you need to put my pen DOWN first. Then when I move, I leave a trail!",
+            introduction: "Now for the really fun part — drawing! 🖍️ Imagine I am holding a marker on the floor. When the pen is UP (🖊️ raised), I move without leaving a mark — like lifting your pencil off the page. When the pen is DOWN (✏️ touching), every step I take leaves a trail! This is exactly how a plotter robot works — the machines that draw huge banners and maps! The key rule: always add 'Pen Down' BEFORE moving, or there will be nothing to see. Let's draw!",
             tasks: [
-                { id: 't1', text: 'Add a "Pen" block and select "Down ✏️"', completed: false },
-                { id: 't2', text: 'Add a "Forward" block with 5 steps', completed: false },
-                { id: 't3', text: 'Click Run to draw a line!', completed: false }
+                { id: 't1', text: 'Add a "Pen Down ✏️" block — my pen is now touching the floor', completed: false },
+                { id: 't2', text: 'Add "Forward 5" and click Run — you drew a line! 📏', completed: false },
+                { id: 't3', text: 'Now add "Pen Up 🖊️" → "Forward 3" → "Pen Down ✏️" → "Forward 3". Run it — see the gap in the line? That\'s a dashed line!', completed: false },
+                { id: 't4', text: 'Clear and draw an L-shape: Pen Down → Forward 5 → Right 90 → Forward 5', completed: false },
+                { id: 't5', text: 'Challenge: draw a staircase! (Hint: repeat Pen Down → Forward 2 → Right 90 → Forward 2 → Left 90)', completed: false }
             ],
-            hint: 'First add Pen Down, then Forward. I will draw a line!',
-            homework: 'Try to draw a dashed line! (Hint: Pen Down -> Forward -> Pen Up -> Forward -> Repeat)',
+            hint: 'Remember the order: Pen Down FIRST, then move. Pen Up = no trail. Pen Down = trail. Think of it like pressing a stamp on paper!',
+            homework: 'Draw your initials! Think about which lines need Pen Down and which gaps need Pen Up. For example, the letter "L" = Forward 4, Right 90, Forward 2.',
             nextLesson: 'lesson-4'
         },
         {
             id: 'lesson-4',
             title: 'Color Artist',
-            description: 'Change colors and pen size',
+            description: 'Paint with colours and control line thickness',
             difficulty: 'easy',
             xpReward: 100,
             icon: '🎨',
-            introduction: "Let's make our drawings beautiful! You can change my pen color and even how thick the line is. Colors make everything better! 🌈",
+            introduction: "Let's make our drawings beautiful and colourful! 🌈 My pen can draw in ANY colour you choose. You can also control how THICK or thin the line is using the Size block. A Size of 1 is a hairline; Size 20 is a thick marker! Real graphic design software (like the logos on your favourite games) uses exactly these same ideas — colour + size + position. Here's a pro tip: always set your colour and size BEFORE putting the pen down, so the very first stroke is already perfect!",
             tasks: [
-                { id: 't1', text: 'Add a "Color" block and pick your favorite color', completed: false },
-                { id: 't2', text: 'Add a "Size" block and set it to 10', completed: false },
-                { id: 't3', text: 'Add "Pen Down" and "Forward 5"', completed: false },
-                { id: 't4', text: 'Run to see a thick, colorful line!', completed: false }
+                { id: 't1', text: 'Add a "Color" block and pick red — then Pen Down → Forward 5 → Run. Red line! 🔴', completed: false },
+                { id: 't2', text: 'Add a "Size 10" block before Pen Down — Run again. The line is now thick!', completed: false },
+                { id: 't3', text: 'Change the Color block to blue and Size to 3. Run — thin blue line! 🔵', completed: false },
+                { id: 't4', text: 'Now build this: Color red → Pen Down → Forward 3 → Color blue → Forward 3 → Color green → Forward 3. Three-colour line! 🌈', completed: false },
+                { id: 't5', text: 'Try drawing a thick red square: Color red → Size 8 → Pen Down → Forward 4 → Right 90 (×4)', completed: false }
             ],
-            hint: 'Put Color and Size blocks BEFORE Pen Down to see the effect!',
-            homework: 'Create a "Rainbow Road"! Change the color 3 times as I move!',
+            hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result. You can also change colour mid-drawing — add a new Color block between Forward blocks!',
+            homework: 'Create a "Rainbow Road"! Draw 6 lines in a row, each a different colour (red, orange, yellow, green, blue, purple). Use Pen Up between lines to leave small gaps!',
             nextLesson: 'lesson-5'
         }
     ],
@@ -679,88 +687,96 @@ const curriculum = {
         {
             id: 'lesson-5',
             title: 'Loop Power!',
-            description: 'Use Repeat to do actions multiple times',
+            description: 'Use Repeat to replace boring repeated blocks',
             difficulty: 'medium',
             xpReward: 150,
             icon: '🔁',
-            introduction: "What if you want me to do the same thing many times? Instead of adding the same blocks over and over, you can use the magic REPEAT block! 🔁 This is called a LOOP!",
+            introduction: "What if you need to move Forward 100 times? You could add 100 Forward blocks... but that would take forever! 😅 Programmers HATE repeating themselves — so they invented the LOOP. A loop says 'do this group of instructions N times'. In real life, a washing machine loop runs: Fill water → Spin → Drain — and repeats that cycle until the clothes are clean! The REPEAT block in coding does the same thing. Fun fact: without loops, the games on your phone would need millions of lines of code. With loops, the same effect takes just a few! Let's see the magic:",
             tasks: [
-                { id: 't1', text: 'Add a "Pen Down" block first', completed: false },
-                { id: 't2', text: 'Add a "Repeat" block and set it to 4 times', completed: false },
-                { id: 't3', text: 'Inside the Repeat, add "Forward 4" and "Right 90"', completed: false },
-                { id: 't4', text: 'Click Run to draw a perfect square! ⬛', completed: false }
+                { id: 't1', text: 'First, WITHOUT a loop: add Forward 4 four separate times + four Right 90 blocks (8 blocks total). Run — you drew a square! 🟦', completed: false },
+                { id: 't2', text: 'Now Clear and use a loop: Add "Repeat 4" → inside it add "Forward 4" and "Right 90". Run — same square with only 3 blocks! ✨', completed: false },
+                { id: 't3', text: 'Change the Repeat number to 8 and the Right to 45°. Run — I draw a regular octagon! ⬡', completed: false },
+                { id: 't4', text: 'Add Pen Down before the Repeat so you can see the shape drawn', completed: false },
+                { id: 't5', text: 'Challenge: make a tall rectangle — Repeat 2 times: Forward 6, Right 90, Forward 3, Right 90', completed: false }
             ],
-            hint: 'Repeat 4 times: Forward 4, Right 90. This draws a square!',
-            homework: 'Use a loop within another loop! Draw 4 squares in a row!',
+            hint: 'The rule for a square: Repeat 4 → Forward N → Right 90. The number in Forward decides the size. Bigger Forward = bigger square!',
+            homework: 'Can you draw a staircase using a loop? Try: Repeat 5 times → Forward 2 → Right 90 → Forward 2 → Left 90. What does it look like?',
             nextLesson: 'lesson-6'
         },
         {
             id: 'lesson-6',
             title: 'Shape Artist',
-            description: 'Create triangles, hexagons and more!',
+            description: 'Use maths to draw any polygon you can imagine',
             difficulty: 'medium',
             xpReward: 200,
             icon: '📐',
-            introduction: "The secret to drawing any shape is knowing how much to turn. For a triangle, we turn 120° (because 360÷3=120). For a hexagon, we turn 60° (360÷6=60). Let's use math! ➗",
+            introduction: "Here is a magical maths formula used by architects, game designers, and engineers: Turn Angle = 360 ÷ Number of Sides. A triangle has 3 sides → 360÷3 = 120°. A square has 4 sides → 360÷4 = 90°. A hexagon has 6 sides → 360÷6 = 60°. A circle has infinitely many tiny sides! This formula works for ANY shape. The honeycomb in a beehive is made of perfect hexagons — bees use this shape because it wastes zero space and uses the least wax. Let's use the same maths bees use:",
             tasks: [
-                { id: 't1', text: 'Draw a Triangle: Repeat 3 times → Forward 5, Right 120°', completed: false },
-                { id: 't2', text: 'Clear and try a Hexagon: Repeat 6 times → Forward 4, Right 60°', completed: false }
+                { id: 't1', text: 'Triangle (3 sides): Pen Down → Repeat 3 → Forward 5, Right 120°. Run! 🔺', completed: false },
+                { id: 't2', text: 'Pentagon (5 sides): 360÷5 = 72°. Repeat 5 → Forward 5, Right 72°. Run! ⬠', completed: false },
+                { id: 't3', text: 'Hexagon (6 sides): 360÷6 = 60°. Repeat 6 → Forward 4, Right 60°. Run! ⬡ (like a honeycomb!)', completed: false },
+                { id: 't4', text: 'Octagon (8 sides, like a STOP sign!): 360÷8 = 45°. Repeat 8 → Forward 3, Right 45°. Run! 🛑', completed: false },
+                { id: 't5', text: 'Now try YOUR OWN shape — pick any number of sides (try 12 or 20) and calculate the turn angle!', completed: false }
             ],
-            hint: 'Formula: Turn angle = 360 ÷ number of sides.',
-            homework: 'Can you draw a house? Use a square for the bottom and a triangle for the roof!',
+            hint: 'Formula: Turn Angle = 360 ÷ Sides. Always! Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45, Circle≈1 (with many steps).',
+            homework: 'Can you draw a house? A house = a square (4 sides, 90°) for the walls + a triangle (3 sides, 120°) for the roof. After the square, position the pen carefully before drawing the triangle on top!',
             nextLesson: 'lesson-7'
         },
         {
             id: 'lesson-7',
             title: 'Star Power!',
-            description: 'Draw a beautiful 5-pointed star',
+            description: 'Draw stunning stars using a secret angle trick',
             difficulty: 'hard',
             xpReward: 300,
             icon: '⭐',
-            introduction: "Drawing a star is special because we turn MORE! For a 5-pointed star, we turn 144°. This makes the lines cross! 🌟",
+            introduction: "Stars are special because the lines CROSS OVER each other! For a regular 5-pointed star, you might think you turn 72° (360÷5=72)... but that draws a pentagon! The secret is you turn 144° — which is 2×72. This is because you skip one point each time and draw a crossing line instead of a flat side. The result is the classic ★ shape! This same technique is used in logo design (many country flags have stars drawn this way). For a 7-pointed star you turn 2×(360÷7) ≈ 102.9°. Let's make some stars!",
             tasks: [
-                { id: 't1', text: 'Add "Pen Down"', completed: false },
-                { id: 't2', text: 'Add "Repeat 5 times"', completed: false },
-                { id: 't3', text: 'Inside: "Forward 8" and "Right 144"', completed: false },
-                { id: 't4', text: 'Add "Hide" at the end to see the star!', completed: false }
+                { id: 't1', text: 'Classic 5-star: Pen Down → Repeat 5 → Forward 8, Right 144°. Run — a perfect star! ⭐', completed: false },
+                { id: 't2', text: 'Make it bigger: change Forward to 12. The star grows but stays perfect!', completed: false },
+                { id: 't3', text: 'Add Color red and Size 4 before the Pen Down — a bold red star! 🔴⭐', completed: false },
+                { id: 't4', text: '6-pointed star (Star of David): Draw two triangles on top of each other. Triangle 1: Repeat 3 → Forward 6, Right 120. Then move slightly and draw Triangle 2 the same way rotated 60°', completed: false },
+                { id: 't5', text: 'Spiral star: change the Repeat to 20 and add "Forward +1 each loop" to make an expanding spiral star! ✨', completed: false }
             ],
-            hint: 'Star secret: Turn 144° (not 72°). Repeat 5 times!',
-            homework: 'Try drawing a 6-pointed star! It\'s two triangles on top of each other!',
+            hint: 'Star formula: Turn = 2 × (360 ÷ points). So 5-star = 2×72 = 144°. 6-star = 2×60 = 120°. 7-star = 2×(360÷7) ≈ 103°.',
+            homework: 'Try drawing a 7-pointed star (used on the Australian flag!). The angle is approximately 103°. Then colour it gold on a blue background (use Color gold → Pen Down for the star, and imagine the blue)!',
             nextLesson: 'lesson-8'
         },
         {
             id: 'lesson-8',
             title: 'Magnet Magic',
-            description: 'Pick up metal objects with your magnet',
+            description: 'Pick up and move metal objects with an electromagnet',
             difficulty: 'medium',
             xpReward: 200,
             icon: '🧲',
-            introduction: "I have a powerful electromagnet! 🧲 When it's ON, I can pick up metal objects (🔩) if I'm close enough. When it's OFF, I drop them. Let's try to move some metal!",
+            introduction: "I have a powerful ELECTROMAGNET built into my front! 🧲 An electromagnet only works when electricity flows through it — turn it ON and metal objects stick to me, turn it OFF and they drop. Real robots in scrap yards and recycling centres use exactly this technology to sort metal from plastic and paper automatically. Self-driving warehouse robots at Amazon use magnets to move shelves! My magnet is strong enough to carry the 🔩 bolt pieces you place on the board. The rule: I must be VERY CLOSE to a metal piece for it to attach. Let's move some metal!",
             tasks: [
-                { id: 't1', text: 'Place a Metal piece (🔩) on the board with the button above', completed: false },
-                { id: 't2', text: 'Move near it and add "Magnet ON"', completed: false },
-                { id: 't3', text: 'Move to a new spot and add "Magnet OFF"', completed: false },
-                { id: 't4', text: 'Run to pick up and move the metal! 🎉', completed: false }
+                { id: 't1', text: 'Click the 🔩 button above the board to place one metal piece near me', completed: false },
+                { id: 't2', text: 'Build: Forward (to get close) → Magnet ON → Run. Does the bolt attach? 🧲', completed: false },
+                { id: 't3', text: 'Now add: Forward 3 → Magnet OFF. The metal drops at the new location!', completed: false },
+                { id: 't4', text: 'Place 2 metal pieces. Write a program to pick up the first, carry it to the second, then drop both together', completed: false },
+                { id: 't5', text: 'Challenge: place 3 metals in a line. Collect all 3 in one trip — Magnet ON stays on while you move between them! Can you do it?', completed: false }
             ],
-            hint: 'The magnet only works when you are very close to the metal piece.',
-            homework: 'Create a "Magnetic Maze"! Put metal pieces in corners and collect them all!',
+            hint: 'Keep Magnet ON while moving between metal pieces — you carry them all! Only turn Magnet OFF when you want to drop. Make sure you are close (1-2 steps) before turning the magnet on.',
+            homework: 'Design a "Metal Sorting Station"! Place 4 metal pieces scattered on the board. Write a program to collect them all and bring every piece to the top-right corner. Use loops to make your program shorter!',
             nextLesson: 'lesson-9'
         },
         {
             id: 'lesson-9',
             title: 'Ultrasonic Sight',
-            description: 'See walls using sound waves',
+            description: 'See obstacles using sound waves like a bat',
             difficulty: 'medium',
             xpReward: 250,
             icon: '📡',
-            introduction: "I can 'see' using sound! 🦇 My ultrasonic sensor sends out waves. If they bounce back, I know there's a wall. This is how bats find their way in the dark! Let's scan for walls.",
+            introduction: "I can 'see' without eyes! 🦇 My ultrasonic sensor works exactly like bat echolocation: I send out a high-pitched sound wave (too high for humans to hear), and measure how long it takes to bounce back. The longer it takes, the further away the obstacle is! This technology is called SONAR (Sound Navigation And Ranging). Submarines use it to map the ocean floor. Cars use it for parking sensors that beep when you get too close to a wall. The most popular hobbyist sensor is called HC-SR04 and it's in millions of student robots worldwide! Let's scan our world:",
             tasks: [
-                { id: 't1', text: 'Place a Wall (🧱) ahead of me', completed: false },
-                { id: 't2', text: 'Add a "Scan Ahead" block', completed: false },
-                { id: 't3', text: 'Watch the sensor beam show the distance!', completed: false }
+                { id: 't1', text: 'Click the 🧱 Wall button to place a wall 4 steps ahead of me', completed: false },
+                { id: 't2', text: 'Add a "Scan Ahead 📡" block and Run — see the yellow beam showing the distance!', completed: false },
+                { id: 't3', text: 'Now add: Forward 2 → Scan Ahead → Forward 1 → Scan Ahead. Watch the distance reading change as I move closer!', completed: false },
+                { id: 't4', text: 'Place walls on LEFT and RIGHT too. Add Scan Ahead at the start, then Right 90 → Scan Ahead → Left 180 → Scan Ahead to measure all sides!', completed: false },
+                { id: 't5', text: 'Challenge: using what the sensor tells you, build a program that moves me to exactly 1 step from the wall without touching it!', completed: false }
             ],
-            hint: 'Click the 🧱 icon to place walls on the board.',
-            homework: 'Make me stop exactly 2 steps before the wall! How many steps is that?',
+            hint: 'The Scan Ahead beam shows in yellow — the shorter the beam, the closer the wall. If the beam reaches the edge of the board with no wall, the reading is "clear". Always scan before moving into unknown territory!',
+            homework: 'Build a "Safety Stop" system: add a Scan Ahead block. If the distance is 2 or less, stop (add a Home block). If it is more than 2, move forward 1 step and scan again (use a Repeat loop). This is how real self-driving cars work!',
             nextLesson: 'lesson-10'
         }
     ],
@@ -768,87 +784,99 @@ const curriculum = {
         {
             id: 'lesson-10',
             title: 'Space Navigator',
-            description: 'Reach targets automatically',
+            description: 'Guide the robot to targets like a Mars Rover',
             difficulty: 'hard',
             xpReward: 300,
             icon: '🎯',
-            introduction: "I can find my way to a target! 🎯 Using my smart sensors, I can calculate the path to any goal. This is how Mars Rovers explore other planets! Let's reach a target.",
+            introduction: "NASA's Mars Rovers (Curiosity and Perseverance) drive themselves to target locations using exactly the same logic you are about to learn! 🚀 They calculate the direction to the target, rotate until they face it, then drive forward. My 'Go To Target' block does all of this automatically using my built-in sensors. The cool part: even if I am facing the wrong way, I spin around until I am pointing straight at the goal before moving. This technique is used in GPS navigation, drone delivery, and self-driving cars. Every time a package drone lands on your doorstep, it used this exact method!",
             tasks: [
-                { id: 't1', text: 'Place a Target (🎯) on the board', completed: false },
-                { id: 't2', text: 'Add the "Go To Target" block', completed: false },
-                { id: 't3', text: 'Run and watch me navigate!', completed: false }
+                { id: 't1', text: 'Click the 🎯 Target button and place a target anywhere on the board', completed: false },
+                { id: 't2', text: 'Add the "Go To Target 🎯" block and Run — watch me calculate and navigate!', completed: false },
+                { id: 't3', text: 'Place a SECOND target (the first one disappears, place a new one far away). Add another "Go To Target" block — I navigate twice in a row!', completed: false },
+                { id: 't4', text: 'Now add a 🧱 wall between me and the target. Does my navigation avoid it, or do I need to help?', completed: false },
+                { id: 't5', text: 'Advanced: place the target in a corner. Add Scan Ahead before going — if there is a wall nearby, turn first, then navigate!', completed: false }
             ],
-            hint: 'The Target block combines scanning and turning to reach the goal.',
-            homework: 'Place walls between me and the target! Can I still find my way?',
+            hint: 'The "Go To Target" block automatically rotates me to face the target then moves forward. If there are walls, combine it with Scan Ahead to detect and avoid them first!',
+            homework: 'Create a "Delivery Mission"! Place 2 targets: Target A (pick-up point) and imagine Target B (drop-off). Navigate to A (turn Magnet ON), then navigate to B (turn Magnet OFF). Just like a drone delivery robot!',
             nextLesson: 'lesson-11'
         },
         {
             id: 'lesson-11',
             title: 'Smart Explorer',
-            description: 'Make decisions with If/Else logic',
+            description: 'Make decisions with If/Else — the heart of AI',
             difficulty: 'hard',
             xpReward: 350,
             icon: '🧠',
-            introduction: "The most important part of AI is making decisions. 🤖 We use 'If... Then... Else...' logic. IF there is a wall, THEN turn, ELSE move forward. This is how brains work!",
+            introduction: "You are now entering the world of ARTIFICIAL INTELLIGENCE! 🤖 Every smart system — from chess computers to self-driving cars — is built on one simple idea: IF (condition is true) THEN do this, ELSE do that. A traffic light uses this: IF pedestrian presses button THEN turn red for cars, ELSE stay green. Your phone's face unlock uses this: IF face matches THEN unlock, ELSE stay locked. The condition is always either TRUE or FALSE — there is no maybe in code! In this lesson, we give me the ability to REACT to my environment without you controlling every move. This is autonomous behaviour!",
             tasks: [
-                { id: 't1', text: 'Add the "If Wall Within 2 steps" block', completed: false },
-                { id: 't2', text: 'Put "Turn Right" inside the THEN part', completed: false },
-                { id: 't3', text: 'Put "Forward 1" inside the ELSE part', completed: false },
-                { id: 't4', text: 'Put everything inside a "Repeat 10 times" loop!', completed: false }
+                { id: 't1', text: 'Place a wall 3 steps ahead. Add: "If Wall Within 2" → THEN: Right 90 → ELSE: Forward 1. Run — I dodge the wall! 🛡️', completed: false },
+                { id: 't2', text: 'Put the If/Else inside a "Repeat 8 times" loop — now I explore, automatically turning whenever I see a wall!', completed: false },
+                { id: 't3', text: 'Add more walls and increase the Repeat to 15. Watch me navigate a mini maze!', completed: false },
+                { id: 't4', text: 'Now add a SECOND condition: If Wall Within 2 → Right 90, but ALSO: If at Home → Stop. (Add a Home check)', completed: false },
+                { id: 't5', text: 'Challenge: build a program where I turn LEFT if there is a wall on the right, and turn RIGHT if there is a wall on the left. Use two If blocks!', completed: false }
             ],
-            hint: 'If there is a wall, I will turn. If not, I will move!',
-            homework: 'Create a logic gate: move forward IF the path is clear, but spray water IF there is fire!',
+            hint: 'If/Else always checks a condition (True/False). THEN = what to do if TRUE. ELSE = what to do if FALSE. You can chain multiple If blocks — check one condition, then another! Real AI is just millions of these simple decisions.',
+            homework: 'Build a "Smart Guard Robot"! Use a loop with an If/Else: IF fire detected WITHIN 3 → spray water, ELSE IF wall within 2 → turn right, ELSE → move forward 1. This is a simple autonomous firefighting patrol!',
             nextLesson: 'lesson-12'
         },
         {
             id: 'lesson-12',
             title: 'Fire Watch',
-            description: 'Detect heat with temperature sensors',
+            description: 'Detect heat sources with a thermal camera sensor',
             difficulty: 'hard',
             xpReward: 400,
             icon: '🔥',
-            introduction: "I have a thermal camera to detect heat! 🌡️ Fires are dangerous, so I need to find them quickly. My sensor tells me if something is hot ahead. Let's find some fires!",
+            introduction: "I carry a thermal infrared camera — the same technology used in firefighting drones and military night-vision goggles! 🌡️ A normal camera sees light. A thermal camera sees HEAT — every object gives off a tiny amount of heat, and fires give off a LOT. My sensor measures temperature as I move. When the temperature reading suddenly spikes, it means fire is close! Real fire-fighting robots are already being deployed in warehouses, forests, and military zones to find fires before humans enter dangerous areas. Let's train my heat-detection skills:",
             tasks: [
-                { id: 't1', text: 'Place a Fire (🔥) on the board', completed: false },
-                { id: 't2', text: 'Add "Check Temp" and "If Fire Within 3 steps"', completed: false },
-                { id: 't3', text: 'Add a message: "I found a fire!" when detected', completed: false }
+                { id: 't1', text: 'Click the 🔥 Fire button to place one fire on the board', completed: false },
+                { id: 't2', text: 'Add "Check Temperature 🌡️" block and Run — see the temperature reading appear!', completed: false },
+                { id: 't3', text: 'Move closer: Forward 2 → Check Temp → Forward 2 → Check Temp. Notice the temperature RISES as I get closer! 🌡️📈', completed: false },
+                { id: 't4', text: 'Add: "If Fire Within 3 steps" → THEN: display message "🚨 Fire detected! Calling for help!"', completed: false },
+                { id: 't5', text: 'Place 2 fires in different spots. Use a Repeat loop with Check Temp + movement to find BOTH fires automatically!', completed: false }
             ],
-            hint: 'Fire detection works like wall detection but feels the heat instead of sound.',
-            homework: 'Find the hottest spot on the board and stay there!',
+            hint: 'Temperature increases as you move closer to fire. Check Temp → move closer → Check Temp again. If the second reading is higher, you are heading toward the fire! Combine with If blocks to react automatically.',
+            homework: 'Build a "Fire Mapping" mission: place 3 fires. Write a program that sweeps the board in a zigzag pattern, checking temperature at each position. When fire is detected, print its location (step number in the loop). Real wildfire drones do exactly this!',
             nextLesson: 'lesson-13'
         },
         {
             id: 'lesson-13',
             title: 'Firefighter Hero',
-            description: 'Extinguish fires with water',
+            description: 'Extinguish fires efficiently — every water drop counts!',
             difficulty: 'extreme',
             xpReward: 500,
             icon: '🚒',
-            introduction: "It's time for action! 🦸 I carry a small water tank. If I find a fire, I can spray water to put it out. But be careful - my water level is limited! We must be efficient.",
+            introduction: "Now it is time for ACTION! 🦸 I carry a small water tank with limited supply — just like a real aerial firefighting drone that can only carry so much water before it must refuel. Every spray uses exactly 1 unit. I start with 5 units. This means you CANNOT spray randomly — you must position perfectly and only spray when you are close enough. This is the engineering concept of EFFICIENCY: achieving the maximum result (all fires out) with the minimum resource (least water). Aerospace engineers obsess over this — a Mars mission that wastes fuel means the rover cannot reach its goals. Let's think strategically!",
             tasks: [
-                { id: 't1', text: 'Place 3 fires on the board', completed: false },
-                { id: 't2', text: 'Use "Firefighter Mode" to auto-extinguish', completed: false },
-                { id: 't3', text: 'Or build your own loop with "Spray Water"!', completed: false }
+                { id: 't1', text: 'Place ONE fire. Move to within 2 steps of it and add "Spray Water 💧". Run — fire extinguished with 1 unit! 🎯', completed: false },
+                { id: 't2', text: 'Place TWO fires far apart. Plan the SHORTEST path to visit both. Use Forward + turns to reach each one before spraying', completed: false },
+                { id: 't3', text: 'Now place THREE fires. You only have 5 sprays — can you put out all 3 with some water to spare?', completed: false },
+                { id: 't4', text: 'Add a "Check Water Level" block — it shows how much water you have left. Add it before and after each spray!', completed: false },
+                { id: 't5', text: 'Advanced: use an If block — "If Water Level > 0" THEN spray, ELSE go Home. This prevents wasting sprays!', completed: false },
+                { id: 't6', text: 'Speed challenge: place 4 fires. Put them all out in under 10 blocks (Forward + Spray only — no wasted moves)! ⏱️', completed: false }
             ],
-            hint: 'Each spray uses 1 unit of water. I only have 5 units!',
-            homework: 'Can you put out all 3 fires using only 3 sprays? Position yourself perfectly!',
+            hint: 'Plan your route BEFORE coding: which fire is closest? Go there first. Then which is next closest? This "nearest neighbour" strategy is used in real delivery route planning! Each spray must land within 2 steps of a fire to work.',
+            homework: 'Can you put out all 3 fires using exactly 3 sprays (one per fire, perfectly positioned)? Map out the board on paper first, then write the code. This level of planning is called algorithmic thinking!',
             nextLesson: 'lesson-14'
         },
         {
             id: 'lesson-14',
             title: 'Master Coder',
-            description: 'The final autonomous challenge',
+            description: 'The ultimate autonomous mission — graduate as a Master Coder! 🎓',
             difficulty: 'extreme',
             xpReward: 1000,
             icon: '🏆',
-            introduction: "You've reached the end of the academy! 🎓 Now, combine everything: magnets, sensors, and logic. Your mission: pick up all metal and extinguish all fires automatically!",
+            introduction: "🎓 CONGRATULATIONS — you have reached the final lesson of the STEMO Academy! Over these 14 lessons you have learned: sequencing (step-by-step instructions), loops (Repeat), geometry (shape angles), sensors (ultrasonic + thermal), decision making (If/Else), electromagnets, and efficient resource use. These are the EXACT skills that real robotics engineers use every day. Your final mission is the ultimate test: set up a board with walls, metals AND fires all mixed together, then write ONE autonomous program that handles everything — navigate around walls, collect all metals, and extinguish all fires — without any help from you. You are the engineer. STEMO is your robot. Let's graduate!",
             tasks: [
-                { id: 't1', text: 'Place walls, metal, and fire randomly', completed: false },
-                { id: 't2', text: 'Build a giant autonomous program', completed: false },
-                { id: 't3', text: 'Clear the board to graduate! 🎓🎉', completed: false }
+                { id: 't1', text: 'Set the scene: place 2 walls, 2 metal pieces (🔩), and 2 fires (🔥) randomly on the board', completed: false },
+                { id: 't2', text: 'Phase 1 — Scan: add Scan Ahead in all 4 directions at the start so I know where the obstacles are', completed: false },
+                { id: 't3', text: 'Phase 2 — Collect: navigate to both metal pieces, pick them up (Magnet ON), and drop them at Home (Magnet OFF)', completed: false },
+                { id: 't4', text: 'Phase 3 — Extinguish: navigate to both fires and spray water on each one (check water level first!)', completed: false },
+                { id: 't5', text: 'Phase 4 — Return: add a Home block at the very end — mission complete, robot returns to base! 🏠', completed: false },
+                { id: 't6', text: 'Combine all 4 phases into ONE program and Run it start to finish — the board should be cleared! 🏆🎉', completed: false },
+                { id: 't7', text: 'BONUS: count your total blocks used. Can you reduce it by 20% using loops and smarter routing? The best engineers optimise! ✨', completed: false }
             ],
-            hint: 'Use loops, if/else, and all sensor blocks. You are a Master Coder now!',
-            homework: 'Congratulations, Master Coder! Now, try to build a drawing robot that creates art while avoiding fires!',
+            hint: 'Break the mission into phases (Scan → Collect → Extinguish → Return) and build each phase separately first, then connect them. Use loops wherever actions repeat. Check water level before every spray. This top-down design approach is how real software is built!',
+            homework: 'You are now a Master Coder! 🎓 Your challenge: design a completely NEW mission scenario and write the autonomous program for it. Ideas: delivery robot (pick up packages, avoid fires, drop at destination), rescue robot (find stranded people behind walls), or artist robot (draw a shape while collecting metals). Share your creation!',
             nextLesson: null
         }
     ]
