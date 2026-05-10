@@ -1231,7 +1231,7 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <!-- Code Tab - MAXIMIZED WORKSPACE LAYOUT -->
-        <div id="code-section" class="hidden">
+        <div id="code-section" class="hidden -mx-6 -mb-6">
             <!-- Top Bar with Run/Clear -->
             <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-2 rounded-t-2xl flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -1271,7 +1271,7 @@ const htmlContent = `<!DOCTYPE html>
             </div>
             
             <!-- Main Content Area - Balanced Layout -->
-            <div class="flex bg-white rounded-b-2xl card-shadow overflow-hidden" style="height: calc(100vh - 200px); min-height: 500px;">
+            <div class="flex bg-white rounded-b-2xl card-shadow overflow-hidden" style="height: calc(100vh - 153px); min-height: 560px;">
                 <!-- Block Palette - Left Side -->
                 <div id="blockPalette" class="w-32 bg-gradient-to-b from-gray-50 to-gray-100 p-2 overflow-y-auto border-r-2 border-gray-200 flex-shrink-0">
                     <div class="text-xs font-bold text-gray-500 mb-1 uppercase">🚶 Move</div>
@@ -1421,7 +1421,7 @@ const htmlContent = `<!DOCTYPE html>
                     
                     <!-- Chat Area - Bigger -->
                     <div class="border-t-2 border-gray-200 bg-white p-3">
-                        <div id="chatMessages" class="h-24 overflow-y-auto mb-2 space-y-1 text-sm">
+                        <div id="chatMessages" class="h-14 overflow-y-auto mb-2 space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
                                 <div class="bg-blue-100 rounded-lg p-2 text-sm">
