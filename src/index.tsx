@@ -1354,7 +1354,7 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="w-[430px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
+                <div id="robotPanel" class="w-[590px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
                     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span class="text-xl">🤖</span>
@@ -1404,7 +1404,7 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                     </div>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
-                        <canvas id="robotCanvas" width="400" height="400" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
+                        <canvas id="robotCanvas" width="550" height="550" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
                         <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
                         <!-- Mission Toast: appears briefly over canvas then fades out -->
                         <div id="missionHUD" class="hidden absolute top-4 left-4 right-4 z-30 pointer-events-none">
@@ -1702,7 +1702,7 @@ const htmlContent = `<!DOCTYPE html>
                     }},
                     { id: 'go-home', label: '🏠 Step 4: Return home & Magnet OFF', check: function() {
                         var allCollected = metalObjects.every(function(m) { return m.pickedUp; });
-                        var dx = robot.x - 200, dy = robot.y - 200;
+                        var dx = robot.x - 275, dy = robot.y - 275;
                         return allCollected && Math.sqrt(dx*dx + dy*dy) < 30 && !robot.magnetOn;
                     }}
                 ]
@@ -2698,8 +2698,8 @@ const htmlContent = `<!DOCTYPE html>
             }
 
             // Reset robot before running
-            robot.x = 200;
-            robot.y = 200;
+            robot.x = 275;
+            robot.y = 275;
             robot.angle = -90;
             robot.penDown = false;
             robot.penSize = 4;
@@ -2941,8 +2941,8 @@ const htmlContent = `<!DOCTYPE html>
                     });
                 }
                 
-                robot.x = Math.max(25, Math.min(375, newX));
-                robot.y = Math.max(25, Math.min(375, newY));
+                robot.x = Math.max(25, Math.min(525, newX));
+                robot.y = Math.max(25, Math.min(525, newY));
                 
                 // Check if magnet is ON and can pick up nearby metal
                 if (robot.magnetOn && (challengeMode || !robot.carrying)) {
@@ -2973,8 +2973,8 @@ const htmlContent = `<!DOCTYPE html>
                 robot.angle += cmd.value;
             } else if (cmd.action === 'home') {
                 // Go home without drawing
-                robot.x = 200;
-                robot.y = 200;
+                robot.x = 275;
+                robot.y = 275;
                 robot.angle = -90;
             } else if (cmd.action === 'pen') {
                 robot.penDown = cmd.value;
@@ -3028,8 +3028,8 @@ const htmlContent = `<!DOCTYPE html>
                             var dropRad = robot.angle * Math.PI / 180;
                             var dropX = robot.x + Math.cos(dropRad) * 40;
                             var dropY = robot.y + Math.sin(dropRad) * 40;
-                            dropX = Math.max(25, Math.min(375, dropX));
-                            dropY = Math.max(25, Math.min(375, dropY));
+                            dropX = Math.max(25, Math.min(525, dropX));
+                            dropY = Math.max(25, Math.min(525, dropY));
                             robot.carrying.x = dropX;
                             robot.carrying.y = dropY;
                             robot.carrying.pickedUp = false;
@@ -3072,8 +3072,8 @@ const htmlContent = `<!DOCTYPE html>
                         });
                     }
                     
-                    robot.x = Math.max(25, Math.min(375, newX));
-                    robot.y = Math.max(25, Math.min(375, newY));
+                    robot.x = Math.max(25, Math.min(525, newX));
+                    robot.y = Math.max(25, Math.min(525, newY));
                 }
             } else if (cmd.action === 'smart_turn') {
                 // Smart turn - choose best direction based on situation
@@ -3362,8 +3362,8 @@ const htmlContent = `<!DOCTYPE html>
                 if (robot.waterLevel <= 0) {
                     addChatMessage('stemo', "💧 Water empty! Returning to base...");
                     // Move toward home to "refill"
-                    var dx = 200 - robot.x;
-                    var dy = 200 - robot.y;
+                    var dx = 275 - robot.x;
+                    var dy = 275 - robot.y;
                     var dist = Math.sqrt(dx * dx + dy * dy);
                     
                     if (dist < 30) {
@@ -3430,8 +3430,8 @@ const htmlContent = `<!DOCTYPE html>
                         robot.x += Math.cos(rad) * 15;
                         robot.y += Math.sin(rad) * 15;
                         
-                        robot.x = Math.max(25, Math.min(375, robot.x));
-                        robot.y = Math.max(25, Math.min(375, robot.y));
+                        robot.x = Math.max(25, Math.min(525, robot.x));
+                        robot.y = Math.max(25, Math.min(525, robot.y));
                     }
                 }
                 
@@ -3500,8 +3500,8 @@ const htmlContent = `<!DOCTYPE html>
                     robot.y += Math.sin(rad) * 20;
                     
                     // Bounds
-                    robot.x = Math.max(25, Math.min(375, robot.x));
-                    robot.y = Math.max(25, Math.min(375, robot.y));
+                    robot.x = Math.max(25, Math.min(525, robot.x));
+                    robot.y = Math.max(25, Math.min(525, robot.y));
                 }
                 
                 stepCount++;
