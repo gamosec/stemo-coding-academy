@@ -1629,8 +1629,8 @@ const htmlContent = `<!DOCTYPE html>
         };
 
         var robot = {
-            x: 200,
-            y: 200,
+            x: 275,
+            y: 275,
             angle: -90,
             penDown: false,
             penColor: '#6366f1',
@@ -4181,8 +4181,8 @@ const htmlContent = `<!DOCTYPE html>
 
         function resetRobot() {
             robot = {
-                x: 200,
-                y: 200,
+                x: 275,
+                y: 275,
                 angle: -90,
                 penDown: false,
                 penColor: '#6366f1',
