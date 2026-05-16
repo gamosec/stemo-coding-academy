@@ -1709,20 +1709,18 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-9': {
-                title: 'Navigate the wall maze to reach the hidden target!',
-                description: 'The target is hidden BEHIND the walls. Use your ultrasonic sensor to detect walls and find a way around them!',
+                title: 'Detect the wall — then turn right to reach the target!',
+                description: 'A wall is blocking your path ahead. Go forward until your ultrasonic sensor detects it, turn RIGHT, then drive to the target!',
                 setup: function() {
-                    // Walls create an L-shaped barrier blocking the direct path from STEMO (center) to target (bottom-right)
+                    // One wide horizontal wall directly in front of STEMO (STEMO faces UP, wall is ~6 steps ahead)
                     wallObjects = [
-                        { id: wallIdCounter++, x: 200, y: 100, width: 40, height: 180 }, // vertical wall left
-                        { id: wallIdCounter++, x: 320, y: 180, width: 40, height: 180 }, // vertical wall right
-                        { id: wallIdCounter++, x: 100, y: 340, width: 180, height: 40 }  // horizontal wall bottom
+                        { id: wallIdCounter++, x: 115, y: 115, width: 280, height: 40 }
                     ];
-                    // Target is in bottom-right corner — BEHIND the walls, not reachable directly
-                    targetPoint = { x: 440, y: 440 };
+                    // Target is to the RIGHT — reachable only after detecting the wall and turning right
+                    targetPoint = { x: 460, y: 215 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the hidden target', check: function() {
+                    { id: 'reach', label: '🎯 Reach the target (turn right after the wall!)', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
