@@ -1679,15 +1679,16 @@ const htmlContent = `<!DOCTYPE html>
         var MISSION_LESSON_IDS = ['lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
 
         // Pre-configured challenge worlds for each mission lesson
+        // Canvas: 550x550, STEMO starts at center (275, 275)
         var LESSON_CHALLENGES = {
             'lesson-8': {
                 title: 'Collect all 3 metal pieces!',
                 description: 'Activate your magnet and navigate to pick up every metal object on the board.',
                 setup: function() {
                     metalObjects = [
-                        { id: metalIdCounter++, x: 100, y: 100, type: 'bolt',  pickedUp: false },
-                        { id: metalIdCounter++, x: 300, y: 120, type: 'gear',  pickedUp: false },
-                        { id: metalIdCounter++, x: 340, y: 320, type: 'screw', pickedUp: false }
+                        { id: metalIdCounter++, x: 130, y: 130, type: 'bolt',  pickedUp: false },
+                        { id: metalIdCounter++, x: 420, y: 130, type: 'gear',  pickedUp: false },
+                        { id: metalIdCounter++, x: 420, y: 420, type: 'screw', pickedUp: false }
                     ];
                 },
                 objectives: [
@@ -1703,26 +1704,28 @@ const htmlContent = `<!DOCTYPE html>
                     { id: 'go-home', label: '🏠 Step 4: Return home & Magnet OFF', check: function() {
                         var allCollected = metalObjects.every(function(m) { return m.pickedUp; });
                         var dx = robot.x - 275, dy = robot.y - 275;
-                        return allCollected && Math.sqrt(dx*dx + dy*dy) < 30 && !robot.magnetOn;
+                        return allCollected && Math.sqrt(dx*dx + dy*dy) < 35 && !robot.magnetOn;
                     }}
                 ]
             },
             'lesson-9': {
-                title: 'Navigate the wall maze to the target!',
-                description: 'Use your ultrasonic sensor to detect walls and steer STEMO to the target.',
+                title: 'Navigate the wall maze to reach the hidden target!',
+                description: 'The target is hidden BEHIND the walls. Use your ultrasonic sensor to detect walls and find a way around them!',
                 setup: function() {
+                    // Walls create an L-shaped barrier blocking the direct path from STEMO (center) to target (bottom-right)
                     wallObjects = [
-                        { id: wallIdCounter++, x: 140, y: 80,  width: 40, height: 120 },
-                        { id: wallIdCounter++, x: 240, y: 180, width: 40, height: 120 },
-                        { id: wallIdCounter++, x: 80,  y: 260, width: 120, height: 40 }
+                        { id: wallIdCounter++, x: 200, y: 100, width: 40, height: 180 }, // vertical wall left
+                        { id: wallIdCounter++, x: 320, y: 180, width: 40, height: 180 }, // vertical wall right
+                        { id: wallIdCounter++, x: 100, y: 340, width: 180, height: 40 }  // horizontal wall bottom
                     ];
-                    targetPoint = { x: 330, y: 330 };
+                    // Target is in bottom-right corner — BEHIND the walls, not reachable directly
+                    targetPoint = { x: 440, y: 440 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target', check: function() {
+                    { id: 'reach', label: '🎯 Reach the hidden target', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                        return Math.sqrt(dx*dx + dy*dy) < 40;
                     }}
                 ]
             },
@@ -1731,47 +1734,49 @@ const htmlContent = `<!DOCTYPE html>
                 description: 'Obstacles are in your way. Program STEMO to navigate around them and reach the goal.',
                 setup: function() {
                     wallObjects = [
-                        { id: wallIdCounter++, x: 140, y: 120, width: 40, height: 120 },
-                        { id: wallIdCounter++, x: 220, y: 220, width: 120, height: 40 }
+                        { id: wallIdCounter++, x: 185, y: 150, width: 40, height: 160 }, // vertical wall blocking centre
+                        { id: wallIdCounter++, x: 295, y: 300, width: 160, height: 40 }  // horizontal wall bottom-right
                     ];
-                    targetPoint = { x: 330, y: 330 };
+                    targetPoint = { x: 440, y: 440 };
                 },
                 objectives: [
                     { id: 'reach', label: '🎯 Reach the target', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                        return Math.sqrt(dx*dx + dy*dy) < 40;
                     }}
                 ]
             },
             'lesson-11': {
                 title: 'Solve the branching maze!',
-                description: 'There is a wall blocking the middle. Use If/Else logic to find the correct path to the target.',
+                description: 'A wall splits the board in two — only one path leads to the target. Use If/Else logic to find the gap and pass through!',
                 setup: function() {
+                    // Vertical wall with a gap in the middle — students must navigate through the gap
                     wallObjects = [
-                        { id: wallIdCounter++, x: 180, y: 60,  width: 40, height: 130 },
-                        { id: wallIdCounter++, x: 180, y: 250, width: 40, height: 110 }
+                        { id: wallIdCounter++, x: 245, y: 70,  width: 40, height: 140 }, // top segment
+                        { id: wallIdCounter++, x: 245, y: 330, width: 40, height: 150 }  // bottom segment (gap 210–330)
                     ];
-                    targetPoint = { x: 330, y: 200 };
+                    // Target on the RIGHT side of the wall
+                    targetPoint = { x: 430, y: 275 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target', check: function() {
+                    { id: 'reach', label: '🎯 Reach the target through the gap', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                        return Math.sqrt(dx*dx + dy*dy) < 40;
                     }}
                 ]
             },
             'lesson-12': {
                 title: 'Detect both fires with your sensor!',
-                description: 'Fires are hidden around the board. Scan with your temperature sensor to locate them.',
+                description: 'Fires are hidden around the board. Scan with your temperature sensor to locate them both.',
                 setup: function() {
                     wallObjects = [
-                        { id: wallIdCounter++, x: 160, y: 140, width: 40, height: 40 }
+                        { id: wallIdCounter++, x: 215, y: 215, width: 40, height: 40 }   // small centre obstacle
                     ];
                     fireObjects = [
-                        { id: fireIdCounter++, x: 110, y: 310, health: 3 },
-                        { id: fireIdCounter++, x: 320, y: 140, health: 3 }
+                        { id: fireIdCounter++, x: 130, y: 420, health: 3 },  // bottom-left
+                        { id: fireIdCounter++, x: 430, y: 160, health: 3 }   // top-right
                     ];
                 },
                 objectives: [
@@ -1779,13 +1784,13 @@ const htmlContent = `<!DOCTYPE html>
                         if (fireObjects.length < 1) return false;
                         var f = fireObjects[0];
                         var dx = robot.x - f.x, dy = robot.y - f.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 65;
+                        return Math.sqrt(dx*dx + dy*dy) < 70;
                     }},
                     { id: 'detect2', label: '🌡️ Find fire 2', targetFire: 1, check: function() {
                         if (fireObjects.length < 2) return false;
                         var f = fireObjects[1];
                         var dx = robot.x - f.x, dy = robot.y - f.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 65;
+                        return Math.sqrt(dx*dx + dy*dy) < 70;
                     }}
                 ]
             },
@@ -1794,13 +1799,13 @@ const htmlContent = `<!DOCTYPE html>
                 description: 'Navigate around walls and spray water on every fire before your tank runs out!',
                 setup: function() {
                     wallObjects = [
-                        { id: wallIdCounter++, x: 140, y: 120, width: 100, height: 40 },
-                        { id: wallIdCounter++, x: 250, y: 230, width: 40, height: 100 }
+                        { id: wallIdCounter++, x: 175, y: 155, width: 130, height: 40 },  // horizontal top wall
+                        { id: wallIdCounter++, x: 345, y: 295, width: 40, height: 130 }   // vertical right wall
                     ];
                     fireObjects = [
-                        { id: fireIdCounter++, x: 90,  y: 200, health: 3 },
-                        { id: fireIdCounter++, x: 210, y: 110, health: 3 },
-                        { id: fireIdCounter++, x: 320, y: 320, health: 3 }
+                        { id: fireIdCounter++, x: 110, y: 270, health: 3 },  // left side
+                        { id: fireIdCounter++, x: 270, y: 110, health: 3 },  // top area
+                        { id: fireIdCounter++, x: 430, y: 430, health: 3 }   // bottom-right corner
                     ];
                     robot.waterLevel = 9;
                 },
@@ -1815,19 +1820,19 @@ const htmlContent = `<!DOCTYPE html>
                 description: 'Collect metals, extinguish fires, and reach the target. Use everything you have learned!',
                 setup: function() {
                     wallObjects = [
-                        { id: wallIdCounter++, x: 130, y: 100, width: 40, height: 100 },
-                        { id: wallIdCounter++, x: 230, y: 180, width: 100, height: 40 },
-                        { id: wallIdCounter++, x: 175, y: 285, width: 90, height: 40 }
+                        { id: wallIdCounter++, x: 165, y: 130, width: 40, height: 130 },  // vertical left
+                        { id: wallIdCounter++, x: 310, y: 230, width: 130, height: 40 },  // horizontal right
+                        { id: wallIdCounter++, x: 240, y: 375, width: 110, height: 40 }   // horizontal bottom
                     ];
                     metalObjects = [
-                        { id: metalIdCounter++, x: 90,  y: 310, type: 'bolt', pickedUp: false },
-                        { id: metalIdCounter++, x: 330, y: 90,  type: 'gear', pickedUp: false }
+                        { id: metalIdCounter++, x: 110, y: 420, type: 'bolt', pickedUp: false },  // bottom-left
+                        { id: metalIdCounter++, x: 440, y: 110, type: 'gear', pickedUp: false }   // top-right
                     ];
                     fireObjects = [
-                        { id: fireIdCounter++, x: 75,  y: 150, health: 3 },
-                        { id: fireIdCounter++, x: 320, y: 290, health: 3 }
+                        { id: fireIdCounter++, x: 100, y: 195, health: 3 },   // left side
+                        { id: fireIdCounter++, x: 430, y: 400, health: 3 }    // bottom-right
                     ];
-                    targetPoint = { x: 330, y: 200 };
+                    targetPoint = { x: 440, y: 275 };
                     robot.waterLevel = 6;
                 },
                 objectives: [
@@ -1840,7 +1845,7 @@ const htmlContent = `<!DOCTYPE html>
                     { id: 'reach', label: '🎯 Reach target', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
-                        return Math.sqrt(dx*dx + dy*dy) < 35;
+                        return Math.sqrt(dx*dx + dy*dy) < 40;
                     }}
                 ]
             }
@@ -4055,29 +4060,28 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.translate(robot.x, robot.y);
                 ctx.rotate((robot.angle + 90) * Math.PI / 180);
                 
-                // Body - change color if magnet is on
+                // Body - change color if magnet is on  (scaled ~70% of original)
                 ctx.fillStyle = robot.magnetOn ? '#ef4444' : '#3b82f6';
                 ctx.beginPath();
-                ctx.roundRect(-20, -25, 40, 50, 8);
+                ctx.roundRect(-14, -18, 28, 36, 6);
                 ctx.fill();
                 
                 // Magnetic field lines - Realistic arcs
                 if (robot.magnetOn) {
                     ctx.save();
-                    ctx.rotate(Math.PI); // Orient toward the back/around
+                    ctx.rotate(Math.PI);
                     
                     var time = Date.now() / 1000;
                     ctx.lineWidth = 1.5;
                     
                     for (var i = 0; i < 3; i++) {
-                        var radius = 25 + (i * 15 + time * 30) % 45;
-                        var opacity = 1 - (radius - 25) / 45;
+                        var radius = 18 + (i * 10 + time * 21) % 32;
+                        var opacity = 1 - (radius - 18) / 32;
                         
                         ctx.strokeStyle = 'rgba(239, 68, 68, ' + (opacity * 0.6) + ')';
-                        ctx.setLineDash([5, 5]);
+                        ctx.setLineDash([4, 4]);
                         
                         ctx.beginPath();
-                        // Draw two arcs representing magnetic field
                         ctx.arc(0, 0, radius, -Math.PI/3, Math.PI/3);
                         ctx.stroke();
                         
@@ -4088,89 +4092,88 @@ const htmlContent = `<!DOCTYPE html>
                     ctx.restore();
                     
                     // Center glow
-                    var gradient = ctx.createRadialGradient(0, 0, 10, 0, 0, 40);
+                    var gradient = ctx.createRadialGradient(0, 0, 7, 0, 0, 28);
                     gradient.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
                     gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
-                    ctx.arc(0, 0, 40, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 28, 0, Math.PI * 2);
                     ctx.fill();
                 }
             
                 // Head
                 ctx.fillStyle = robot.magnetOn ? '#f87171' : '#60a5fa';
                 ctx.beginPath();
-                ctx.arc(0, -15, 15, 0, Math.PI * 2);
+                ctx.arc(0, -11, 11, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Eyes
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
-                ctx.arc(-6, -18, 5, 0, Math.PI * 2);
-                ctx.arc(6, -18, 5, 0, Math.PI * 2);
+                ctx.arc(-4, -13, 3.5, 0, Math.PI * 2);
+                ctx.arc(4, -13, 3.5, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Pupils - heart eyes when carrying something
                 if (robot.carrying) {
                     ctx.fillStyle = '#ef4444';
-                    ctx.font = '8px Arial';
+                    ctx.font = '6px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('❤', -5, -15);
-                    ctx.fillText('❤', 7, -15);
+                    ctx.fillText('❤', -4, -11);
+                    ctx.fillText('❤', 4, -11);
                 } else {
                     ctx.fillStyle = '#1e3a5f';
                     ctx.beginPath();
-                    ctx.arc(-5, -17, 2, 0, Math.PI * 2);
-                    ctx.arc(7, -17, 2, 0, Math.PI * 2);
+                    ctx.arc(-3.5, -12.5, 1.5, 0, Math.PI * 2);
+                    ctx.arc(4.5, -12.5, 1.5, 0, Math.PI * 2);
                     ctx.fill();
                 }
                 
-                // Antenna - show magnet icon when ON
+                // Antenna
                 ctx.strokeStyle = robot.magnetOn ? '#ef4444' : '#fbbf24';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(0, -30);
-                ctx.lineTo(0, -40);
+                ctx.moveTo(0, -21);
+                ctx.lineTo(0, -29);
                 ctx.stroke();
                 
                 if (robot.magnetOn) {
-                    // Magnet shape on antenna
                     ctx.fillStyle = '#ef4444';
                     ctx.beginPath();
-                    ctx.arc(0, -45, 6, 0, Math.PI * 2);
+                    ctx.arc(0, -33, 4, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.fillStyle = 'white';
-                    ctx.font = 'bold 8px Arial';
+                    ctx.font = 'bold 6px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('🧲', 0, -42);
+                    ctx.fillText('🧲', 0, -31);
                 } else {
                     ctx.fillStyle = '#fbbf24';
                     ctx.beginPath();
-                    ctx.arc(0, -42, 4, 0, Math.PI * 2);
+                    ctx.arc(0, -31, 3, 0, Math.PI * 2);
                     ctx.fill();
                 }
             
                 // Direction arrow
                 ctx.fillStyle = '#22c55e';
                 ctx.beginPath();
-                ctx.moveTo(0, -25);
-                ctx.lineTo(-8, -10);
-                ctx.lineTo(8, -10);
+                ctx.moveTo(0, -18);
+                ctx.lineTo(-6, -7);
+                ctx.lineTo(6, -7);
                 ctx.closePath();
                 ctx.fill();
                 
                 // Draw carried object attached to robot
                 if (robot.carrying) {
                     ctx.save();
-                    ctx.translate(0, 20); // Below robot body
+                    ctx.translate(0, 14);
                     ctx.fillStyle = '#94a3b8';
                     ctx.beginPath();
-                    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 6, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.fillStyle = '#475569';
-                    ctx.font = '10px Arial';
+                    ctx.font = '8px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('🔩', 0, 4);
+                    ctx.fillText('🔩', 0, 3);
                     ctx.restore();
                 }
                 
