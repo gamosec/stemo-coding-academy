@@ -1709,18 +1709,20 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-9': {
-                title: 'Detect the wall — then turn right to reach the target!',
-                description: 'A wall is blocking your path ahead. Go forward until your ultrasonic sensor detects it, turn RIGHT, then drive to the target!',
+                title: 'Navigate the L-shaped corridor to the target!',
+                description: 'Two walls form an L-corner. Go forward, detect the first wall → turn RIGHT. Go right, detect the second wall → turn RIGHT again. Then drive to the target below!',
                 setup: function() {
-                    // One wide horizontal wall directly in front of STEMO (STEMO faces UP, wall is ~6 steps ahead)
+                    // Horizontal wall directly in front of STEMO (~3 steps ahead)
                     wallObjects = [
-                        { id: wallIdCounter++, x: 115, y: 115, width: 280, height: 40 }
+                        { id: wallIdCounter++, x: 115, y: 115, width: 240, height: 40 },
+                        // Vertical wall connected to the right end of the horizontal wall — blocks the rightward path
+                        { id: wallIdCounter++, x: 355, y: 155, width: 40, height: 160 }
                     ];
-                    // Target is to the RIGHT — reachable only after detecting the wall and turning right
-                    targetPoint = { x: 460, y: 215 };
+                    // Target is below-right of the vertical wall's bottom — only reachable after both turns
+                    targetPoint = { x: 380, y: 360 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target (turn right after the wall!)', check: function() {
+                    { id: 'reach', label: '🎯 Reach the target (navigate the L-corner!)', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
