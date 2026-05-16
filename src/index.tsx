@@ -1709,20 +1709,23 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-9': {
-                title: 'Navigate the L-shaped corridor to the target!',
-                description: 'Two walls form an L-corner. Go forward, detect the first wall → turn RIGHT. Go right, detect the second wall → turn RIGHT again. Then drive to the target below!',
+                title: 'Pass through the gap and reach the hidden target!',
+                description: 'Go forward until your ultrasonic sensor detects the front wall, then turn RIGHT and pass through the GAP between the two walls. Turn RIGHT again and drive to the target — it is hiding behind the right wall!',
                 setup: function() {
-                    // Horizontal wall directly in front of STEMO (~3 steps ahead)
                     wallObjects = [
-                        { id: wallIdCounter++, x: 115, y: 115, width: 240, height: 40 },
-                        // Vertical wall connected to the right end of the horizontal wall — blocks the rightward path
-                        { id: wallIdCounter++, x: 355, y: 155, width: 40, height: 160 }
+                        // Wall 1 — horizontal front wall, blocks forward movement (~4 steps ahead of STEMO)
+                        { id: wallIdCounter++, x: 115, y: 115, width: 200, height: 40 },
+                        // Wall 2 — vertical right wall, separated from Wall 1 by a gap (y=155 to y=215)
+                        //           STEMO passes THROUGH this gap going east, then target is BEHIND this wall
+                        { id: wallIdCounter++, x: 355, y: 215, width: 40, height: 200 },
+                        // Wall 3 — closes the gap below Wall 2 so STEMO can't sneak under
+                        { id: wallIdCounter++, x: 355, y: 415, width: 140, height: 40 }
                     ];
-                    // Target is below-right of the vertical wall's bottom — only reachable after both turns
-                    targetPoint = { x: 380, y: 360 };
+                    // Target is BEHIND (east of) the vertical right wall — only reachable through the gap
+                    targetPoint = { x: 430, y: 340 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target (navigate the L-corner!)', check: function() {
+                    { id: 'reach', label: '🎯 Reach the target behind the right wall!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
