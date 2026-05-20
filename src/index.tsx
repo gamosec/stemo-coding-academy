@@ -5168,6 +5168,7 @@ const htmlContent = `<!DOCTYPE html>
                     fires: fireObjects,
                     target: targetPoint
                 },
+                challengeLessonId: (challengeMode && currentLesson) ? currentLesson.id : null,
                 version: '1.0'
             };
             
@@ -5207,6 +5208,7 @@ const htmlContent = `<!DOCTYPE html>
                     fires: fireObjects,
                     target: targetPoint
                 },
+                challengeLessonId: (challengeMode && currentLesson) ? currentLesson.id : null,
                 version: '1.0'
             };
             
@@ -5219,6 +5221,17 @@ const htmlContent = `<!DOCTYPE html>
                 alert("Failed to copy. Please try again.");
             });
         }
+
+        // Minimal metadata for challenge lessons (used when restoring a saved challenge file)
+        var CHALLENGE_LESSON_META = {
+            'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
+            'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
+            'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
+            'lesson-11': { id: 'lesson-11', title: 'Smart Explorer',    description: 'Use If/Else logic to find the correct path.',         hint: 'Check which direction is clear before moving. If wall is close, go another way!',           icon: '🧠', xpReward: 350, nextLesson: 'lesson-12' },
+            'lesson-12': { id: 'lesson-12', title: 'Fire Watch',        description: 'Detect heat sources with your temperature sensor.',   hint: 'Scan in each direction — when temperature rises, you are near a fire!',                     icon: '🔥', xpReward: 400, nextLesson: 'lesson-13' },
+            'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water when close to a fire. Watch your water level — refill at home base!',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-14' },
+            'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: null }
+        };
 
         // Load Project from .stemo file
         function loadProject(event) {
@@ -5236,23 +5249,74 @@ const htmlContent = `<!DOCTYPE html>
                         var xml = Blockly.utils.xml.textToDom(projectData.code);
                         Blockly.Xml.domToWorkspace(xml, workspace);
                         
-                        // Load world if available
-                        if (projectData.world) {
-                            robot = projectData.world.robot || robot;
-                            wallObjects = projectData.world.walls || [];
-                            metalObjects = projectData.world.metals || [];
-                            fireObjects = projectData.world.fires || [];
-                            targetPoint = projectData.world.target || null;
-                            
-                            // Reset robot visual state but keep position
-                            robot.trails = [];
-                            robot.carrying = null;
-                            robot.magnetOn = false;
-                            
+                        var savedLessonId = projectData.challengeLessonId || null;
+
+                        if (savedLessonId && LESSON_CHALLENGES[savedLessonId]) {
+                            // ── Restore a challenge file ──────────────────────────────────
+                            // Reset everything cleanly first
+                            challengeMode = false;
+                            challengeCompleted = false;
+                            missionObjectives = null;
+                            metalObjects = []; wallObjects = []; fireObjects = [];
+                            targetPoint = null;
+                            resetRobot();
+
+                            // Restore lesson metadata so lesson-completion tracking works
+                            currentLesson = CHALLENGE_LESSON_META[savedLessonId] || null;
+
+                            // Restore lesson header in UI
+                            if (currentLesson) {
+                                document.getElementById('currentLessonTitle').textContent = currentLesson.title;
+                                document.getElementById('currentLessonDesc').textContent = currentLesson.description;
+                                var hintEl = document.getElementById('hintText');
+                                if (hintEl) hintEl.textContent = currentLesson.hint;
+                                var hintPanel = document.getElementById('hintPanel');
+                                if (hintPanel) hintPanel.classList.remove('hidden');
+                            }
+
+                            // Re-run the challenge setup (rebuilds walls/metals/fires/target)
+                            var ch = LESSON_CHALLENGES[savedLessonId];
+                            ch.setup();
+
+                            // Activate challenge mode and build objectives
+                            challengeMode = true;
+                            missionObjectives = ch.objectives.map(function(obj) {
+                                return { id: obj.id, label: obj.label, done: false, check: obj.check };
+                            });
+
+                            // Show challenge UI elements
+                            document.getElementById('missionTitle').textContent = ch.title;
+                            updateMissionHUD();
+                            showMissionToast();
+                            document.getElementById('missionBadge').classList.remove('hidden');
+                            document.getElementById('missionExitBtn').classList.remove('hidden');
+
                             drawRobot();
+                            addChatMessage('stemo', '📂 Challenge loaded! ' + ch.description + ' Good luck! 💪');
+
+                        } else {
+                            // ── Restore a free-build file ─────────────────────────────────
+                            // Exit challenge mode if it was active
+                            challengeMode = false;
+                            challengeCompleted = false;
+                            missionObjectives = null;
+                            document.getElementById('missionHUD').classList.add('hidden');
+                            document.getElementById('missionBadge').classList.add('hidden');
+                            document.getElementById('missionExitBtn').classList.add('hidden');
+
+                            if (projectData.world) {
+                                robot = projectData.world.robot || robot;
+                                wallObjects = projectData.world.walls || [];
+                                metalObjects = projectData.world.metals || [];
+                                fireObjects = projectData.world.fires || [];
+                                targetPoint = projectData.world.target || null;
+                                robot.trails = [];
+                                robot.carrying = null;
+                                robot.magnetOn = false;
+                                drawRobot();
+                            }
+                            addChatMessage('stemo', "📂 Project loaded! Let's code! 🚀");
                         }
-                        
-                        addChatMessage('stemo', "📂 Project loaded! Let's code! 🚀");
                     }
                 } catch (err) {
                     console.error("Error loading project:", err);
