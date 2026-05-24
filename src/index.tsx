@@ -6738,7 +6738,7 @@ const landingPage = `<!DOCTYPE html>
         </a>
         <div class="flex items-center gap-3">
             <a href="/login" class="px-5 py-2 rounded-full border-2 border-purple-600 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm">Login</a>
-            <a href="/register" class="px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register Free</a>
+            <a href="/register" class="px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register as Student</a>
         </div>
     </div>
 </nav>
@@ -7028,7 +7028,7 @@ const landingPage = `<!DOCTYPE html>
                 <div class="text-5xl mb-4">✏️</div>
                 <h3 class="fredoka text-2xl text-gray-900 mb-2">New Student?</h3>
                 <p class="text-gray-800 text-sm mb-6 opacity-80">Register for free and start your coding journey with STEMO today!</p>
-                <a href="/register" class="block w-full py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all shadow-lg">🎉 Register Free</a>
+                <a href="/register" class="block w-full py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-gray-800 transition-all shadow-lg">🎉 Register as Student</a>
             </div>
         </div>
     </div>
