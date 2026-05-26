@@ -3838,8 +3838,9 @@ const htmlContent = `<!DOCTYPE html>
             var metalGroups = groupObjects(metalObjects);
             Object.values(metalGroups).forEach(function(group) {
                 var item = group[0];
-                // In challenge mode, collected metals disappear from the canvas
-                if (challengeMode && item.pickedUp) return;
+                // Hide picked-up metals from the canvas — they're now being carried by STEMO,
+                // so they shouldn't also appear in their original spot (confusing for kids).
+                if (item.pickedUp) return;
                 var stepIdx = metalObjects.indexOf(item); // 0-based order
                 var isActive = (challengeMode && item === activeMetal);
                 var isLocked = (challengeMode && !item.pickedUp && !isActive);
