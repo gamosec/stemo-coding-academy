@@ -3266,11 +3266,12 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         function rayBoundaryIntersection(rx, ry, dx, dy) {
+            // Canvas is 550×550 with a 25px play-area padding (active area: 25..525)
             var minDist = 999;
             
             // Check all 4 boundaries
             if (dx > 0) {
-                var t = (375 - rx) / dx;
+                var t = (525 - rx) / dx;
                 if (t > 0 && t < minDist) minDist = t;
             } else if (dx < 0) {
                 var t = (25 - rx) / dx;
@@ -3278,7 +3279,7 @@ const htmlContent = `<!DOCTYPE html>
             }
             
             if (dy > 0) {
-                var t = (375 - ry) / dy;
+                var t = (525 - ry) / dy;
                 if (t > 0 && t < minDist) minDist = t;
             } else if (dy < 0) {
                 var t = (25 - ry) / dy;
@@ -3314,7 +3315,7 @@ const htmlContent = `<!DOCTYPE html>
             if (closestFire) {
                 // Temperature increases as you get closer
                 // Max temp ~500°C when very close, decreases with distance
-                temp = Math.max(baseTemp, Math.min(500, baseTemp + (200 - minDist) * 2.5));
+                temp = Math.max(baseTemp, Math.min(500, baseTemp + (275 - minDist) * 2.5));
             }
             
             return {
@@ -5070,7 +5071,7 @@ const htmlContent = `<!DOCTYPE html>
             // 4. Shadow (Separate from robot so it stays on floor)
             var shadowGeo = new THREE.CircleGeometry(20, 32);
             var shadowMat = new THREE.MeshBasicMaterial({ 
-                color: 0x000000, 
+                color: 0x000000
                 transparent: true, 
                 opacity: 0.3 
             });
