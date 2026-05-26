@@ -4886,42 +4886,160 @@ const htmlContent = `<!DOCTYPE html>
             threeRobot = new THREE.Group();
             scene.add(threeRobot);
             
-            // 1. Floating Body (Capsule-like)
-            var bodyGeo = new THREE.SphereGeometry(25, 32, 32);
-            bodyGeo.scale(1, 1.4, 1); // Make it an egg shape
-            var bodyMat = new THREE.MeshStandardMaterial({ 
-                color: 0xffffff, // White
-                roughness: 0.2,  // Glossy
-                metalness: 0.1
+            // ── Build a cute, child-friendly STEMO ───────────────────────────
+            // We store animated parts on threeRobot.userData so the render loop
+            // can wiggle them (antenna bounce, aura spin, arm wave, sparkles).
+
+            // 1. Rounded BODY — soft purple, slightly squishy egg shape
+            var bodyGeo = new THREE.SphereGeometry(26, 32, 32);
+            bodyGeo.scale(1.0, 1.25, 1.0);
+            var bodyMat = new THREE.MeshStandardMaterial({
+                color: 0x8b5cf6, // friendly purple
+                roughness: 0.35,
+                metalness: 0.15
             });
             var body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 40; // Hovering height
+            body.position.y = 42;
+            body.castShadow = true;
             threeRobot.add(body);
-            
-            // 2. Black Glass Visor
-            var visorGeo = new THREE.SphereGeometry(22, 32, 32, 0, 6.3, 0, 1.2);
-            visorGeo.scale(1, 1.2, 0.8);
-            var visorMat = new THREE.MeshStandardMaterial({ 
-                color: 0x111111, // Black
-                roughness: 0.0,  // Glass styling
-                metalness: 0.8
+
+            // 2. White FACE PLATE — friendly white oval in front of body
+            var faceGeo = new THREE.SphereGeometry(22, 32, 32);
+            faceGeo.scale(1.0, 1.05, 0.45);
+            var faceMat = new THREE.MeshStandardMaterial({
+                color: 0xfdf4ff,
+                roughness: 0.25,
+                metalness: 0.05
             });
-            var visor = new THREE.Mesh(visorGeo, visorMat);
-            visor.position.set(0, 42, 8); // Slightly forward
-            visor.rotation.x = -0.2;
-            threeRobot.add(visor);
-            
-            // 3. Glowing Eyes
-            var eyeGeo = new THREE.SphereGeometry(3.5, 16, 16);
-            var eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // Cyan Glow
-            
-            var eyeLeft = new THREE.Mesh(eyeGeo, eyeMat);
-            eyeLeft.position.set(8, 44, 26);
+            var face = new THREE.Mesh(faceGeo, faceMat);
+            face.position.set(0, 44, 14);
+            threeRobot.add(face);
+
+            // 3. EYES — big anime-style white sclera with bright pupils.
+            // children[2] and children[3] are the white sclera; pupils are
+            // attached as children of the sclera so we still color them via
+            // userData.pupils in the magnet logic.
+            var scleraGeo = new THREE.SphereGeometry(6, 24, 24);
+            var scleraMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2,
+                metalness: 0
+            });
+
+            var eyeLeft = new THREE.Mesh(scleraGeo, scleraMat.clone());
+            eyeLeft.position.set(8, 47, 22);
             threeRobot.add(eyeLeft);
-            
-            var eyeRight = new THREE.Mesh(eyeGeo, eyeMat);
-            eyeRight.position.set(-8, 44, 26);
+
+            var eyeRight = new THREE.Mesh(scleraGeo, scleraMat.clone());
+            eyeRight.position.set(-8, 47, 22);
             threeRobot.add(eyeRight);
+
+            // Pupils (glowing, color changes with magnet)
+            var pupilGeo = new THREE.SphereGeometry(3, 16, 16);
+            var pupilMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+            var pupilL = new THREE.Mesh(pupilGeo, pupilMat.clone());
+            pupilL.position.set(0, 0, 4);
+            eyeLeft.add(pupilL);
+            var pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
+            pupilR.position.set(0, 0, 4);
+            eyeRight.add(pupilR);
+
+            // Eye shine sparkles
+            var shineGeo = new THREE.SphereGeometry(0.9, 12, 12);
+            var shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            var shineL = new THREE.Mesh(shineGeo, shineMat);
+            shineL.position.set(1, 1, 4.6);
+            eyeLeft.add(shineL);
+            var shineR = new THREE.Mesh(shineGeo, shineMat);
+            shineR.position.set(1, 1, 4.6);
+            eyeRight.add(shineR);
+
+            // 4. PINK CHEEK BLUSHES
+            var blushGeo = new THREE.CircleGeometry(3, 16);
+            var blushMat = new THREE.MeshBasicMaterial({
+                color: 0xfb7185, transparent: true, opacity: 0.7
+            });
+            var blushL = new THREE.Mesh(blushGeo, blushMat);
+            blushL.position.set(14, 40, 19);
+            blushL.rotation.y = -0.3;
+            threeRobot.add(blushL);
+            var blushR = new THREE.Mesh(blushGeo, blushMat);
+            blushR.position.set(-14, 40, 19);
+            blushR.rotation.y = 0.3;
+            threeRobot.add(blushR);
+
+            // 5. SMILE — curved torus piece
+            var smileGeo = new THREE.TorusGeometry(4.5, 0.8, 8, 16, Math.PI);
+            var smileMat = new THREE.MeshBasicMaterial({ color: 0x1f2937 });
+            var smile = new THREE.Mesh(smileGeo, smileMat);
+            smile.position.set(0, 37, 22);
+            smile.rotation.x = Math.PI; // Open the curve downward → smile
+            threeRobot.add(smile);
+
+            // 6. ANTENNA — thin rod with glowing bouncy ball on top
+            var rodGeo = new THREE.CylinderGeometry(0.6, 0.6, 16, 8);
+            var rodMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, metalness: 0.7 });
+            var rod = new THREE.Mesh(rodGeo, rodMat);
+            rod.position.set(0, 70, 0);
+            threeRobot.add(rod);
+
+            var ballGeo = new THREE.SphereGeometry(4, 16, 16);
+            var ballMat = new THREE.MeshStandardMaterial({
+                color: 0xfde047, emissive: 0xfacc15, emissiveIntensity: 0.8
+            });
+            var antennaBall = new THREE.Mesh(ballGeo, ballMat);
+            antennaBall.position.set(0, 80, 0);
+            threeRobot.add(antennaBall);
+
+            // 7. ARMS — two floating mitten-style hands beside the body
+            var armGeo = new THREE.SphereGeometry(5, 16, 16);
+            var armMat = new THREE.MeshStandardMaterial({ color: 0xfdf4ff, roughness: 0.3 });
+            var armL = new THREE.Mesh(armGeo, armMat);
+            armL.position.set(26, 40, 4);
+            threeRobot.add(armL);
+            var armR = new THREE.Mesh(armGeo, armMat);
+            armR.position.set(-26, 40, 4);
+            threeRobot.add(armR);
+
+            // 8. AURA RING — rotating sparkly disc beneath robot
+            var auraGeo = new THREE.RingGeometry(18, 28, 32);
+            var auraMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee, transparent: true, opacity: 0.55, side: THREE.DoubleSide
+            });
+            var aura = new THREE.Mesh(auraGeo, auraMat);
+            aura.rotation.x = -Math.PI / 2;
+            aura.position.y = 6;
+            threeRobot.add(aura);
+
+            // 9. SPARKLE PARTICLES — small dots orbiting the robot
+            var sparkles = [];
+            var sparkleGeo = new THREE.SphereGeometry(0.8, 8, 8);
+            var sparkleColors = [0xfde047, 0xf472b6, 0x60a5fa, 0x4ade80, 0xa78bfa];
+            for (var s = 0; s < 8; s++) {
+                var sparkMat = new THREE.MeshBasicMaterial({
+                    color: sparkleColors[s % sparkleColors.length],
+                    transparent: true, opacity: 0.9
+                });
+                var spark = new THREE.Mesh(sparkleGeo, sparkMat);
+                spark.userData = {
+                    angle: (s / 8) * Math.PI * 2,
+                    radius: 35 + Math.random() * 8,
+                    yBase: 40 + Math.random() * 25,
+                    speed: 0.02 + Math.random() * 0.015
+                };
+                threeRobot.add(spark);
+                sparkles.push(spark);
+            }
+
+            // Cache animated parts for the render loop
+            threeRobot.userData = {
+                antennaBall: antennaBall,
+                aura: aura,
+                armL: armL,
+                armR: armR,
+                pupils: [pupilL, pupilR],
+                sparkles: sparkles
+            };
 
             // 4. Shadow (Separate from robot so it stays on floor)
             var shadowGeo = new THREE.CircleGeometry(20, 32);
@@ -5020,12 +5138,42 @@ const htmlContent = `<!DOCTYPE html>
                 }
             }
             
-            // Magnet visual (Update Eyes Color instead of Body)
-            // Eyes are children 2 and 3 in the group
-            if (threeRobot.children.length > 2) {
-                 var eyeColor = robot.magnetOn ? 0xff0000 : 0x00ffff; // Red if magnet on, Cyan default
-                 if (threeRobot.children[2].material) threeRobot.children[2].material.color.setHex(eyeColor);
-                 if (threeRobot.children[3].material) threeRobot.children[3].material.color.setHex(eyeColor);
+            // ── Cute animations ──────────────────────────────────────────────
+            var ud = threeRobot.userData || {};
+
+            // Magnet visual → switch pupil color (heart-red when ON, deep navy when OFF)
+            var pupilColor = robot.magnetOn ? 0xef4444 : 0x111827;
+            if (ud.pupils) {
+                ud.pupils.forEach(function(p) {
+                    if (p.material) p.material.color.setHex(pupilColor);
+                });
+            }
+
+            // Antenna ball bobs and pulses brightness
+            if (ud.antennaBall) {
+                ud.antennaBall.position.y = 80 + Math.sin(time * 2) * 2.5;
+                if (ud.antennaBall.material) {
+                    ud.antennaBall.material.emissiveIntensity = 0.6 + (Math.sin(time * 4) + 1) * 0.3;
+                }
+            }
+
+            // Aura ring slowly rotates
+            if (ud.aura) {
+                ud.aura.rotation.z += 0.02;
+            }
+
+            // Arms gently wave up and down (opposite phase = friendly wave)
+            if (ud.armL) ud.armL.position.y = 40 + Math.sin(time * 1.5) * 3;
+            if (ud.armR) ud.armR.position.y = 40 + Math.sin(time * 1.5 + Math.PI) * 3;
+
+            // Sparkle particles orbit the robot
+            if (ud.sparkles) {
+                ud.sparkles.forEach(function(spark) {
+                    spark.userData.angle += spark.userData.speed;
+                    spark.position.x = Math.cos(spark.userData.angle) * spark.userData.radius;
+                    spark.position.z = Math.sin(spark.userData.angle) * spark.userData.radius;
+                    spark.position.y = spark.userData.yBase + Math.sin(time * 3 + spark.userData.angle) * 4;
+                });
             }
             
             // Sync Metals
