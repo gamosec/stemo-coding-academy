@@ -5071,7 +5071,7 @@ const htmlContent = `<!DOCTYPE html>
             // 4. Shadow (Separate from robot so it stays on floor)
             var shadowGeo = new THREE.CircleGeometry(20, 32);
             var shadowMat = new THREE.MeshBasicMaterial({ 
-                color: 0x000000
+                color: 0x000000,
                 transparent: true, 
                 opacity: 0.3 
             });
