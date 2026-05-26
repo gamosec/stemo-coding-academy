@@ -3032,16 +3032,30 @@ const htmlContent = `<!DOCTYPE html>
                             addChatMessage('stemo', "🤖 ✅ Collected the " + robot.carrying.type + "!");
                             robot.carrying = null;
                         } else {
-                            // Normal mode: drop in front of robot
-                            var dropRad = robot.angle * Math.PI / 180;
-                            var dropX = robot.x + Math.cos(dropRad) * 40;
-                            var dropY = robot.y + Math.sin(dropRad) * 40;
+                            // Normal mode: drop AT the robot's current position so the metal
+                            // lands exactly where STEMO is standing (not floating ahead of it).
+                            // If a target is right under STEMO, snap the metal onto the target
+                            // so "go to target → magnet OFF" lines up perfectly.
+                            var dropX = robot.x;
+                            var dropY = robot.y;
+                            var snappedToTarget = false;
+                            if (targetPoint) {
+                                var tdx = targetPoint.x - robot.x;
+                                var tdy = targetPoint.y - robot.y;
+                                if (Math.sqrt(tdx * tdx + tdy * tdy) < 40) {
+                                    dropX = targetPoint.x;
+                                    dropY = targetPoint.y;
+                                    snappedToTarget = true;
+                                }
+                            }
                             dropX = Math.max(25, Math.min(525, dropX));
                             dropY = Math.max(25, Math.min(525, dropY));
                             robot.carrying.x = dropX;
                             robot.carrying.y = dropY;
                             robot.carrying.pickedUp = false;
-                            addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " in front! 📍");
+                            addChatMessage('stemo', snappedToTarget
+                                ? "🤖 🧲 Dropped the " + robot.carrying.type + " right on the 🎯 target! 📍"
+                                : "🤖 🧲 Dropped the " + robot.carrying.type + " here! 📍");
                             robot.carrying = null;
                         }
                     } else {
