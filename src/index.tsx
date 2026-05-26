@@ -1361,6 +1361,9 @@ const htmlContent = `<!DOCTYPE html>
                             <span class="font-bold">STEMO's World</span>
                         </div>
                         <div class="flex gap-1">
+                            <button onclick="toggleSound()" id="soundToggleBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle sound effects">
+                                🔊
+                            </button>
                             <button onclick="setPlacementMode('metal')" id="modeMetalBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Metal">
                                 🔩
                             </button>
@@ -1643,6 +1646,142 @@ const htmlContent = `<!DOCTYPE html>
             spraying: false,
             lastTemp: 25
         };
+
+        // ============================================
+        // SOUND SYSTEM — Web Audio synthesized effects
+        // (No external audio files — all sounds generated in-browser)
+        // ============================================
+        // Safe localStorage wrappers — Safari private mode / restricted contexts
+        // can throw on access, which would otherwise break the entire script.
+        function safeStorageGet(k) {
+            try { return window.localStorage && localStorage.getItem(k); } catch (e) { return null; }
+        }
+        function safeStorageSet(k, v) {
+            try { if (window.localStorage) localStorage.setItem(k, v); } catch (e) { /* ignore */ }
+        }
+        var soundEnabled = (safeStorageGet('stemoSound') !== 'off');
+        var audioCtx = null;
+        var audioUnlocked = false;
+        // Throttle repetitive SFX so long programs don't stack hundreds of nodes.
+        var lastSoundAt = {};
+        var SOUND_COOLDOWN = { move: 80, turn: 80, spray: 120, click: 30 };
+        function getAudioCtx() {
+            if (!soundEnabled) return null;
+            if (!audioCtx) {
+                try {
+                    var AC = window.AudioContext || window.webkitAudioContext;
+                    if (!AC) return null;
+                    audioCtx = new AC();
+                } catch (e) { return null; }
+            }
+            if (audioCtx.state === 'suspended') {
+                try { audioCtx.resume(); } catch (e) { /* ignore */ }
+            }
+            return audioCtx;
+        }
+        // Explicit audio-unlock bootstrap for iOS Safari etc.: the first
+        // trusted user gesture creates/resumes the context, then we detach.
+        function unlockAudio() {
+            audioUnlocked = true;
+            var ctx = getAudioCtx();
+            if (ctx) {
+                // Play a near-silent blip to fully unlock on iOS
+                try {
+                    var o = ctx.createOscillator();
+                    var g = ctx.createGain();
+                    g.gain.value = 0.0001;
+                    o.connect(g); g.connect(ctx.destination);
+                    o.start(); o.stop(ctx.currentTime + 0.01);
+                } catch (e) { /* ignore */ }
+            }
+            window.removeEventListener('pointerdown', unlockAudio, true);
+            window.removeEventListener('keydown', unlockAudio, true);
+            window.removeEventListener('touchstart', unlockAudio, true);
+        }
+        window.addEventListener('pointerdown', unlockAudio, true);
+        window.addEventListener('keydown', unlockAudio, true);
+        window.addEventListener('touchstart', unlockAudio, true);
+        function tone(freq, dur, type, gain, freqEnd) {
+            var ctx = getAudioCtx();
+            if (!ctx) return;
+            var osc = ctx.createOscillator();
+            var g = ctx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            if (typeof freqEnd === 'number') {
+                osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), ctx.currentTime + dur);
+            }
+            var peak = (gain == null ? 0.15 : gain);
+            g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+            osc.connect(g); g.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + dur + 0.02);
+        }
+        function noiseBurst(dur, gain, filterFreq) {
+            var ctx = getAudioCtx();
+            if (!ctx) return;
+            var buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+            var data = buf.getChannelData(0);
+            for (var i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            var src = ctx.createBufferSource(); src.buffer = buf;
+            var filt = ctx.createBiquadFilter();
+            filt.type = 'lowpass'; filt.frequency.value = filterFreq || 1500;
+            var g = ctx.createGain();
+            var peak = (gain == null ? 0.12 : gain);
+            g.gain.setValueAtTime(peak, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+            src.connect(filt); filt.connect(g); g.connect(ctx.destination);
+            src.start(); src.stop(ctx.currentTime + dur);
+        }
+        function playSound(name) {
+            if (!soundEnabled) return;
+            // Per-sound cooldown to avoid stacking dozens of oscillators on
+            // long programs (e.g. lots of consecutive move/turn steps).
+            var cd = SOUND_COOLDOWN[name];
+            if (cd) {
+                var now = Date.now();
+                if (lastSoundAt[name] && now - lastSoundAt[name] < cd) return;
+                lastSoundAt[name] = now;
+            }
+            try {
+                switch (name) {
+                    case 'click':      tone(660, 0.05, 'square', 0.06); break;
+                    case 'move':       tone(220, 0.08, 'sawtooth', 0.07, 280); break;
+                    case 'turn':       tone(440, 0.10, 'triangle', 0.08, 540); break;
+                    case 'magnet_on':  tone(300, 0.12, 'sine', 0.12, 700);
+                                       setTimeout(function(){ tone(900, 0.08, 'sine', 0.10); }, 90); break;
+                    case 'magnet_off': tone(700, 0.10, 'sine', 0.10, 250); break;
+                    case 'pickup':     tone(523, 0.08, 'triangle', 0.13);
+                                       setTimeout(function(){ tone(784, 0.10, 'triangle', 0.13); }, 70);
+                                       setTimeout(function(){ tone(1047, 0.12, 'triangle', 0.13); }, 150); break;
+                    case 'spray':      noiseBurst(0.30, 0.10, 2200); break;
+                    case 'fire_out':   noiseBurst(0.45, 0.14, 900);
+                                       setTimeout(function(){ tone(880, 0.10, 'sine', 0.10);
+                                                              setTimeout(function(){ tone(1320, 0.15, 'sine', 0.10); }, 90); }, 300); break;
+                    case 'bonk':       tone(120, 0.12, 'square', 0.18, 60);
+                                       noiseBurst(0.08, 0.12, 400); break;
+                    case 'success':    tone(523, 0.10, 'triangle', 0.13);
+                                       setTimeout(function(){ tone(659, 0.10, 'triangle', 0.13); }, 100);
+                                       setTimeout(function(){ tone(784, 0.10, 'triangle', 0.13); }, 200);
+                                       setTimeout(function(){ tone(1047, 0.18, 'triangle', 0.14); }, 300); break;
+                }
+            } catch (e) { /* never let sound break gameplay */ }
+        }
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            safeStorageSet('stemoSound', soundEnabled ? 'on' : 'off');
+            var btn = document.getElementById('soundToggleBtn');
+            if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) playSound('click');
+        }
+        // Reflect persisted state in the button as soon as DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            var btn = document.getElementById('soundToggleBtn');
+            if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+        });
+
         
         var robotPanelVisible = true;
 
@@ -2648,6 +2787,7 @@ const htmlContent = `<!DOCTYPE html>
                 console.error('Workspace not ready');
                 return;
             }
+            playSound('click');
             
             // Create a new block
             var newBlock = workspace.newBlock(blockType);
@@ -2936,6 +3076,7 @@ const htmlContent = `<!DOCTYPE html>
             console.log('Executing:', cmd);
             
             if (cmd.action === 'move') {
+                playSound('move');
                 var rad = robot.angle * Math.PI / 180;
                 var newX = robot.x + Math.cos(rad) * cmd.value;
                 var newY = robot.y + Math.sin(rad) * cmd.value;
@@ -2963,6 +3104,7 @@ const htmlContent = `<!DOCTYPE html>
                             var dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist < pickupRange) {
                                 metal.pickedUp = true;
+                                playSound('pickup');
                                 if (challengeMode) {
                                     // Challenge: auto-collect, no carrying needed
                                     addChatMessage('stemo', "✅ Collected " + metal.type + "! Keep going! 🎉");
@@ -2978,6 +3120,7 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 }
             } else if (cmd.action === 'turn') {
+                playSound('turn');
                 robot.angle += cmd.value;
             } else if (cmd.action === 'home') {
                 // Go home without drawing
@@ -2994,6 +3137,7 @@ const htmlContent = `<!DOCTYPE html>
                 robot.visible = cmd.value;
             } else if (cmd.action === 'magnet') {
                 robot.magnetOn = cmd.value;
+                playSound(cmd.value ? 'magnet_on' : 'magnet_off');
                 if (cmd.value) {
                     // Magnet ON - try to pick up nearby metal
                     if (challengeMode || !robot.carrying) {
@@ -3008,6 +3152,7 @@ const htmlContent = `<!DOCTYPE html>
                                 if (dist < pickupRange) {
                                     metal.pickedUp = true;
                                     gotOne = true;
+                                    playSound('pickup');
                                     if (challengeMode) {
                                         addChatMessage('stemo', "✅ Collected " + metal.type + "! Keep going! 🎉");
                                         checkChallengeObjectives();
@@ -3076,6 +3221,7 @@ const htmlContent = `<!DOCTYPE html>
                 var wallDist = detectWallAhead();
                 if (wallDist <= 30) { // Wall within 1.5 steps
                     // Smart turn - choose best direction
+                    playSound('bonk');
                     var turnDir = chooseBestTurnDirection();
                     robot.angle += turnDir;
                     addChatMessage('stemo', "🚗 Wall! Turning " + (turnDir > 0 ? "right" : "left") + "...");
@@ -3124,10 +3270,12 @@ const htmlContent = `<!DOCTYPE html>
                         robot.waterLevel--;
                         fireInfo.fire.health--;
                         robot.spraying = true;
+                        playSound('spray');
                         
                         if (fireInfo.fire.health <= 0) {
                             // Fire extinguished!
                             fireObjects = fireObjects.filter(function(f) { return f !== fireInfo.fire; });
+                            playSound('fire_out');
                             addChatMessage('stemo', "💧💥 Fire extinguished! Great job! 🎉 Water left: " + robot.waterLevel + "/5");
                         } else {
                             addChatMessage('stemo', "💧 Spraying water! Fire health: " + fireInfo.fire.health + "/3 | Water left: " + robot.waterLevel + "/5");
@@ -3494,6 +3642,7 @@ const htmlContent = `<!DOCTYPE html>
                     // stop wherever we happened to be inside the 25px reach radius).
                     robot.x = targetPoint.x;
                     robot.y = targetPoint.y;
+                    playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
                     if (currentLesson) {
