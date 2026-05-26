@@ -4829,8 +4829,8 @@ const htmlContent = `<!DOCTYPE html>
             var width = container.clientWidth;
             var height = container.clientHeight;
             camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-            camera.position.set(0, 300, 300); // Isometric angle but closer
-            camera.lookAt(200, 0, 200); // Look at center of board
+            camera.position.set(75, 350, 600); // Isometric angle, centered on 2D canvas center (275,275)
+            camera.lookAt(275, 0, 275); // Look at center of board
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -4843,7 +4843,7 @@ const htmlContent = `<!DOCTYPE html>
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.target.set(200, 0, 200);
+            controls.target.set(275, 0, 275);
             controls.maxPolarAngle = Math.PI / 2 - 0.1; // Don't go below ground
             controls.minDistance = 100;
             controls.maxDistance = 800;
@@ -4865,21 +4865,21 @@ const htmlContent = `<!DOCTYPE html>
             dirLight.shadow.camera.bottom = -300;
             scene.add(dirLight);
 
-            // Floor
-            var floorGeometry = new THREE.PlaneGeometry(440, 440);
+            // Floor - sized to match 2D canvas (550x550), centered at (275,275) to match 2D coords
+            var floorGeometry = new THREE.PlaneGeometry(550, 550);
             var floorMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0xf0fdf4,
                 side: THREE.DoubleSide
             });
             var floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
-            floor.position.set(200, -1, 200);
+            floor.position.set(275, -1, 275);
             floor.receiveShadow = true;
             scene.add(floor);
             
-            // Grid helper
-            var gridHelper = new THREE.GridHelper(400, 20, 0x86efac, 0xe5e7eb);
-            gridHelper.position.set(200, 0, 200);
+            // Grid helper (1 step = 20px, so 27 grid divisions fit in 540 units)
+            var gridHelper = new THREE.GridHelper(540, 27, 0x86efac, 0xe5e7eb);
+            gridHelper.position.set(275, 0, 275);
             scene.add(gridHelper);
             
             // Robot Group (The Hover Bot)
@@ -4932,11 +4932,14 @@ const htmlContent = `<!DOCTYPE html>
             });
             threeShadow = new THREE.Mesh(shadowGeo, shadowMat);
             threeShadow.rotation.x = -Math.PI / 2;
-            threeShadow.position.set(200, 1, 200); // Slightly above floor
+            threeShadow.position.set(275, 1, 275); // Slightly above floor
             scene.add(threeShadow);
 
-            threeRobot.position.set(200, 0, 200);
+            threeRobot.position.set(275, 0, 275);
         }
+
+        // Three.js pen trail meshes (rebuilt every frame to mirror robot.trails)
+        var threeTrails = [];
 
         function animateThreeJS() {
             if (isIsometricView) {
@@ -5111,6 +5114,46 @@ const htmlContent = `<!DOCTYPE html>
                 threeTarget.position.set(targetPoint.x, 2, targetPoint.y);
                 scene.add(threeTarget);
             }
+
+            // Sync Pen Trails (drawn as thick line segments lying on the floor)
+            // Remove old trail meshes
+            threeTrails.forEach(function(t) {
+                scene.remove(t);
+                if (t.geometry) t.geometry.dispose();
+                if (t.material) t.material.dispose();
+            });
+            threeTrails = [];
+
+            // Group consecutive trail segments by color+size into one BufferGeometry for performance
+            if (robot.trails && robot.trails.length > 0) {
+                var grouped = {};
+                robot.trails.forEach(function(seg) {
+                    var key = (seg.color || '#6366f1') + '|' + (seg.size || 4);
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(seg);
+                });
+
+                Object.keys(grouped).forEach(function(key) {
+                    var parts = key.split('|');
+                    var color = parts[0];
+                    var size = parseFloat(parts[1]);
+                    var segs = grouped[key];
+
+                    var positions = [];
+                    segs.forEach(function(seg) {
+                        // Lay trails just above the floor so they're visible from any angle
+                        positions.push(seg.x1, 1.5, seg.y1);
+                        positions.push(seg.x2, 1.5, seg.y2);
+                    });
+
+                    var geom = new THREE.BufferGeometry();
+                    geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                    var mat = new THREE.LineBasicMaterial({ color: color, linewidth: size });
+                    var lines = new THREE.LineSegments(geom, mat);
+                    scene.add(lines);
+                    threeTrails.push(lines);
+                });
+            }
         }
 
         function toggleIsometricView() {
@@ -5125,6 +5168,9 @@ const htmlContent = `<!DOCTYPE html>
                 btn.title = "Switch to 2D";
                 addChatMessage('stemo', "🤖 🪐 3D Mode Initialized! Zoom and Rotate enabled! 🚀");
                 
+                // Reset robot to home so it appears centered when entering 3D mode
+                resetRobot();
+
                 // Show Three.js container
                 threeContainer.classList.remove('hidden');
                 initThreeJS();
