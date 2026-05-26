@@ -3475,6 +3475,11 @@ const htmlContent = `<!DOCTYPE html>
                 var dist = Math.sqrt(dx * dx + dy * dy);
                 
                 if (dist < 25) {
+                    // Snap to the exact target position so the robot lands ON the target,
+                    // not just within ~1 cell of it (step size is 20px so we'd otherwise
+                    // stop wherever we happened to be inside the 25px reach radius).
+                    robot.x = targetPoint.x;
+                    robot.y = targetPoint.y;
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
                     if (currentLesson) {
