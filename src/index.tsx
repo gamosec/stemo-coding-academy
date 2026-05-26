@@ -1397,7 +1397,7 @@ const htmlContent = `<!DOCTYPE html>
                             </div>
                         </div>
                         <!-- Center: placement hint -->
-                        <span id="placementModeText" class="flex-1 text-center">Click to place: 🔩 Metal</span>
+                        <span id="placementModeText" class="flex-1 text-center">🖱️ Select mode — click an object to select it, then press Delete</span>
                         <!-- Right: exit button (shown during challenge) -->
                         <div id="missionExitBtn" class="hidden">
                             <button onclick="exitChallengeMode()" class="bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow px-3 py-0.5 text-xs font-bold transition-colors">✕ Exit Challenge</button>
@@ -1667,7 +1667,7 @@ const htmlContent = `<!DOCTYPE html>
         var targetPoint = null;
         
         // Placement mode: 'none', 'wall', 'target', 'metal'
-        var placementMode = 'metal';
+        var placementMode = null; // null = Select mode (click objects to select/delete)
         
         // ============================================
         // CHALLENGE MODE STATE
@@ -4547,8 +4547,17 @@ const htmlContent = `<!DOCTYPE html>
         // PLACEMENT MODE & CANVAS CLICK HANDLER
         // ============================================
         function setPlacementMode(mode) {
+            // Toggle off if the same mode is clicked again → enter Select mode
+            if (placementMode === mode) {
+                mode = null;
+            }
             placementMode = mode;
-            
+
+            // Clear any current selection when switching modes
+            selectedObject = null;
+            selectedObjectType = null;
+            drawRobot();
+
             // Update button styles
             document.getElementById('modeMetalBtn').className = mode === 'metal' 
                 ? 'bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
@@ -4562,17 +4571,26 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('modeTargetBtn').className = mode === 'target'
                 ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
                 : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
-            
+
+            // Cursor changes so the user feels what mode they are in
+            var canvasEl = document.getElementById('robotCanvas');
+            if (canvasEl) canvasEl.style.cursor = mode ? 'crosshair' : 'pointer';
+
             // Update indicator text
             var modeText = {
-                'metal': 'Click to place: 🔩 Metal',
-                'wall': 'Click & drag to place: 🧱 Wall',
-                'fire': 'Click to place: 🔥 Fire',
-                'target': 'Click to place: 🎯 Target'
+                'metal': 'Click to place: 🔩 Metal  (click 🧲 again to stop)',
+                'wall':  'Click & drag to place: 🧱 Wall  (click 🧱 again to stop)',
+                'fire':  'Click to place: 🔥 Fire  (click 🔥 again to stop)',
+                'target':'Click to place: 🎯 Target  (click 🎯 again to stop)'
             };
-            document.getElementById('placementModeText').textContent = modeText[mode] || 'Click to place';
-            
-            addChatMessage('stemo', '🤖 Mode: ' + modeText[mode]);
+            document.getElementById('placementModeText').textContent =
+                mode ? modeText[mode] : '🖱️ Select mode — click an object to select it, then press Delete';
+
+            if (mode) {
+                addChatMessage('stemo', '🤖 ' + modeText[mode]);
+            } else {
+                addChatMessage('stemo', '🤖 🖱️ Select mode — click any object to highlight it, then press Delete (or the 🗑️ button) to remove it.');
+            }
         }
         
         var wallStartPos = null;
@@ -4583,25 +4601,33 @@ const htmlContent = `<!DOCTYPE html>
             var x = (event.clientX - rect.left) * (canvas.width / rect.width);
             var y = (event.clientY - rect.top) * (canvas.height / rect.height);
             
-            // Keep within bounds
-            x = Math.max(20, Math.min(380, x));
-            y = Math.max(20, Math.min(380, y));
-            
-            // First, check if we clicked on an existing object (for selection)
-            // Only select if we are NOT in placement mode (allowing stacking)
-            var clickedObject = findObjectAt(x, y);
-            if (clickedObject && !placementMode) {
-                selectedObject = clickedObject.obj;
-                selectedObjectType = clickedObject.type;
-                drawRobot();
-                addChatMessage('stemo', '🤖 Selected ' + clickedObject.type + '! Press Delete or click 🗑️ to remove.');
+            // Keep within bounds (canvas is 550×550)
+            x = Math.max(25, Math.min(525, x));
+            y = Math.max(25, Math.min(525, y));
+
+            // In Select mode (no placement), click an object to select it
+            if (!placementMode) {
+                var clickedObject = findObjectAt(x, y);
+                if (clickedObject) {
+                    selectedObject = clickedObject.obj;
+                    selectedObjectType = clickedObject.type;
+                    drawRobot();
+                    addChatMessage('stemo', '🤖 Selected ' + clickedObject.type + '! Press Delete or click 🗑️ to remove it.');
+                } else {
+                    // Clicked empty space → deselect
+                    if (selectedObject) {
+                        selectedObject = null;
+                        selectedObjectType = null;
+                        drawRobot();
+                    }
+                }
                 return;
             }
-            
-            // Clear selection when clicking empty space for placement
+
+            // In placement mode → place the object. Clear any prior selection.
             selectedObject = null;
             selectedObjectType = null;
-            
+
             if (placementMode === 'metal') {
                 addMetalAt(x, y);
             } else if (placementMode === 'wall') {
