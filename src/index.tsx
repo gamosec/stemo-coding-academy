@@ -4345,18 +4345,46 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.closePath();
                 ctx.fill();
                 
-                // Draw carried object attached to robot
+                // Draw carried object attached to robot — BIG and obvious so kids
+                // can clearly see "I'm carrying something" vs "I'm empty-handed".
                 if (robot.carrying) {
+                    var carryEmoji = robot.carrying.type === 'gear'  ? '⚙️'
+                                   : robot.carrying.type === 'screw' ? '🪛'
+                                   : '🔩';
                     ctx.save();
-                    ctx.translate(0, 14);
-                    ctx.fillStyle = '#94a3b8';
+                    ctx.translate(0, 16);
+                    // Pulsing glow ring
+                    var pulse = 1 + 0.15 * Math.sin(Date.now() / 200);
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 14;
+                    ctx.fillStyle = '#fde047';
                     ctx.beginPath();
-                    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 11 * pulse, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = '#475569';
-                    ctx.font = '8px Arial';
+                    ctx.shadowBlur = 0;
+                    // Inner plate
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 9, 0, Math.PI * 2);
+                    ctx.fill();
+                    // The actual object emoji
+                    ctx.font = '14px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText('🔩', 0, 3);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(carryEmoji, 0, 1);
+                    ctx.restore();
+
+                    // "Carrying!" label so the state is unmistakable
+                    ctx.save();
+                    ctx.rotate(-robot.angle * Math.PI / 180 - Math.PI / 2);
+                    ctx.fillStyle = 'rgba(251, 191, 36, 0.95)';
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.font = 'bold 9px Arial';
+                    ctx.textAlign = 'center';
+                    var label = '🧲 Carrying ' + robot.carrying.type;
+                    ctx.strokeText(label, 0, -38);
+                    ctx.fillText(label, 0, -38);
                     ctx.restore();
                 }
                 
