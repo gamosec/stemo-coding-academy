@@ -3539,6 +3539,7 @@ const htmlContent = `<!DOCTYPE html>
                     
                     if (dist < 30) {
                         robot.waterLevel = 5;
+                        playSound('success');
                         addChatMessage('stemo', "💧 Tank refilled! Water: 5/5");
                     } else {
                         var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
@@ -3546,6 +3547,7 @@ const htmlContent = `<!DOCTYPE html>
                         var rad = robot.angle * Math.PI / 180;
                         robot.x += Math.cos(rad) * 15;
                         robot.y += Math.sin(rad) * 15;
+                        playSound('move');
                     }
                     
                     stepCount++;
@@ -3572,10 +3574,12 @@ const htmlContent = `<!DOCTYPE html>
                     robot.visible = true;
                     // Trigger spray effect
                     robot.spraying = true;
+                    playSound('spray');
                     setTimeout(() => { robot.spraying = false; }, 1000);
                     
                     if (nearestFire.health <= 0) {
                         fireObjects = fireObjects.filter(function(f) { return f !== nearestFire; });
+                        playSound('fire_out');
                         addChatMessage('stemo', "🚒💧 Fire out! " + fireObjects.length + " fires remaining. Water: " + robot.waterLevel + "/5");
                     }
                     
@@ -3592,11 +3596,14 @@ const htmlContent = `<!DOCTYPE html>
                     var wallDist = detectWallAhead();
                     
                     if (wallDist <= 30) {
+                        playSound('bonk');
                         var turnDir = chooseBestTurnDirection();
                         robot.angle += turnDir;
                     } else if (Math.abs(angleDiff) > 15) {
+                        playSound('turn');
                         robot.angle += angleDiff > 0 ? 15 : -15;
                     } else {
+                        playSound('move');
                         var rad = robot.angle * Math.PI / 180;
                         robot.x += Math.cos(rad) * 15;
                         robot.y += Math.sin(rad) * 15;
@@ -3665,13 +3672,16 @@ const htmlContent = `<!DOCTYPE html>
                 
                 if (wallDist <= 30) {
                     // Wall ahead - use smart turn to choose best direction
+                    playSound('bonk');
                     var turnDir = chooseBestTurnDirection();
                     robot.angle += turnDir;
                 } else if (Math.abs(angleDiff) > 15) {
                     // Need to turn toward target
+                    playSound('turn');
                     robot.angle += angleDiff > 0 ? 15 : -15;
                 } else {
                     // Move forward
+                    playSound('move');
                     var rad = robot.angle * Math.PI / 180;
                     robot.x += Math.cos(rad) * 20;
                     robot.y += Math.sin(rad) * 20;
