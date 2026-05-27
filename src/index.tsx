@@ -670,12 +670,12 @@ const curriculum = {
             difficulty: 'easy',
             xpReward: 100,
             icon: '🎨',
-            introduction: "Let's make our drawings beautiful and colourful! 🌈 My pen can draw in ANY colour you choose. You can also control how THICK or thin the line is using the Size block. A Size of 1 is a hairline; Size 20 is a thick marker! Real graphic design software (like the logos on your favourite games) uses exactly these same ideas — colour + size + position. Here's a pro tip: always set your colour and size BEFORE putting the pen down, so the very first stroke is already perfect!",
+            introduction: "Let's make our drawings beautiful and colourful! 🎨 My pen can draw in ANY colour you choose. You can also control how THICK or thin the line is using the Size block. A Size of 1 is a hairline; Size 20 is a thick marker! Real graphic design software (like the logos on your favourite games) uses exactly these same ideas — colour + size + position. Here's a pro tip: always set your colour and size BEFORE putting the pen down, so the very first stroke is already perfect!",
             tasks: [
                 { id: 't1', text: 'Add a "Color" block and pick red — then Pen Down → Forward 5 → Run. Red line! 🔴', completed: false },
                 { id: 't2', text: 'Add a "Size 10" block before Pen Down — Run again. The line is now thick!', completed: false },
                 { id: 't3', text: 'Change the Color block to blue and Size to 3. Run — thin blue line! 🔵', completed: false },
-                { id: 't4', text: 'Now build this: Color red → Pen Down → Forward 3 → Color blue → Forward 3 → Color green → Forward 3. Three-colour line! 🌈', completed: false },
+                { id: 't4', text: 'Now build this: Color red → Pen Down → Forward 3 → Color blue → Forward 3 → Color green → Forward 3. Three-colour line! 🎨', completed: false },
                 { id: 't5', text: 'Try drawing a thick red square: Color red → Size 8 → Pen Down → Forward 4 → Right 90 (×4)', completed: false }
             ],
             hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result. You can also change colour mid-drawing — add a new Color block between Forward blocks!',
