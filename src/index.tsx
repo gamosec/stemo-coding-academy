@@ -4677,7 +4677,12 @@ const htmlContent = `<!DOCTYPE html>
             if (currentLesson && currentLesson.nextLesson) {
                 var nextLessonId = currentLesson.nextLesson;
                 closeSuccessModal();
+                // Clear challenge state so the next lesson opens fresh
+                challengeMode = false;
+                challengeActiveLessonId = null;
+                challengeCompleted = false;
                 setTimeout(function() {
+                    switchTab('learn');   // always land on Learn, not Code
                     selectLesson(nextLessonId);
                 }, 300);
             } else {
