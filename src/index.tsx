@@ -1815,11 +1815,55 @@ const htmlContent = `<!DOCTYPE html>
         var missionObjectives = null;
         var challengeCompleted = false;
 
-        var MISSION_LESSON_IDS = ['lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+        var MISSION_LESSON_IDS = ['lesson-4','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+
+        // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
+        var targetTrails = [];
 
         // Pre-configured challenge worlds for each mission lesson
         // Canvas: 550x550, STEMO starts at center (275, 275)
         var LESSON_CHALLENGES = {
+            'lesson-4': {
+                title: 'Draw the Spin Star! ⭐',
+                description: 'Copy the star pattern shown in ghost lines on the board. Use 3 colours, draw 4-sided shapes with loops, and rotate them!',
+                setup: function() {
+                    // Simulate the target pattern and store as ghost trails for canvas reference.
+                    // Pattern: Repeat 8 → (Repeat 4 → Color red, Move 2, Color blue, Move 2,
+                    //           Color black, Move 2, Right 90°) → Right 45°
+                    // Each Move 2 = 40 px (2 × 20 px/step).  Robot starts at (275, 275).
+                    var simX = 275, simY = 275, simAngle = 0;
+                    var cols = ['#ef4444', '#6366f1', '#1e293b']; // red, blue, black
+                    targetTrails = [];
+                    var step = 40;
+                    for (var i = 0; i < 8; i++) {
+                        for (var j = 0; j < 4; j++) {
+                            for (var c = 0; c < 3; c++) {
+                                var rad = simAngle * Math.PI / 180;
+                                var nx = simX + Math.cos(rad) * step;
+                                var ny = simY + Math.sin(rad) * step;
+                                targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: cols[c] });
+                                simX = nx; simY = ny;
+                            }
+                            simAngle += 90;
+                        }
+                        simAngle += 45;
+                    }
+                },
+                objectives: [
+                    { id: 'colors', label: '🎨 Use 3+ different colours', check: function() {
+                        var seen = {};
+                        robot.trails.forEach(function(t) { seen[t.color] = true; });
+                        return Object.keys(seen).length >= 3;
+                    }},
+                    { id: 'segments', label: '✏️ Draw 24+ line segments', check: function() {
+                        return robot.trails.length >= 24;
+                    }},
+                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }}
+                ]
+            },
             'lesson-8': {
                 title: 'Collect all 3 metal pieces!',
                 description: 'Activate your magnet and navigate to pick up every metal object on the board.',
@@ -2290,6 +2334,7 @@ const htmlContent = `<!DOCTYPE html>
             challengeMode = false;
             challengeCompleted = false;
             missionObjectives = null;
+            targetTrails = [];
             document.getElementById('missionHUD').classList.add('hidden');
             document.getElementById('missionBadge').classList.add('hidden');
             document.getElementById('missionExitBtn').classList.add('hidden');
@@ -2342,6 +2387,7 @@ const htmlContent = `<!DOCTYPE html>
             clearWorkspace();
 
             // Clear board objects (without animation/messages)
+            targetTrails = [];
             metalObjects = []; wallObjects = []; fireObjects = [];
             targetPoint = null; selectedObject = null; selectedObjectType = null;
             robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
@@ -3748,6 +3794,22 @@ const htmlContent = `<!DOCTYPE html>
             ctx.textAlign = 'right';
             ctx.fillText('1 step = 1 grid line', canvas.width - 5, canvas.height - 5);
             
+            // Draw ghost target pattern (faded reference lines for drawing challenges)
+            if (targetTrails.length > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.18;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                targetTrails.forEach(function(trail) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = trail.color;
+                    ctx.moveTo(trail.x1, trail.y1);
+                    ctx.lineTo(trail.x2, trail.y2);
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
+
             // Draw trails
             robot.trails.forEach(function(trail) {
                 ctx.beginPath();
@@ -5596,7 +5658,11 @@ const htmlContent = `<!DOCTYPE html>
                     fires: fireObjects,
                     target: targetPoint
                 },
-                challengeLessonId: (challengeMode && currentLesson) ? currentLesson.id : null,
+                lessonId: currentLesson ? currentLesson.id : null,
+                isChallenge: challengeMode,
+                taskProgress: (currentLesson && currentLesson.tasks)
+                    ? currentLesson.tasks.map(function(t) { return { id: t.id, completed: t.completed }; })
+                    : [],
                 version: '1.0'
             };
             
@@ -5636,7 +5702,11 @@ const htmlContent = `<!DOCTYPE html>
                     fires: fireObjects,
                     target: targetPoint
                 },
-                challengeLessonId: (challengeMode && currentLesson) ? currentLesson.id : null,
+                lessonId: currentLesson ? currentLesson.id : null,
+                isChallenge: challengeMode,
+                taskProgress: (currentLesson && currentLesson.tasks)
+                    ? currentLesson.tasks.map(function(t) { return { id: t.id, completed: t.completed }; })
+                    : [],
                 version: '1.0'
             };
             
@@ -5652,6 +5722,7 @@ const htmlContent = `<!DOCTYPE html>
 
         // Minimal metadata for challenge lessons (used when restoring a saved challenge file)
         var CHALLENGE_LESSON_META = {
+            'lesson-4':  { id: 'lesson-4',  title: 'Color Artist',       description: 'Paint with colours and control line thickness',          hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result!',                      icon: '🎨', xpReward: 100,  nextLesson: 'lesson-5'  },
             'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
             'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
@@ -5677,32 +5748,46 @@ const htmlContent = `<!DOCTYPE html>
                         var xml = Blockly.utils.xml.textToDom(projectData.code);
                         Blockly.Xml.domToWorkspace(xml, workspace);
                         
-                        var savedLessonId = projectData.challengeLessonId || null;
+                        // Support both old format (challengeLessonId) and new format (lessonId + isChallenge)
+                        var savedLessonId = projectData.lessonId || projectData.challengeLessonId || null;
+                        var savedIsChallenge = projectData.isChallenge || (!!projectData.challengeLessonId);
+                        var savedTaskProgress = projectData.taskProgress || [];
 
-                        if (savedLessonId && LESSON_CHALLENGES[savedLessonId]) {
+                        // Helper: restore lesson header + task completions in UI
+                        function _restoreLessonUI(lesson) {
+                            if (!lesson) return;
+                            currentLesson = lesson;
+                            document.getElementById('currentLessonTitle').textContent = lesson.title;
+                            document.getElementById('currentLessonDesc').textContent = lesson.description;
+                            var hintEl = document.getElementById('hintText');
+                            if (hintEl) hintEl.textContent = lesson.hint || '';
+                            var hintPanel = document.getElementById('hintPanel');
+                            if (hintPanel) hintPanel.classList.remove('hidden');
+                            // Restore task tick marks
+                            if (lesson.tasks && savedTaskProgress.length) {
+                                savedTaskProgress.forEach(function(saved) {
+                                    var task = lesson.tasks.find(function(t) { return t.id === saved.id; });
+                                    if (task) task.completed = saved.completed;
+                                });
+                            }
+                        }
+
+                        if (savedLessonId && savedIsChallenge && LESSON_CHALLENGES[savedLessonId]) {
                             // ── Restore a challenge file ──────────────────────────────────
-                            // Reset everything cleanly first
                             challengeMode = false;
                             challengeCompleted = false;
                             missionObjectives = null;
+                            targetTrails = [];
                             metalObjects = []; wallObjects = []; fireObjects = [];
                             targetPoint = null;
                             resetRobot();
 
-                            // Restore lesson metadata so lesson-completion tracking works
-                            currentLesson = CHALLENGE_LESSON_META[savedLessonId] || null;
+                            var lessonMeta = CHALLENGE_LESSON_META[savedLessonId]
+                                || findLessonById(savedLessonId)
+                                || null;
+                            _restoreLessonUI(lessonMeta);
 
-                            // Restore lesson header in UI
-                            if (currentLesson) {
-                                document.getElementById('currentLessonTitle').textContent = currentLesson.title;
-                                document.getElementById('currentLessonDesc').textContent = currentLesson.description;
-                                var hintEl = document.getElementById('hintText');
-                                if (hintEl) hintEl.textContent = currentLesson.hint;
-                                var hintPanel = document.getElementById('hintPanel');
-                                if (hintPanel) hintPanel.classList.remove('hidden');
-                            }
-
-                            // Re-run the challenge setup (rebuilds walls/metals/fires/target)
+                            // Re-run the challenge setup (rebuilds world objects + targetTrails)
                             var ch = LESSON_CHALLENGES[savedLessonId];
                             ch.setup();
 
@@ -5712,7 +5797,6 @@ const htmlContent = `<!DOCTYPE html>
                                 return { id: obj.id, label: obj.label, done: false, check: obj.check };
                             });
 
-                            // Show challenge UI elements
                             document.getElementById('missionTitle').textContent = ch.title;
                             updateMissionHUD();
                             showMissionToast();
@@ -5723,14 +5807,22 @@ const htmlContent = `<!DOCTYPE html>
                             addChatMessage('stemo', '📂 Challenge loaded! ' + ch.description + ' Good luck! 💪');
 
                         } else {
-                            // ── Restore a free-build file ─────────────────────────────────
-                            // Exit challenge mode if it was active
+                            // ── Restore a free-build (or lesson-only) file ────────────────
                             challengeMode = false;
                             challengeCompleted = false;
                             missionObjectives = null;
+                            targetTrails = [];
                             document.getElementById('missionHUD').classList.add('hidden');
                             document.getElementById('missionBadge').classList.add('hidden');
                             document.getElementById('missionExitBtn').classList.add('hidden');
+
+                            // Restore lesson context if one was saved
+                            if (savedLessonId) {
+                                var freeLessonMeta = CHALLENGE_LESSON_META[savedLessonId]
+                                    || findLessonById(savedLessonId)
+                                    || null;
+                                _restoreLessonUI(freeLessonMeta);
+                            }
 
                             if (projectData.world) {
                                 robot = projectData.world.robot || robot;
