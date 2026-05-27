@@ -2000,20 +2000,20 @@ const htmlContent = `<!DOCTYPE html>
             },
             'lesson-9': {
                 title: 'Two walls, two turns — reach the target!',
-                description: 'STEMO starts facing RIGHT. Use Repeat loops with "If Wall Within 2 steps → Turn Right, else Move 1" to navigate: turn at the first wall, move forward, turn at the second wall, then drive to the target!',
+                description: 'STEMO starts facing UP (north). Use Repeat loops with "If Wall Within 2 steps → Turn Right, else Move 1" to navigate: turn right at the top wall (now facing east), keep going until the right wall triggers a second right turn (now facing south), then drive straight down to the target!',
                 setup: function() {
                     wallObjects = [
-                        // Top horizontal wall (left area)
-                        { id: wallIdCounter++, x: 115, y: 135, width: 180, height: 40 },
-                        // Right vertical wall — first wall STEMO hits going east
-                        // Left face at x=415 → STEMO at x=375 is exactly 2 steps away → triggers turn
-                        { id: wallIdCounter++, x: 415, y: 155, width: 40, height: 260 },
-                        // Bottom horizontal wall — second wall STEMO hits going south
-                        // Top face at y=415 → STEMO at y=375 is exactly 2 steps away → triggers turn
-                        { id: wallIdCounter++, x: 295, y: 415, width: 160, height: 40 }
+                        // Top-left horizontal wall — STEMO hits this going north
+                        // Bottom face at y=195 → STEMO at y=235 is exactly 2 steps away → Turn Right (faces east)
+                        { id: wallIdCounter++, x: 115, y: 155, width: 180, height: 40 },
+                        // Right vertical wall — STEMO hits this going east
+                        // Left face at x=415 → STEMO at x=375 is exactly 2 steps away → Turn Right (faces south)
+                        { id: wallIdCounter++, x: 415, y: 155, width: 40, height: 300 },
+                        // Bottom horizontal — completes the L-shape visually (below the target)
+                        { id: wallIdCounter++, x: 295, y: 455, width: 160, height: 40 }
                     ];
-                    // Target is to the west after both turns — reachable by moving left
-                    targetPoint = { x: 175, y: 375 };
+                    // Target is directly south after the two turns — 8 steps south from (375, 235)
+                    targetPoint = { x: 375, y: 395 };
                 },
                 objectives: [
                     { id: 'reach', label: '🎯 Navigate both walls and reach the target!', check: function() {
