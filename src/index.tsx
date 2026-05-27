@@ -3226,8 +3226,20 @@ const htmlContent = `<!DOCTYPE html>
             if (cmd.action === 'move') {
                 playSound('move');
                 var rad = robot.angle * Math.PI / 180;
-                var newX = robot.x + Math.cos(rad) * cmd.value;
-                var newY = robot.y + Math.sin(rad) * cmd.value;
+                var moveDx = Math.cos(rad), moveDy = Math.sin(rad);
+                var moveDistance = cmd.value;
+
+                // Wall collision — stop at wall face instead of walking through
+                for (var wc = 0; wc < wallObjects.length; wc++) {
+                    var wobj = wallObjects[wc];
+                    var wDist = rayBoxIntersection(robot.x, robot.y, moveDx, moveDy, wobj.x, wobj.y, wobj.width, wobj.height);
+                    if (wDist > 0 && wDist < moveDistance) {
+                        moveDistance = Math.max(0, wDist - 2); // stop 2 px in front of face
+                    }
+                }
+
+                var newX = robot.x + moveDx * moveDistance;
+                var newY = robot.y + moveDy * moveDistance;
                 
                 if (robot.penDown) {
                     robot.trails.push({
