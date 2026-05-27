@@ -1815,7 +1815,7 @@ const htmlContent = `<!DOCTYPE html>
         var missionObjectives = null;
         var challengeCompleted = false;
 
-        var MISSION_LESSON_IDS = ['lesson-6','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
 
         // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
         var targetTrails = [];
@@ -1823,6 +1823,72 @@ const htmlContent = `<!DOCTYPE html>
         // Pre-configured challenge worlds for each mission lesson
         // Canvas: 550x550, STEMO starts at center (275, 275)
         var LESSON_CHALLENGES = {
+            'lesson-4': {
+                title: 'Draw the Colour Square! 🟥🟦🟩🟪',
+                description: 'Draw a square where each side is a different colour. Use Color + Size blocks and turn 90° between each side!',
+                setup: function() {
+                    // Ghost: 4 coloured sides of a square starting at (175,175), 100px per side
+                    var cols = ['#ef4444','#6366f1','#22c55e','#a855f7'];
+                    var simX = 175, simY = 175, simAngle = 0;
+                    targetTrails = [];
+                    for (var i = 0; i < 4; i++) {
+                        var rad = simAngle * Math.PI / 180;
+                        var nx = simX + Math.cos(rad) * 100;
+                        var ny = simY + Math.sin(rad) * 100;
+                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: cols[i] });
+                        simX = nx; simY = ny;
+                        simAngle += 90;
+                    }
+                },
+                objectives: [
+                    { id: 'colors', label: '🎨 Use 4 different colours', check: function() {
+                        var seen = {};
+                        robot.trails.forEach(function(t) { seen[t.color] = true; });
+                        return Object.keys(seen).length >= 4;
+                    }},
+                    { id: 'size', label: '🖌️ Use pen Size 5 or bigger', check: function() {
+                        return robot.trails.some(function(t) { return (t.size || 4) >= 5; });
+                    }},
+                    { id: 'shape', label: '⬜ Draw 4 sides (4+ segments)', check: function() {
+                        return robot.trails.length >= 4;
+                    }}
+                ]
+            },
+            'lesson-5': {
+                title: 'Build the Staircase! 🪜',
+                description: 'Draw a staircase going right and upward using a Repeat loop. Each step = Forward right + Forward up!',
+                setup: function() {
+                    // Ghost: 5-step staircase — alternating right (purple) and up (green) segments
+                    var simX = 175, simY = 425, simAngle = 0;
+                    targetTrails = [];
+                    for (var i = 0; i < 5; i++) {
+                        // Horizontal step (right)
+                        var r1 = simAngle * Math.PI / 180;
+                        var nx = simX + Math.cos(r1) * 40, ny = simY + Math.sin(r1) * 40;
+                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#6366f1' });
+                        simX = nx; simY = ny;
+                        simAngle -= 90; // Left 90 — face up
+                        // Vertical step (up)
+                        var r2 = simAngle * Math.PI / 180;
+                        nx = simX + Math.cos(r2) * 40; ny = simY + Math.sin(r2) * 40;
+                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#22c55e' });
+                        simX = nx; simY = ny;
+                        simAngle += 90; // Right 90 — face right again
+                    }
+                },
+                objectives: [
+                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }},
+                    { id: 'segments', label: '🪜 Draw 10+ segments (5 steps)', check: function() {
+                        return robot.trails.length >= 10;
+                    }},
+                    { id: 'pen', label: '✏️ Use Pen Down to draw', check: function() {
+                        return robot.trails.length > 0;
+                    }}
+                ]
+            },
             'lesson-6': {
                 title: 'Draw the Spin Star! ⭐',
                 description: 'Copy the star pattern shown in ghost lines on the board. Use 3 colours, draw 4-sided shapes with loops, and rotate them!',
@@ -1861,6 +1927,38 @@ const htmlContent = `<!DOCTYPE html>
                     { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }}
+                ]
+            },
+            'lesson-7': {
+                title: 'Draw a Five-Pointed Star! ⭐',
+                description: 'Use a Repeat 5 loop and the secret star angle (144°) to draw a perfect 5-pointed star!',
+                setup: function() {
+                    // Ghost: 5-pointed star. Start at (275,310) facing up (270°), step=100px
+                    var simX = 275, simY = 310, simAngle = 270;
+                    targetTrails = [];
+                    for (var i = 0; i < 5; i++) {
+                        var rad = simAngle * Math.PI / 180;
+                        var nx = simX + Math.cos(rad) * 100;
+                        var ny = simY + Math.sin(rad) * 100;
+                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#f59e0b' });
+                        simX = nx; simY = ny;
+                        simAngle += 144;
+                    }
+                },
+                objectives: [
+                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }},
+                    { id: 'angle', label: '↪️ Use a Right 144° turn', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) {
+                            return b.type === 'turn_right' && Number(b.getFieldValue('DEGREES')) === 144;
+                        });
+                    }},
+                    { id: 'segments', label: '⭐ Draw 5 star lines', check: function() {
+                        return robot.trails.length >= 5;
                     }}
                 ]
             },
@@ -5722,7 +5820,10 @@ const htmlContent = `<!DOCTYPE html>
 
         // Minimal metadata for challenge lessons (used when restoring a saved challenge file)
         var CHALLENGE_LESSON_META = {
+            'lesson-4':  { id: 'lesson-4',  title: 'Color Artist',         description: 'Paint with colours and control line thickness',             hint: 'Place Color and Size blocks BEFORE Pen Down. Change Color between sides!',                   icon: '🎨', xpReward: 100,  nextLesson: 'lesson-5'  },
+            'lesson-5':  { id: 'lesson-5',  title: 'Loop Power!',           description: 'Use Repeat to replace boring repeated blocks',              hint: 'Try: Repeat 5 → Forward 2, Left 90, Forward 2, Right 90 for a staircase!',                 icon: '🔁', xpReward: 150,  nextLesson: 'lesson-6'  },
             'lesson-6':  { id: 'lesson-6',  title: 'Shape Artist',        description: 'Use maths to draw any polygon you can imagine',          hint: 'Formula: Turn Angle = 360 ÷ Sides. Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45!', icon: '📐', xpReward: 200,  nextLesson: 'lesson-7'  },
+            'lesson-7':  { id: 'lesson-7',  title: 'Star Power!',          description: 'Draw stunning stars using a secret angle trick',            hint: 'Star formula: Repeat 5 → Forward 8, Right 144°. The magic number is 144!',                   icon: '⭐', xpReward: 300,  nextLesson: 'lesson-8'  },
             'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
             'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
