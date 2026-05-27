@@ -1815,7 +1815,7 @@ const htmlContent = `<!DOCTYPE html>
         var missionObjectives = null;
         var challengeCompleted = false;
 
-        var MISSION_LESSON_IDS = ['lesson-4','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+        var MISSION_LESSON_IDS = ['lesson-6','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
 
         // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
         var targetTrails = [];
@@ -1823,7 +1823,7 @@ const htmlContent = `<!DOCTYPE html>
         // Pre-configured challenge worlds for each mission lesson
         // Canvas: 550x550, STEMO starts at center (275, 275)
         var LESSON_CHALLENGES = {
-            'lesson-4': {
+            'lesson-6': {
                 title: 'Draw the Spin Star! ⭐',
                 description: 'Copy the star pattern shown in ghost lines on the board. Use 3 colours, draw 4-sided shapes with loops, and rotate them!',
                 setup: function() {
@@ -5722,7 +5722,7 @@ const htmlContent = `<!DOCTYPE html>
 
         // Minimal metadata for challenge lessons (used when restoring a saved challenge file)
         var CHALLENGE_LESSON_META = {
-            'lesson-4':  { id: 'lesson-4',  title: 'Color Artist',       description: 'Paint with colours and control line thickness',          hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result!',                      icon: '🎨', xpReward: 100,  nextLesson: 'lesson-5'  },
+            'lesson-6':  { id: 'lesson-6',  title: 'Shape Artist',        description: 'Use maths to draw any polygon you can imagine',          hint: 'Formula: Turn Angle = 360 ÷ Sides. Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45!', icon: '📐', xpReward: 200,  nextLesson: 'lesson-7'  },
             'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
             'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
