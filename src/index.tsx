@@ -725,20 +725,20 @@ const curriculum = {
         {
             id: 'lesson-7',
             title: 'Star Power!',
-            description: 'Draw stunning stars using a secret angle trick',
+            description: 'Draw beautiful 8-pointed stars using a secret angle trick',
             difficulty: 'hard',
             xpReward: 300,
-            icon: '⭐',
-            introduction: "Stars are special because the lines CROSS OVER each other! For a regular 5-pointed star, you might think you turn 72° (360÷5=72)... but that draws a pentagon! The secret is you turn 144° — which is 2×72. This is because you skip one point each time and draw a crossing line instead of a flat side. The result is the classic ★ shape! This same technique is used in logo design (many country flags have stars drawn this way). For a 7-pointed star you turn 2×(360÷7) ≈ 102.9°. Let's make some stars!",
+            icon: '✨',
+            introduction: "Stars are special because the lines CROSS OVER each other! An 8-pointed star is one of the most beautiful geometric patterns in the world — you can find it in Islamic art and architecture all around mosques and buildings. The secret angle for an 8-pointed star is 135°. Why? A circle has 360°. Divide by 8 points = 45°. Then multiply by 3 (to skip 2 points and make crossing lines) = 135°! With just Repeat 8 + Forward + Right 135°, STEMO draws a perfect 8-pointed star every time. Let's make some stars!",
             tasks: [
-                { id: 't1', text: 'Classic 5-star: Pen Down → Repeat 5 → Forward 8, Right 144°. Run — a perfect star! ⭐', completed: false },
-                { id: 't2', text: 'Make it bigger: change Forward to 12. The star grows but stays perfect!', completed: false },
-                { id: 't3', text: 'Add Color red and Size 4 before the Pen Down — a bold red star! 🔴⭐', completed: false },
-                { id: 't4', text: '6-pointed star (Star of David): Draw two triangles on top of each other. Triangle 1: Repeat 3 → Forward 6, Right 120. Then move slightly and draw Triangle 2 the same way rotated 60°', completed: false },
-                { id: 't5', text: 'Spiral star: change the Repeat to 20 and add "Forward +1 each loop" to make an expanding spiral star! ✨', completed: false }
+                { id: 't1', text: 'Draw an 8-pointed star: Pen Down → Repeat 8 → Forward 6, Right 135°. Run! ✨', completed: false },
+                { id: 't2', text: 'Make it bigger: change Forward to 10. The star grows but stays perfect!', completed: false },
+                { id: 't3', text: 'Add Color gold (yellow) and Size 4 before Pen Down — a bold golden star! 🌟', completed: false },
+                { id: 't4', text: 'Change the colour to green and draw another star in a different spot — use Pen Up to move! 💚', completed: false },
+                { id: 't5', text: 'Try an 8-pointed star with Size 2 (thin lines) and Size 8 (thick lines) — which looks better? 🎨', completed: false }
             ],
-            hint: 'Star formula: Turn = 2 × (360 ÷ points). So 5-star = 2×72 = 144°. 6-star = 2×60 = 120°. 7-star = 2×(360÷7) ≈ 103°.',
-            homework: 'Try drawing a 7-pointed star (used on the Australian flag!). The angle is approximately 103°. Then colour it gold on a blue background (use Color gold → Pen Down for the star, and imagine the blue)!',
+            hint: '8-pointed star: Repeat 8 → Forward N, Right 135°. The magic number is 135! Formula: 3 × (360 ÷ 8) = 135°.',
+            homework: 'Draw three 8-pointed stars of different sizes and colours. Use Pen Up to move between them. Can you make them look like a night sky?',
             nextLesson: 'lesson-8'
         },
         {
@@ -1931,19 +1931,20 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-7': {
-                title: 'Draw a Five-Pointed Star! ⭐',
-                description: 'Use a Repeat 5 loop and the secret star angle (144°) to draw a perfect 5-pointed star!',
+                title: 'Draw an 8-Pointed Star! ✨',
+                description: 'Use a Repeat 8 loop and the secret star angle (135°) to draw a beautiful 8-pointed star!',
                 setup: function() {
-                    // Ghost: 5-pointed star. Start at (275,310) facing up (270°), step=100px
+                    // Ghost: 8-pointed star. Start at (275,310) facing up (270°), step=100px
+                    // Formula: Repeat 8 → Forward 100px, Right 135°
                     var simX = 275, simY = 310, simAngle = 270;
                     targetTrails = [];
-                    for (var i = 0; i < 5; i++) {
+                    for (var i = 0; i < 8; i++) {
                         var rad = simAngle * Math.PI / 180;
                         var nx = simX + Math.cos(rad) * 100;
                         var ny = simY + Math.sin(rad) * 100;
                         targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#f59e0b' });
                         simX = nx; simY = ny;
-                        simAngle += 144;
+                        simAngle += 135;
                     }
                 },
                 objectives: [
@@ -1951,14 +1952,14 @@ const htmlContent = `<!DOCTYPE html>
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
                     }},
-                    { id: 'angle', label: '↪️ Use a Right 144° turn', check: function() {
+                    { id: 'angle', label: '↪️ Use a Right 135° turn', check: function() {
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) {
-                            return b.type === 'turn_right' && Number(b.getFieldValue('DEGREES')) === 144;
+                            return b.type === 'turn_right' && Number(b.getFieldValue('DEGREES')) === 135;
                         });
                     }},
-                    { id: 'segments', label: '⭐ Draw 5 star lines', check: function() {
-                        return robot.trails.length >= 5;
+                    { id: 'segments', label: '✨ Draw 8 star lines', check: function() {
+                        return robot.trails.length >= 8;
                     }}
                 ]
             },
@@ -5823,7 +5824,7 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-4':  { id: 'lesson-4',  title: 'Color Artist',         description: 'Paint with colours and control line thickness',             hint: 'Place Color and Size blocks BEFORE Pen Down. Change Color between sides!',                   icon: '🎨', xpReward: 100,  nextLesson: 'lesson-5'  },
             'lesson-5':  { id: 'lesson-5',  title: 'Loop Power!',           description: 'Use Repeat to replace boring repeated blocks',              hint: 'Try: Repeat 5 → Forward 2, Left 90, Forward 2, Right 90 for a staircase!',                 icon: '🔁', xpReward: 150,  nextLesson: 'lesson-6'  },
             'lesson-6':  { id: 'lesson-6',  title: 'Shape Artist',        description: 'Use maths to draw any polygon you can imagine',          hint: 'Formula: Turn Angle = 360 ÷ Sides. Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45!', icon: '📐', xpReward: 200,  nextLesson: 'lesson-7'  },
-            'lesson-7':  { id: 'lesson-7',  title: 'Star Power!',          description: 'Draw stunning stars using a secret angle trick',            hint: 'Star formula: Repeat 5 → Forward 8, Right 144°. The magic number is 144!',                   icon: '⭐', xpReward: 300,  nextLesson: 'lesson-8'  },
+            'lesson-7':  { id: 'lesson-7',  title: 'Star Power!',          description: 'Draw beautiful 8-pointed stars using a secret angle trick',  hint: '8-pointed star: Repeat 8 → Forward 6, Right 135°. The magic number is 135!',               icon: '✨', xpReward: 300,  nextLesson: 'lesson-8'  },
             'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
             'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
@@ -6718,7 +6719,7 @@ const CURRICULUM = [
     {id:'lesson-4',title:'Color Artist',icon:'🎨',desc:'Change colors and pen size',diff:'easy',xp:100,group:'🟢 Basic'},
     {id:'lesson-5',title:'Loop Power!',icon:'🔁',desc:'Use Repeat to do actions multiple times',diff:'medium',xp:150,group:'🟡 Intermediate'},
     {id:'lesson-6',title:'Shape Artist',icon:'📐',desc:'Create triangles, hexagons and more!',diff:'medium',xp:200,group:'🟡 Intermediate'},
-    {id:'lesson-7',title:'Star Power!',icon:'⭐',desc:'Draw a beautiful 5-pointed star',diff:'hard',xp:300,group:'🟡 Intermediate'},
+    {id:'lesson-7',title:'Star Power!',icon:'✨',desc:'Draw a beautiful 8-pointed star',diff:'hard',xp:300,group:'🟡 Intermediate'},
     {id:'lesson-8',title:'Magnet Magic',icon:'🧲',desc:'Pick up metal objects with your magnet',diff:'medium',xp:200,group:'🟡 Intermediate'},
     {id:'lesson-9',title:'Ultrasonic Sight',icon:'📡',desc:'See walls using sound waves',diff:'medium',xp:250,group:'🟡 Intermediate'},
     {id:'lesson-10',title:'Space Navigator',icon:'🎯',desc:'Reach targets automatically',diff:'hard',xp:300,group:'🔴 Advanced'},
