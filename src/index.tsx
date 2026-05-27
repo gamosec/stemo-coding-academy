@@ -1935,8 +1935,8 @@ const htmlContent = `<!DOCTYPE html>
                 description: 'Use a Repeat 8 loop and the secret star angle (135°) to draw a beautiful 8-pointed star!',
                 setup: function() {
                     // Ghost: 8-pointed star. 6 steps × 20px = 120px per segment
-                    // Start at (250,335) so the completed star is centred at (275,275)
-                    var simX = 250, simY = 335, simAngle = 270;
+                    // Start at robot's exact spawn point (275,275), angle -90 = 270° (facing up)
+                    var simX = 275, simY = 275, simAngle = 270;
                     targetTrails = [];
                     for (var i = 0; i < 8; i++) {
                         var rad = simAngle * Math.PI / 180;
