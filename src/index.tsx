@@ -1934,14 +1934,14 @@ const htmlContent = `<!DOCTYPE html>
                 title: 'Draw an 8-Pointed Star! ✨',
                 description: 'Use a Repeat 8 loop and the secret star angle (135°) to draw a beautiful 8-pointed star!',
                 setup: function() {
-                    // Ghost: 8-pointed star. Start at (275,310) facing up (270°), step=100px
-                    // Formula: Repeat 8 → Forward 100px, Right 135°
-                    var simX = 275, simY = 310, simAngle = 270;
+                    // Ghost: 8-pointed star. 6 steps × 20px = 120px per segment
+                    // Start at (250,335) so the completed star is centred at (275,275)
+                    var simX = 250, simY = 335, simAngle = 270;
                     targetTrails = [];
                     for (var i = 0; i < 8; i++) {
                         var rad = simAngle * Math.PI / 180;
-                        var nx = simX + Math.cos(rad) * 100;
-                        var ny = simY + Math.sin(rad) * 100;
+                        var nx = simX + Math.cos(rad) * 120;
+                        var ny = simY + Math.sin(rad) * 120;
                         targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#f59e0b' });
                         simX = nx; simY = ny;
                         simAngle += 135;
