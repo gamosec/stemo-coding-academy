@@ -1598,10 +1598,13 @@ const htmlContent = `<!DOCTYPE html>
             <div class="text-8xl mb-4">🎉</div>
             <h2 class="text-3xl font-bold text-gray-800 mb-2">Amazing!</h2>
             <p class="text-gray-600 mb-4" id="successMessage">You completed the challenge!</p>
-            <div class="bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6">
-                <div class="text-white font-bold text-lg">You earned</div>
+            <div id="xpBanner" class="bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6">
+                <div class="text-white font-bold text-lg" id="xpBannerLabel">You earned</div>
                 <div class="text-4xl font-bold text-white" id="xpEarned">+50 XP</div>
             </div>
+            <button onclick="saveProject()" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-6 py-2.5 rounded-full font-bold transition-all mb-3 flex items-center justify-center gap-2">
+                <i class="fas fa-save"></i> Save my work
+            </button>
             <div class="flex gap-3 justify-center">
                 <button onclick="goToLessons()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold transition-all">
                     <i class="fas fa-home mr-2"></i>All Lessons
@@ -2584,14 +2587,8 @@ const htmlContent = `<!DOCTYPE html>
                     if (currentLesson && !stemo.completedLessons.includes(currentLesson.id)) {
                         completeLesson(currentLesson);
                     } else {
-                        // Replay bonus — always award some XP for completing a challenge
-                        var bonusXP = currentLesson ? Math.max(25, Math.round(currentLesson.xpReward / 4)) : 25;
-                        stemo.xp += bonusXP;
-                        var newLevel = Math.floor(stemo.xp / 500) + 1;
-                        if (newLevel > stemo.level) stemo.level = newLevel;
-                        saveProgress();
-                        updateUI();
-                        showSuccessModal(bonusXP);
+                        // Replay — no XP awarded, just show the celebration modal
+                        showSuccessModal(0);
                     }
                 }, 400);
             }
@@ -4634,7 +4631,17 @@ const htmlContent = `<!DOCTYPE html>
             var modal = document.getElementById('successModal');
             var content = document.getElementById('successModalContent');
             var nextBtn = document.getElementById('nextLessonBtn');
-            document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
+
+            // XP banner: show points for first completion, "Already completed" for replays
+            if (xp > 0) {
+                document.getElementById('xpBannerLabel').textContent = 'You earned';
+                document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
+                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6';
+            } else {
+                document.getElementById('xpBannerLabel').textContent = 'Great practice!';
+                document.getElementById('xpEarned').textContent = 'Already completed ✓';
+                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl p-4 mb-6';
+            }
             
             // Show/hide next lesson button based on whether there's a next lesson
             if (currentLesson && currentLesson.nextLesson) {
