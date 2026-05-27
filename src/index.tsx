@@ -1856,13 +1856,13 @@ const htmlContent = `<!DOCTYPE html>
             },
             'lesson-5': {
                 title: 'Build the Staircase! 🪜',
-                description: 'Draw a staircase going up and right using a Repeat loop. Code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90',
+                description: 'Draw a staircase going up and right using a Repeat loop. Code: Repeat 4 → Forward 2, Right 90, Forward 2, Left 90',
                 setup: function() {
-                    // Ghost: 5-step staircase — starts at robot spawn (275,275), facing UP (-90°)
-                    // Matches code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90
+                    // Ghost: 4-step staircase — starts at robot spawn (275,275), facing UP (-90°)
+                    // Matches code: Repeat 4 → Forward 2, Right 90, Forward 2, Left 90
                     var simX = 275, simY = 275, simAngle = -90;
                     targetTrails = [];
-                    for (var i = 0; i < 5; i++) {
+                    for (var i = 0; i < 4; i++) {
                         // Vertical step (up) — green
                         var r1 = simAngle * Math.PI / 180;
                         var nx = simX + Math.cos(r1) * 40, ny = simY + Math.sin(r1) * 40;
@@ -1882,8 +1882,8 @@ const htmlContent = `<!DOCTYPE html>
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
                     }},
-                    { id: 'segments', label: '🪜 Draw 10+ segments (5 steps)', check: function() {
-                        return robot.trails.length >= 10;
+                    { id: 'segments', label: '🪜 Draw 8 segments (4 steps)', check: function() {
+                        return robot.trails.length >= 8;
                     }},
                     { id: 'pen', label: '✏️ Use Pen Down to draw', check: function() {
                         return robot.trails.length > 0;
@@ -5767,23 +5767,30 @@ const htmlContent = `<!DOCTYPE html>
             };
             
             var jsonString = JSON.stringify(projectData, null, 2);
+
+            // Build a sensible default name from the current lesson
+            var defaultName = 'stemo_project';
+            if (currentLesson) {
+                defaultName = 'challenge_' + currentLesson.id.replace('lesson-', '');
+            }
+
+            // Ask the user for a filename (they can rename to e.g. "challenge 6" or "my star")
+            var chosenName = window.prompt('Save project as (you can type any name):', defaultName);
+            if (chosenName === null) return; // user pressed Cancel
+            chosenName = chosenName.trim() || defaultName;
+            if (!chosenName.toLowerCase().endsWith('.txt')) chosenName += '.txt';
+
             var blob = new Blob([jsonString], {type: "text/plain"});
             var url = URL.createObjectURL(blob);
-            
             var a = document.createElement('a');
             a.href = url;
-            a.download = "stemo_project_" + new Date().getTime() + ".txt";
+            a.download = chosenName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
-            // Backup: Copy to clipboard
-            navigator.clipboard.writeText(jsonString).then(function() {
-                addChatMessage('stemo', "💾 Project saved! (Also copied to clipboard 📋)");
-            }, function() {
-                addChatMessage('stemo', "💾 Project saved as .txt file!");
-            });
+
+            addChatMessage('stemo', '💾 Project saved as "' + chosenName + '"! Load it any time with the 📂 button.');
         }
 
         // Copy Project to Clipboard
