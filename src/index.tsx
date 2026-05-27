@@ -679,7 +679,7 @@ const curriculum = {
                 { id: 't5', text: 'Try drawing a thick red square: Color red → Size 8 → Pen Down → Forward 4 → Right 90 (×4)', completed: false }
             ],
             hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result. You can also change colour mid-drawing — add a new Color block between Forward blocks!',
-            homework: 'Create a "Rainbow Road"! Draw 6 lines in a row, each a different colour (red, orange, yellow, green, blue, purple). Use Pen Up between lines to leave small gaps!',
+            homework: 'Create a "Colour Road"! Draw 6 lines in a row, each a different colour (red, orange, yellow, green, blue, purple). Use Pen Up between lines to leave small gaps!',
             nextLesson: 'lesson-5'
         }
     ],
