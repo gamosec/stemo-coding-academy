@@ -1856,24 +1856,25 @@ const htmlContent = `<!DOCTYPE html>
             },
             'lesson-5': {
                 title: 'Build the Staircase! 🪜',
-                description: 'Draw a staircase going right and upward using a Repeat loop. Each step = Forward right + Forward up!',
+                description: 'Draw a staircase going up and right using a Repeat loop. Code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90',
                 setup: function() {
-                    // Ghost: 5-step staircase — alternating right (purple) and up (green) segments
-                    var simX = 175, simY = 425, simAngle = 0;
+                    // Ghost: 5-step staircase — starts at robot spawn (275,275), facing UP (-90°)
+                    // Matches code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90
+                    var simX = 275, simY = 275, simAngle = -90;
                     targetTrails = [];
                     for (var i = 0; i < 5; i++) {
-                        // Horizontal step (right)
+                        // Vertical step (up) — green
                         var r1 = simAngle * Math.PI / 180;
                         var nx = simX + Math.cos(r1) * 40, ny = simY + Math.sin(r1) * 40;
-                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#6366f1' });
-                        simX = nx; simY = ny;
-                        simAngle -= 90; // Left 90 — face up
-                        // Vertical step (up)
-                        var r2 = simAngle * Math.PI / 180;
-                        nx = simX + Math.cos(r2) * 40; ny = simY + Math.sin(r2) * 40;
                         targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#22c55e' });
                         simX = nx; simY = ny;
-                        simAngle += 90; // Right 90 — face right again
+                        simAngle += 90; // Right 90 — now facing right
+                        // Horizontal step (right) — purple
+                        var r2 = simAngle * Math.PI / 180;
+                        nx = simX + Math.cos(r2) * 40; ny = simY + Math.sin(r2) * 40;
+                        targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#6366f1' });
+                        simX = nx; simY = ny;
+                        simAngle -= 90; // Left 90 — face up again
                     }
                 },
                 objectives: [
@@ -5822,7 +5823,7 @@ const htmlContent = `<!DOCTYPE html>
         // Minimal metadata for challenge lessons (used when restoring a saved challenge file)
         var CHALLENGE_LESSON_META = {
             'lesson-4':  { id: 'lesson-4',  title: 'Color Artist',         description: 'Paint with colours and control line thickness',             hint: 'Place Color and Size blocks BEFORE Pen Down. Change Color between sides!',                   icon: '🎨', xpReward: 100,  nextLesson: 'lesson-5'  },
-            'lesson-5':  { id: 'lesson-5',  title: 'Loop Power!',           description: 'Use Repeat to replace boring repeated blocks',              hint: 'Try: Repeat 5 → Forward 2, Left 90, Forward 2, Right 90 for a staircase!',                 icon: '🔁', xpReward: 150,  nextLesson: 'lesson-6'  },
+            'lesson-5':  { id: 'lesson-5',  title: 'Loop Power!',           description: 'Use Repeat to replace boring repeated blocks',              hint: 'Staircase code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90',                      icon: '🔁', xpReward: 150,  nextLesson: 'lesson-6'  },
             'lesson-6':  { id: 'lesson-6',  title: 'Shape Artist',        description: 'Use maths to draw any polygon you can imagine',          hint: 'Formula: Turn Angle = 360 ÷ Sides. Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45!', icon: '📐', xpReward: 200,  nextLesson: 'lesson-7'  },
             'lesson-7':  { id: 'lesson-7',  title: 'Star Power!',          description: 'Draw beautiful 8-pointed stars using a secret angle trick',  hint: '8-pointed star: Repeat 8 → Forward 6, Right 135°. The magic number is 135!',               icon: '✨', xpReward: 300,  nextLesson: 'lesson-8'  },
             'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
