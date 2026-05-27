@@ -5598,7 +5598,7 @@ const htmlContent = `<!DOCTYPE html>
             var metalGroups = groupObjects(metalObjects);
             Object.values(metalGroups).forEach(function(group) {
                 group.forEach(function(m, index) {
-                    if (!m.pickedUp) {
+                    if (!m.pickedUp || m.dropped) {
                         var geo, mat;
                         if (m.type === 'bolt') {
                              geo = new THREE.CylinderGeometry(8, 8, 20, 6);
