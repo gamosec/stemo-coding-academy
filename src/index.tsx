@@ -1812,6 +1812,7 @@ const htmlContent = `<!DOCTYPE html>
         // CHALLENGE MODE STATE
         // ============================================
         var challengeMode = false;
+        var challengeActiveLessonId = null; // locked at launch; never changes when "Next Lesson" is clicked
         var missionObjectives = null;
         var challengeCompleted = false;
 
@@ -2493,6 +2494,7 @@ const htmlContent = `<!DOCTYPE html>
             robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
 
             if (withChallenge) {
+                challengeActiveLessonId = currentLesson.id; // snapshot now — won't drift when Next Lesson loads
                 var challenge = LESSON_CHALLENGES[currentLesson.id];
                 if (challenge) {
                     // Set up mission objectives state
@@ -5758,7 +5760,10 @@ const htmlContent = `<!DOCTYPE html>
                     fires: fireObjects,
                     target: targetPoint
                 },
-                lessonId: currentLesson ? currentLesson.id : null,
+                // Use the snapshot ID so loading this file restores the correct challenge,
+                // even if currentLesson already advanced to the next lesson after completion.
+                lessonId: (challengeMode && challengeActiveLessonId) ? challengeActiveLessonId
+                          : (currentLesson ? currentLesson.id : null),
                 isChallenge: challengeMode,
                 taskProgress: (currentLesson && currentLesson.tasks)
                     ? currentLesson.tasks.map(function(t) { return { id: t.id, completed: t.completed }; })
@@ -5768,10 +5773,16 @@ const htmlContent = `<!DOCTYPE html>
             
             var jsonString = JSON.stringify(projectData, null, 2);
 
-            // Build a sensible default name from the current lesson
+            // Build a sensible default name:
+            //   - In challenge mode → use the lesson that was LAUNCHED (not currentLesson, which may have
+            //     already advanced to the next lesson after clicking "Next Lesson" in the success modal)
+            //   - Free build with a lesson open → "lesson_5" style
+            //   - No lesson open → "stemo_project"
             var defaultName = 'stemo_project';
-            if (currentLesson) {
-                defaultName = 'challenge_' + currentLesson.id.replace('lesson-', '');
+            if (challengeMode && challengeActiveLessonId) {
+                defaultName = 'challenge_' + challengeActiveLessonId.replace('lesson-', '');
+            } else if (currentLesson) {
+                defaultName = 'lesson_' + currentLesson.id.replace('lesson-', '');
             }
 
             // Ask the user for a filename (they can rename to e.g. "challenge 6" or "my star")
