@@ -1605,11 +1605,14 @@ const htmlContent = `<!DOCTYPE html>
             <button onclick="saveProject()" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-6 py-2.5 rounded-full font-bold transition-all mb-3 flex items-center justify-center gap-2">
                 <i class="fas fa-save"></i> Save my work
             </button>
-            <div class="flex gap-3 justify-center">
-                <button onclick="goToLessons()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-full font-bold transition-all">
+            <div class="flex gap-3 justify-center flex-wrap">
+                <button onclick="goToLessons()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-3 rounded-full font-bold transition-all">
                     <i class="fas fa-home mr-2"></i>All Lessons
                 </button>
-                <button onclick="goToNextLesson()" id="nextLessonBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-full font-bold hover:opacity-90 transition-all">
+                <button onclick="closeSuccessModal()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-5 py-3 rounded-full font-bold transition-all">
+                    <i class="fas fa-redo mr-2"></i>Keep Practising
+                </button>
+                <button onclick="goToNextLesson()" id="nextLessonBtn" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-3 rounded-full font-bold hover:opacity-90 transition-all">
                     Next Lesson <i class="fas fa-arrow-right ml-2"></i>
                 </button>
             </div>
@@ -3296,16 +3299,11 @@ const htmlContent = `<!DOCTYPE html>
                                 var dist = Math.sqrt(dx * dx + dy * dy);
                                 if (dist < pickupRange) {
                                     metal.pickedUp = true;
+                                    robot.carrying = metal; // always carry so Magnet OFF can show the drop
                                     gotOne = true;
                                     playSound('pickup');
-                                    if (challengeMode) {
-                                        addChatMessage('stemo', "✅ Collected " + metal.type + "! Keep going! 🎉");
-                                        checkChallengeObjectives();
-                                    } else {
-                                        robot.carrying = metal;
-                                        addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
-                                        checkChallengeObjectives();
-                                    }
+                                    addChatMessage('stemo', "🤖 🧲 Got it! I picked up the " + metal.type + "! 🎉");
+                                    checkChallengeObjectives();
                                     break;
                                 }
                             }
@@ -3315,12 +3313,17 @@ const htmlContent = `<!DOCTYPE html>
                         }
                     }
                 } else {
-                    // Magnet OFF - drop the object IN FRONT of the robot
+                    // Magnet OFF - drop the object at the robot's current position
                     if (robot.carrying) {
                         if (challengeMode) {
-                            // In challenge mode: metal is permanently collected — just release grip
-                            addChatMessage('stemo', "🤖 ✅ Collected the " + robot.carrying.type + "!");
+                            // In challenge mode: metal stays collected (pickedUp=true) but we
+                            // visually drop it at the current position so the student sees the drop
+                            var dropXc = robot.x, dropYc = robot.y;
+                            robot.carrying.x = dropXc;
+                            robot.carrying.y = dropYc;
+                            addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " here! 📍");
                             robot.carrying = null;
+                            checkChallengeObjectives();
                         } else {
                             // Normal mode: drop AT the robot's current position so the metal
                             // lands exactly where STEMO is standing (not floating ahead of it).
