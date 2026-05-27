@@ -1999,23 +1999,24 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-9': {
-                title: 'Pass through the gap and reach the hidden target!',
-                description: 'Go forward until your ultrasonic sensor detects the front wall, then turn RIGHT and pass through the GAP between the two walls. Turn RIGHT again and drive to the target — it is hiding behind the right wall!',
+                title: 'Two walls, two turns — reach the target!',
+                description: 'STEMO starts facing RIGHT. Use Repeat loops with "If Wall Within 2 steps → Turn Right, else Move 1" to navigate: turn at the first wall, move forward, turn at the second wall, then drive to the target!',
                 setup: function() {
                     wallObjects = [
-                        // Wall 1 — horizontal front wall, blocks forward movement (~4 steps ahead of STEMO)
-                        { id: wallIdCounter++, x: 115, y: 115, width: 200, height: 40 },
-                        // Wall 2 — vertical right wall, separated from Wall 1 by a gap (y=155 to y=215)
-                        //           STEMO passes THROUGH this gap going east, then target is BEHIND this wall
-                        { id: wallIdCounter++, x: 355, y: 215, width: 40, height: 200 },
-                        // Wall 3 — closes the gap below Wall 2 so STEMO can't sneak under
-                        { id: wallIdCounter++, x: 355, y: 415, width: 140, height: 40 }
+                        // Top horizontal wall (left area)
+                        { id: wallIdCounter++, x: 115, y: 135, width: 180, height: 40 },
+                        // Right vertical wall — first wall STEMO hits going east
+                        // Left face at x=415 → STEMO at x=375 is exactly 2 steps away → triggers turn
+                        { id: wallIdCounter++, x: 415, y: 155, width: 40, height: 260 },
+                        // Bottom horizontal wall — second wall STEMO hits going south
+                        // Top face at y=415 → STEMO at y=375 is exactly 2 steps away → triggers turn
+                        { id: wallIdCounter++, x: 295, y: 415, width: 160, height: 40 }
                     ];
-                    // Target is BEHIND (east of) the vertical right wall — only reachable through the gap
-                    targetPoint = { x: 430, y: 340 };
+                    // Target is to the west after both turns — reachable by moving left
+                    targetPoint = { x: 175, y: 375 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target behind the right wall!', check: function() {
+                    { id: 'reach', label: '🎯 Navigate both walls and reach the target!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
