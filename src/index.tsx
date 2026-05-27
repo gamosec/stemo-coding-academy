@@ -3316,11 +3316,11 @@ const htmlContent = `<!DOCTYPE html>
                     // Magnet OFF - drop the object at the robot's current position
                     if (robot.carrying) {
                         if (challengeMode) {
-                            // In challenge mode: metal stays collected (pickedUp=true) but we
-                            // visually drop it at the current position so the student sees the drop
-                            var dropXc = robot.x, dropYc = robot.y;
-                            robot.carrying.x = dropXc;
-                            robot.carrying.y = dropYc;
+                            // In challenge mode: pickedUp stays true for objectives, but
+                            // set dropped=true so the renderer shows the metal at drop position.
+                            robot.carrying.x = Math.max(25, Math.min(525, robot.x));
+                            robot.carrying.y = Math.max(25, Math.min(525, robot.y));
+                            robot.carrying.dropped = true;
                             addChatMessage('stemo', "🤖 🧲 Dropped the " + robot.carrying.type + " here! 📍");
                             robot.carrying = null;
                             checkChallengeObjectives();
@@ -4161,9 +4161,10 @@ const htmlContent = `<!DOCTYPE html>
             var metalGroups = groupObjects(metalObjects);
             Object.values(metalGroups).forEach(function(group) {
                 var item = group[0];
-                // Hide picked-up metals from the canvas — they're now being carried by STEMO,
-                // so they shouldn't also appear in their original spot (confusing for kids).
-                if (item.pickedUp) return;
+                // Hide metals that are currently being carried.
+                // Metals that have been dropped (item.dropped=true) keep pickedUp=true for
+                // objective tracking but should be rendered at their new drop position.
+                if (item.pickedUp && !item.dropped) return;
                 var stepIdx = metalObjects.indexOf(item); // 0-based order
                 var isActive = (challengeMode && item === activeMetal);
                 var isLocked = (challengeMode && !item.pickedUp && !isActive);
