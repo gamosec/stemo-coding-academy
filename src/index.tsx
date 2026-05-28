@@ -1508,6 +1508,9 @@ const htmlContent = `<!DOCTYPE html>
                             <button onclick="setPlacementMode('position')" id="modePositionBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Position Marker (A/B/C/D)">
                                 📍
                             </button>
+                            <button onclick="toggleCC()" id="ccToggleBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle Command Center">
+                                📡
+                            </button>
                             <button onclick="toggleIsometricView()" id="isometricBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle 3D View">
                                 📐
                             </button>
@@ -1541,7 +1544,7 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
                         <canvas id="robotCanvas" width="550" height="550" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
                         <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
-                        <!-- Mission Toast: appears briefly over canvas then fades out -->
+                        <!-- Mission Toast -->
                         <div id="missionHUD" class="hidden absolute top-4 left-4 right-4 z-30 pointer-events-none">
                             <div class="bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl shadow-xl px-4 py-3">
                                 <div class="flex items-center gap-2 mb-1">
@@ -1552,22 +1555,36 @@ const htmlContent = `<!DOCTYPE html>
                                 <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Tab switcher -->
-                    <div class="flex border-t-2 border-gray-200" id="robotTabBar">
-                        <button id="tabBtnChat" onclick="switchRobotTab('chat')"
-                            class="flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all">
-                            💬 STEMO Chat
-                        </button>
-                        <button id="tabBtnCC" onclick="switchRobotTab('cc')"
-                            class="flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all">
-                            📡 Command Center
-                        </button>
+                        <!-- Command Center — floating overlay, z-40, slides up from bottom of canvas area -->
+                        <div id="panelCC" style="display:none;position:absolute;bottom:8px;left:8px;right:8px;z-index:40;border-radius:12px;overflow:hidden;box-shadow:0 -4px 24px rgba(0,0,0,0.5);background:#0f172a;">
+                            <!-- CC header -->
+                            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0f172a;border-bottom:1px solid #1e293b;">
+                                <div id="ccPulseDot" style="width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 7px #4ade80;animation:ccPulse 1.5s infinite;flex-shrink:0;"></div>
+                                <span style="color:#4ade80;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:1px;">COMMAND CENTER — UPLINK ACTIVE</span>
+                                <button onclick="clearCC()" title="Clear log" style="background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 7px;cursor:pointer;">CLR</button>
+                                <button onclick="toggleCC()" title="Close" style="background:rgba(239,68,68,0.2);border:none;color:#f87171;font-size:12px;border-radius:4px;padding:1px 7px;cursor:pointer;font-weight:700;">✕</button>
+                            </div>
+                            <!-- Transmission log -->
+                            <div id="ccMessages" style="height:100px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.6;padding:6px 12px;">
+                                <div style="color:#374151;">// Waiting for transmissions from STEMO...</div>
+                                <div style="color:#374151;">// Use the 📡 Send to Command Center block to transmit data.</div>
+                            </div>
+                            <!-- Send-order input -->
+                            <div style="display:flex;gap:6px;align-items:center;padding:6px 12px;border-top:1px solid #1e293b;">
+                                <span style="color:#38bdf8;font-family:monospace;font-size:11px;font-weight:700;">⌨</span>
+                                <input id="ccInput" placeholder="Send order to STEMO…" onkeypress="ccInputKeypress(event)"
+                                    style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-family:monospace;font-size:11px;outline:none;"
+                                    onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='#334155'">
+                                <button onclick="sendCCCommand()" title="Send order" style="background:#0ea5e9;border:none;color:white;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;">▲</button>
+                            </div>
+                        </div>
+                        <style>
+                            @keyframes ccPulse { 0%,100%{opacity:1;box-shadow:0 0 7px #4ade80;} 50%{opacity:0.5;box-shadow:0 0 2px #4ade80;} }
+                        </style>
                     </div>
 
-                    <!-- STEMO Chat Panel -->
-                    <div id="panelChat" class="bg-white p-3">
+                    <!-- Chat panel — unchanged size, always below canvas -->
+                    <div id="panelChat" class="border-t-2 border-gray-200 bg-white p-3">
                         <div id="chatMessages" class="h-14 overflow-y-auto mb-2 space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
@@ -1585,35 +1602,6 @@ const htmlContent = `<!DOCTYPE html>
                             </button>
                         </div>
                     </div>
-
-                    <!-- Command Center Panel -->
-                    <div id="panelCC" class="hidden" style="background:#0f172a;padding:10px 12px;">
-                        <!-- Header bar -->
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <div id="ccPulseDot" style="width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 7px #4ade80;animation:ccPulse 1.5s infinite;flex-shrink:0;"></div>
-                            <span style="color:#4ade80;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:1px;">COMMAND CENTER — UPLINK ACTIVE</span>
-                            <button onclick="clearCC()" title="Clear log" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 6px;cursor:pointer;">CLR</button>
-                        </div>
-                        <!-- Transmission log -->
-                        <div id="ccMessages" style="height:96px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.6;padding-right:2px;">
-                            <div style="color:#374151;">// Waiting for transmissions from STEMO...</div>
-                            <div style="color:#374151;">// Use the 📡 Send to Command Center block to transmit data.</div>
-                        </div>
-                        <!-- Divider -->
-                        <div style="border-top:1px solid #1e293b;margin:8px 0;"></div>
-                        <!-- Send-order input -->
-                        <div style="display:flex;gap:6px;align-items:center;">
-                            <span style="color:#38bdf8;font-family:monospace;font-size:11px;font-weight:700;">⌨</span>
-                            <input id="ccInput" placeholder="Send order to STEMO…" onkeypress="ccInputKeypress(event)"
-                                style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-family:monospace;font-size:11px;outline:none;"
-                                onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='#334155'">
-                            <button onclick="sendCCCommand()" title="Send order" style="background:#0ea5e9;border:none;color:white;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▲</button>
-                        </div>
-                        <div style="color:#374151;font-family:monospace;font-size:9px;margin-top:4px;">// Two-way comms coming soon — STEMO will execute your orders!</div>
-                    </div>
-                    <style>
-                        @keyframes ccPulse { 0%,100%{opacity:1;box-shadow:0 0 7px #4ade80;} 50%{opacity:0.5;box-shadow:0 0 2px #4ade80;} }
-                    </style>
                 </div>
             </div>
 
@@ -5741,16 +5729,18 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // COMMAND CENTER
         // ============================================
-        function switchRobotTab(tab) {
-            var isChat = tab === 'chat';
-            document.getElementById('panelChat').style.display = isChat ? 'block' : 'none';
-            document.getElementById('panelCC').style.display = isChat ? 'none' : 'block';
-            document.getElementById('tabBtnChat').className = isChat
-                ? 'flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all'
-                : 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all';
-            document.getElementById('tabBtnCC').className = isChat
-                ? 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all'
-                : 'flex-1 py-1.5 text-xs font-bold bg-gray-900 text-green-400 border-b-2 border-green-400 transition-all';
+        function toggleCC(forceOpen) {
+            var panel = document.getElementById('panelCC');
+            if (!panel) return;
+            var open = forceOpen === true ? true : (panel.style.display === 'none' || panel.style.display === '');
+            panel.style.display = open ? 'block' : 'none';
+            // Update toolbar button appearance
+            var btn = document.getElementById('ccToggleBtn');
+            if (btn) {
+                btn.className = open
+                    ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                    : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            }
         }
 
         function addCommandCenterMessage(htmlLines) {
@@ -5775,7 +5765,7 @@ const htmlContent = `<!DOCTYPE html>
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
 
-            // Flash signal dot in header toolbar
+            // Flash signal dot in toolbar header
             var dot = document.getElementById('ccSignalDot');
             if (dot) {
                 dot.style.background = '#facc15';
@@ -5786,8 +5776,8 @@ const htmlContent = `<!DOCTYPE html>
                 }, 800);
             }
 
-            // Auto-switch to Command Center tab so kids see the transmission arrive
-            switchRobotTab('cc');
+            // Auto-open the floating CC panel so kids see the transmission arrive
+            toggleCC(true);
         }
 
         function clearCC() {
