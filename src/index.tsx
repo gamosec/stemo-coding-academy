@@ -1328,6 +1328,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-cyan-700 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-cyan-800 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_to_target')">
                         🎯 Go Target
                     </div>
+                    <div class="block-item bg-indigo-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-indigo-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('smart_navigate')">
+                        🧭 Smart Navigate
+                    </div>
                     <div class="block-item bg-amber-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-amber-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('if_wall_ahead')">
                         🧱 If Wall
                     </div>
@@ -2842,7 +2845,18 @@ const htmlContent = `<!DOCTYPE html>
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(180);
-                this.setTooltip("Navigate to target, avoiding walls");
+                this.setTooltip("Navigate toward the target using basic steering. May get stuck in complex mazes.");
+            }
+        };
+
+        Blockly.Blocks['smart_navigate'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🧭 Smart Navigate");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(230);
+                this.setTooltip("Use BFS pathfinding to guarantee the shortest route through any maze — never gets stuck!");
             }
         };
         
@@ -3100,6 +3114,8 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 } else if (type === 'go_to_target') {
                     commands.push({ action: 'go_to_target' });
+                } else if (type === 'smart_navigate') {
+                    commands.push({ action: 'smart_navigate' });
                 } else if (type === 'if_wall_ahead') {
                     var distance = parseInt(block.getFieldValue('DISTANCE'));
                     var doBlock = block.getInputTargetBlock('DO');
@@ -3190,13 +3206,27 @@ const htmlContent = `<!DOCTYPE html>
                     return;
                 }
                 
-                // Handle go_to_target specially
+                // Handle go_to_target (greedy, basic steering)
                 if (cmd.action === 'go_to_target') {
                     if (!targetPoint) {
                         addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target.");
                         setTimeout(executeNext, 200);
                     } else {
                         executeGoToTarget(function() {
+                            if (challengeMode) checkChallengeObjectives();
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+
+                // Handle smart_navigate (BFS pathfinder — guaranteed shortest path)
+                if (cmd.action === 'smart_navigate') {
+                    if (!targetPoint) {
+                        addChatMessage('stemo', "🧭 No target set! Click the 🎯 button and place a target first.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        executeSmartNavigate(function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
                         });
@@ -3863,7 +3893,55 @@ const htmlContent = `<!DOCTYPE html>
             return null; // no path
         }
 
+        // Greedy Go To Target — steers toward target angle each step, turns when wall detected
         function executeGoToTarget(onComplete) {
+            if (!targetPoint) { if (onComplete) onComplete(); return; }
+            var maxSteps = 300;
+            var stepCount = 0;
+            function moveStep() {
+                if (stepCount >= maxSteps) {
+                    addChatMessage('stemo', "🎯 Couldn't reach target after " + maxSteps + " steps. Try Smart Navigate for complex mazes!");
+                    if (onComplete) onComplete();
+                    return;
+                }
+                var dx = targetPoint.x - robot.x, dy = targetPoint.y - robot.y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 25) {
+                    robot.x = targetPoint.x; robot.y = targetPoint.y;
+                    playSound('success');
+                    addChatMessage('stemo', "🎯 Target reached! 🎉");
+                    drawRobot();
+                    if (currentLesson) checkLessonCompletion();
+                    if (onComplete) onComplete();
+                    return;
+                }
+                var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+                var angleDiff = desiredAngle - robot.angle;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+                var wallDist = detectWallAhead();
+                if (wallDist <= 30) {
+                    playSound('bonk');
+                    robot.angle += chooseBestTurnDirection();
+                } else if (Math.abs(angleDiff) > 15) {
+                    playSound('turn');
+                    robot.angle += angleDiff > 0 ? 15 : -15;
+                } else {
+                    playSound('move');
+                    var rad = robot.angle * Math.PI / 180;
+                    robot.x = Math.max(25, Math.min(525, robot.x + Math.cos(rad) * 20));
+                    robot.y = Math.max(25, Math.min(525, robot.y + Math.sin(rad) * 20));
+                }
+                stepCount++;
+                drawRobot();
+                setTimeout(moveStep, 150);
+            }
+            addChatMessage('stemo', "🎯 Navigating to target…");
+            moveStep();
+        }
+
+        // Smart Navigate — BFS pathfinder guarantees shortest route through any maze
+        function executeSmartNavigate(onComplete) {
             if (!targetPoint) { if (onComplete) onComplete(); return; }
 
             var path = bfsPath(robot.x, robot.y, targetPoint.x, targetPoint.y);
@@ -3874,13 +3952,12 @@ const htmlContent = `<!DOCTYPE html>
                 return;
             }
 
-            addChatMessage('stemo', "🧭 Path found! Navigating " + (path.length - 1) + " steps to target…");
+            addChatMessage('stemo', "🧭 Shortest path found — " + (path.length - 1) + " steps. Following it now…");
 
-            var stepIndex = 1; // index 0 is the start position
+            var stepIndex = 1;
 
             function followPath() {
                 if (stepIndex >= path.length) {
-                    // Snap to exact target
                     robot.x = targetPoint.x;
                     robot.y = targetPoint.y;
                     playSound('success');
@@ -3893,12 +3970,8 @@ const htmlContent = `<!DOCTYPE html>
 
                 var pt   = path[stepIndex];
                 var prev = path[stepIndex - 1];
-
-                // Face the direction of movement
                 var dx = pt.x - prev.x, dy = pt.y - prev.y;
-                if (dx !== 0 || dy !== 0) {
-                    robot.angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                }
+                if (dx !== 0 || dy !== 0) robot.angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
                 robot.x = pt.x;
                 robot.y = pt.y;
@@ -3906,11 +3979,9 @@ const htmlContent = `<!DOCTYPE html>
                 playSound('move');
                 drawRobot();
 
-                // Early exit if already close enough to real target coordinates
                 var edx = robot.x - targetPoint.x, edy = robot.y - targetPoint.y;
                 if (Math.sqrt(edx*edx + edy*edy) < 25) {
-                    robot.x = targetPoint.x;
-                    robot.y = targetPoint.y;
+                    robot.x = targetPoint.x; robot.y = targetPoint.y;
                     playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
