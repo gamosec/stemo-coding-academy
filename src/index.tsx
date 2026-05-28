@@ -953,6 +953,25 @@ const curriculum = {
             ],
             hint: 'The waypoint list is pre-loaded with all 3 fire locations. "For Each Waypoint → Spray Water" is the ENTIRE solution — one compound block handles navigation + action for every item in the list. If you run out of water (starts at 5), press Reset and try again.',
             homework: 'Design the ultimate list program: place items of your choice (metals, fires, targets). Build a waypoint list manually using Add Waypoint. Then write a For Each program that handles each item appropriately. Present your program to the class!',
+            nextLesson: 'lesson-19'
+        },
+        {
+            id: 'lesson-19',
+            title: 'Function Factory',
+            description: 'Teach STEMO tricks once — call them forever! Functions are the secret superpower of every programmer.',
+            difficulty: 'extreme',
+            xpReward: 700,
+            icon: '🔧',
+            introduction: "Every professional programmer uses FUNCTIONS — reusable named blocks of code. Instead of copy-pasting the same 10 blocks over and over, you write them once, name them, and call the name. NASA engineers use functions to control Mars rovers. Game developers use functions for every character move. In this lesson you'll create two functions — drawSquare and bigSquare — and combine them to produce a stunning geometric star pattern with just a few blocks. This is real software engineering!",
+            tasks: [
+                { id: 't1', text: 'Drag a "🔧 Define Function" block. Name it "drawSquare". Inside, add: Pen Down → Repeat 4 times (Move 3 steps, Turn Right 90°). Press Run — a square appears!', completed: false },
+                { id: 't2', text: 'Drag another "🔧 Define Function" block. Name it "bigSquare". Inside, add: Repeat 4 times → (▶ Call Function: drawSquare, Turn Right 90°). Press Run — four overlapping squares!', completed: false },
+                { id: 't3', text: 'Below both definitions add: ▶ Call Function: bigSquare → Turn Right 45° → ▶ Call Function: bigSquare. Press Run — the star appears!', completed: false },
+                { id: 't4', text: 'Change the step size inside drawSquare from 3 to 5. Press Run — the whole star grows. That is the power of functions: change one number, everything updates!', completed: false },
+                { id: 't5', text: 'Create a third function called "starBurst". Inside: Call bigSquare → Turn Right 30° → Call bigSquare → Turn Right 30° → Call bigSquare. What shape do you get?', completed: false }
+            ],
+            hint: 'Define functions first (at the top or side), then call them below. The name in "Define Function" must exactly match the name in "Call Function" — spelling counts! drawSquare ≠ DrawSquare.',
+            homework: 'Design your own geometric artwork: create at least 3 functions (e.g. drawTriangle, drawStar, drawSpiral). Combine them with different rotation angles to create a unique pattern. Save it and share with the class!',
             nextLesson: null
         }
     ]
@@ -2017,7 +2036,7 @@ const htmlContent = `<!DOCTYPE html>
         var missionObjectives = null;
         var challengeCompleted = false;
 
-        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18'];
+        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18','lesson-19'];
 
         // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
         var targetTrails = [];
@@ -2456,6 +2475,30 @@ const htmlContent = `<!DOCTYPE html>
                 objectives: [
                     { id: 'fires', label: '💧 Extinguish all 3 fires using For Each Waypoint', check: function() {
                         return fireObjects.length === 3 && fireObjects.every(function(f){ return f.health <= 0; });
+                    }}
+                ]
+            },
+
+            // Lesson 19 — Function Factory
+            'lesson-19': {
+                title: 'Function Factory — write once, call forever!',
+                description: '1️⃣ Define "drawSquare": Pen Down → Repeat 4× (Move 3 steps, Turn Right 90°)  2️⃣ Define "bigSquare": Repeat 4× (Call drawSquare, Turn Right 90°)  3️⃣ Call bigSquare → Turn Right 45° → Call bigSquare. A geometric star appears!',
+                setup: function() {
+                    robotVars = { speed: 3, count: 4, angle: 90, distance: 5 };
+                    savedPositions = { A: null, B: null, C: null, D: null };
+                    waypointList = [];
+                    wallObjects = [];
+                    targetPoint = null;
+                    fireObjects = [];
+                    metalObjects = [];
+                    userFunctions = {};
+                },
+                objectives: [
+                    { id: 'funcs', label: '🔧 Define at least 2 functions', check: function() {
+                        return Object.keys(userFunctions).length >= 2;
+                    }},
+                    { id: 'pattern', label: '🌟 Draw the star pattern (trail > 40 segments)', check: function() {
+                        return targetTrails.length >= 40;
                     }}
                 ]
             }
@@ -7067,7 +7110,8 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-15': { id: 'lesson-15', title: 'Variable Vault',    description: 'Store values in variables and use them to control STEMO.',  hint: 'Set speed=4, count=4, angle=90. Then: Pen Down → Repeat count → Move speed steps, Turn angle degrees. One number controls everything!', icon: '🔢', xpReward: 400, nextLesson: 'lesson-16' },
             'lesson-16': { id: 'lesson-16', title: 'Position Memory',   description: 'Save your coordinates and navigate back home like GPS.',     hint: 'First block: Save Position A (records start). Navigate to target. Last block: Go to Position A (returns home via shortest path)!',            icon: '📍', xpReward: 450, nextLesson: 'lesson-17' },
             'lesson-17': { id: 'lesson-17', title: 'Waypoint Trail',    description: 'Follow a pre-loaded list of locations to collect metals.',   hint: 'The list is already loaded! Add Magnet ON, then Replay Path — STEMO visits every waypoint in order and picks up metals along the way.',       icon: '🗺️', xpReward: 500, nextLesson: 'lesson-18' },
-            'lesson-18': { id: 'lesson-18', title: 'List Hunt',         description: 'Loop through a list of fire targets — AI iteration in action!', hint: 'Use For Each Waypoint → Spray Water. STEMO navigates to each fire location and sprays automatically. This is how AI processes data lists!', icon: '🎯', xpReward: 600, nextLesson: null }
+            'lesson-18': { id: 'lesson-18', title: 'List Hunt',         description: 'Loop through a list of fire targets — AI iteration in action!', hint: 'Use For Each Waypoint → Spray Water. STEMO navigates to each fire location and sprays automatically. This is how AI processes data lists!', icon: '🎯', xpReward: 600, nextLesson: 'lesson-19' },
+            'lesson-19': { id: 'lesson-19', title: 'Function Factory', description: 'Write a function once, call it forever — the superpower of every programmer.', hint: 'Define "drawSquare": Pen Down + Repeat 4× (Move 3, Turn Right 90°). Define "bigSquare": Repeat 4× (Call drawSquare + Turn Right 90°). Then: Call bigSquare → Turn Right 45° → Call bigSquare. Star pattern complete!', icon: '🔧', xpReward: 700, nextLesson: null }
         };
 
         // Load Project from .stemo file
@@ -7968,7 +8012,8 @@ const CURRICULUM = [
     {id:'lesson-15',title:'Variable Vault',icon:'🔢',desc:'Control STEMO with named variables',diff:'hard',xp:400,group:'🟣 Expert'},
     {id:'lesson-16',title:'Position Memory',icon:'📍',desc:'Save & return to GPS coordinates',diff:'hard',xp:450,group:'🟣 Expert'},
     {id:'lesson-17',title:'Waypoint Trail',icon:'🗺️',desc:'Replay a list of locations automatically',diff:'extreme',xp:500,group:'🟣 Expert'},
-    {id:'lesson-18',title:'List Hunt',icon:'🎯',desc:'Iterate a list and act at each item',diff:'extreme',xp:600,group:'🟣 Expert'}
+    {id:'lesson-18',title:'List Hunt',icon:'🎯',desc:'Iterate a list and act at each item',diff:'extreme',xp:600,group:'🟣 Expert'},
+    {id:'lesson-19',title:'Function Factory',icon:'🔧',desc:'Write functions, call them to draw a star pattern',diff:'extreme',xp:700,group:'🟣 Expert'}
 ];
 
 let allClasses = [];
