@@ -82,6 +82,22 @@ app.onError((err, c) => {
 // Enable CORS
 app.use('/api/*', cors())
 
+// Auto-migrate: create any missing tables on first request
+app.use('*', async (c, next) => {
+    if (c.env?.DB) {
+        try {
+            await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS lesson_videos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lesson_name TEXT NOT NULL,
+                youtube_url TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`).run()
+        } catch(_) {}
+    }
+    return next()
+})
+
 // ============================================
 // AUTH ROUTES
 // ============================================
