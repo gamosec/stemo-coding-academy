@@ -2454,14 +2454,14 @@ const htmlContent = `<!DOCTYPE html>
             // Lesson 18 — List Hunt
             'lesson-18': {
                 title: 'List Hunt — loop through a list and act on each item!',
-                description: 'Three fires are pre-loaded in the waypoint list. Use "For Each Waypoint → Spray Water" to visit every fire and extinguish it. This is how AI iterates through data!',
+                description: '3 fires are pre-loaded in the waypoint list. Use "For Each Waypoint" with ONLY "Spray Water" inside the do block — the block navigates to each fire automatically. Do NOT add Go to Position blocks inside the loop!',
                 setup: function() {
                     robotVars = { speed: 3, count: 3, angle: 90, distance: 5 };
                     savedPositions = { A: null, B: null, C: null, D: null };
                     fireObjects = [
-                        { id: fireIdCounter++, x: 135, y: 135, health: 1 },
-                        { id: fireIdCounter++, x: 415, y: 275, health: 1 },
-                        { id: fireIdCounter++, x: 135, y: 415, health: 1 }
+                        { id: fireIdCounter++, x: 135, y: 135, health: 3 },
+                        { id: fireIdCounter++, x: 415, y: 275, health: 3 },
+                        { id: fireIdCounter++, x: 135, y: 415, health: 3 }
                     ];
                     waypointList = [
                         { x: 135, y: 135 },
@@ -2470,11 +2470,12 @@ const htmlContent = `<!DOCTYPE html>
                     ];
                     wallObjects = [];
                     targetPoint = null;
-                    robot.waterLevel = 5;
+                    robot.waterLevel = 10;
                 },
                 objectives: [
                     { id: 'fires', label: '💧 Extinguish all 3 fires using For Each Waypoint', check: function() {
-                        return fireObjects.length === 3 && fireObjects.every(function(f){ return f.health <= 0; });
+                        // Fires are removed from the array when extinguished — so all 3 gone means length === 0
+                        return fireObjects.length === 0;
                     }}
                 ]
             },
