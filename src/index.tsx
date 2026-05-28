@@ -543,6 +543,43 @@ app.post('/api/parent/link', authMiddleware, async (c) => {
     return c.json({ success: true })
 })
 
+// ── Video Lessons ──────────────────────────────────────────────────────────
+app.get('/api/videos', authMiddleware, async (c) => {
+    const { results } = await c.env.DB.prepare(
+        'SELECT * FROM lesson_videos ORDER BY sort_order, id'
+    ).all()
+    return c.json(results)
+})
+
+app.post('/api/admin/videos', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { lesson_name, youtube_url, sort_order } = await c.req.json()
+    if (!lesson_name || !youtube_url) return c.json({ error: 'lesson_name and youtube_url are required' }, 400)
+    await c.env.DB.prepare(
+        'INSERT INTO lesson_videos (lesson_name, youtube_url, sort_order) VALUES (?, ?, ?)'
+    ).bind(lesson_name.trim(), youtube_url.trim(), sort_order || 0).run()
+    return c.json({ ok: true })
+})
+
+app.put('/api/admin/videos/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { lesson_name, youtube_url, sort_order } = await c.req.json()
+    await c.env.DB.prepare(
+        'UPDATE lesson_videos SET lesson_name=?, youtube_url=?, sort_order=? WHERE id=?'
+    ).bind(lesson_name.trim(), youtube_url.trim(), sort_order || 0, c.req.param('id')).run()
+    return c.json({ ok: true })
+})
+
+app.delete('/api/admin/videos/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    await c.env.DB.prepare('DELETE FROM lesson_videos WHERE id=?').bind(c.req.param('id')).run()
+    return c.json({ ok: true })
+})
+// ──────────────────────────────────────────────────────────────────────────
+
 // Get all students (for admin/teacher dropdowns)
 app.get('/api/admin/students', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -1209,6 +1246,9 @@ const htmlContent = `<!DOCTYPE html>
             <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
                 <i class="fas fa-ranking-star mr-1"></i>Leaderboard
             </button>
+            <button onclick="switchTab('videos')" id="tab-videos" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-video mr-1"></i>Video Training
+            </button>
         </div>
 
         <!-- Learn Tab -->
@@ -1761,6 +1801,34 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="flex justify-center gap-4 mb-8" id="podiumRow"></div>
                 <!-- Full ranking table -->
                 <div id="leaderboardList" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- Video Training Tab -->
+        <div id="videos-section" class="hidden">
+            <div class="bg-white rounded-3xl card-shadow p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-video text-red-500 mr-2"></i>Video Training
+                    </h3>
+                    <button onclick="loadStudentVideos()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold transition-all">🔄 Refresh</button>
+                </div>
+                <p class="text-gray-500 mb-6 text-sm">Watch video guides for each lesson. Click a lesson to play the video!</p>
+                <!-- Video player embed -->
+                <div id="videoPlayer" class="hidden mb-6">
+                    <div class="bg-black rounded-2xl overflow-hidden" style="aspect-ratio:16/9;max-width:720px;margin:0 auto;">
+                        <iframe id="videoFrame" width="100%" height="100%" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:block;"></iframe>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button onclick="document.getElementById('videoPlayer').classList.add('hidden');document.getElementById('videoFrame').src=''" class="text-gray-500 hover:text-gray-700 text-sm font-bold">✕ Close Player</button>
+                    </div>
+                </div>
+                <!-- Video list -->
+                <div id="videoList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="text-gray-400 text-center py-12 col-span-3">
+                        <i class="fas fa-video text-4xl mb-3 block"></i>Loading videos...
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -6009,7 +6077,7 @@ const htmlContent = `<!DOCTYPE html>
         // TAB NAVIGATION
         // ============================================
         function switchTab(tab) {
-            ['learn','code','achievements','profile','leaderboard'].forEach(function(t) {
+            ['learn','code','achievements','profile','leaderboard','videos'].forEach(function(t) {
                 document.getElementById(t + '-section').classList.add('hidden');
                 document.getElementById('tab-' + t).className = 'tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm';
             });
@@ -6019,6 +6087,7 @@ const htmlContent = `<!DOCTYPE html>
                 setTimeout(function() { Blockly.svgResize(workspace); }, 100);
             }
             if (tab === 'leaderboard') loadLeaderboard();
+            if (tab === 'videos') loadStudentVideos();
         }
 
         // ============================================
@@ -6107,6 +6176,63 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // LEADERBOARD
         // ============================================
+        // ── Student Video Training ───────────────────────────────────────────────
+        function ytEmbedUrl(url) {
+            try {
+                var u = new URL(url);
+                var vid = u.hostname === 'youtu.be' ? u.pathname.slice(1) : (u.searchParams.get('v') || '');
+                return vid ? 'https://www.youtube.com/embed/' + vid : url;
+            } catch(e) { return url; }
+        }
+
+        function ytThumb(url) {
+            try {
+                var u = new URL(url);
+                var vid = u.hostname === 'youtu.be' ? u.pathname.slice(1) : (u.searchParams.get('v') || '');
+                return vid ? 'https://img.youtube.com/vi/' + vid + '/mqdefault.jpg' : '';
+            } catch(e) { return ''; }
+        }
+
+        function playStudentVideo(embedUrl, title) {
+            document.getElementById('videoFrame').src = embedUrl + '?autoplay=1';
+            document.getElementById('videoPlayer').classList.remove('hidden');
+            document.getElementById('videoPlayer').scrollIntoView({behavior:'smooth'});
+        }
+
+        async function loadStudentVideos() {
+            const list = document.getElementById('videoList');
+            list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-spinner fa-spin text-3xl mb-2 block"></i>Loading videos...</div>';
+            try {
+                const videos = await fetch('/api/videos').then(r => r.json());
+                if (!Array.isArray(videos) || !videos.length) {
+                    list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-video text-5xl mb-3 block opacity-40"></i><p class="font-semibold">No videos available yet.</p><p class="text-sm mt-1">Check back soon — your teacher is preparing great content!</p></div>';
+                    return;
+                }
+                list.innerHTML = videos.map(v => {
+                    var thumb = ytThumb(v.youtube_url);
+                    var embed = ytEmbedUrl(v.youtube_url);
+                    var thumbHtml = thumb
+                        ? '<img src="' + thumb + '" class="w-full object-cover rounded-xl mb-3" style="aspect-ratio:16/9;" onerror="this.style.display=\'none\'">'
+                        : '<div class="w-full bg-gradient-to-br from-red-400 to-red-600 rounded-xl mb-3 flex items-center justify-center text-white text-4xl" style="aspect-ratio:16/9;"><i class="fas fa-play-circle"></i></div>';
+                    return \`<div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer group" onclick="playStudentVideo('\${embed}',\${JSON.stringify(v.lesson_name)})">
+                        \${thumbHtml}
+                        <div class="flex items-start gap-2">
+                            <div class="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-play text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm leading-tight">\${v.lesson_name}</p>
+                                <p class="text-gray-400 text-xs mt-1">Click to watch</p>
+                            </div>
+                        </div>
+                    </div>\`;
+                }).join('');
+            } catch(e) {
+                list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load videos. Please try again.</div>';
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
         async function loadLeaderboard() {
             document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading...</p>';
             document.getElementById('podiumRow').innerHTML = '';
@@ -7499,6 +7625,7 @@ const adminDashboard = `<!DOCTYPE html>
         <button onclick="showTab('users')" id="tab-users" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">👥 Users</button>
         <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏫 Classes</button>
         <button onclick="showTab('links')" id="tab-links" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🔗 Parent Links</button>
+        <button onclick="showTab('videos')" id="tab-videos" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🎬 Videos</button>
     </div>
     <!-- Pending Approvals Tab -->
     <div id="section-pending">
@@ -7583,6 +7710,37 @@ const adminDashboard = `<!DOCTYPE html>
             <div id="linkMsg" class="mt-2 text-sm hidden"></div>
         </div>
     </div>
+    <!-- Videos Tab -->
+    <div id="section-videos" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl">🎬 Video Training</h2>
+                <button onclick="showAddVideoForm()" class="bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-600">+ Add Video</button>
+            </div>
+            <!-- Add / Edit Video Form -->
+            <div id="videoForm" class="hidden bg-red-50 rounded-xl p-4 mb-4 border border-red-200">
+                <h3 class="font-bold text-red-700 mb-3" id="videoFormTitle">Add New Video</h3>
+                <input type="hidden" id="editVideoId">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input id="videoLessonName" placeholder="Lesson name (e.g. Lesson 1: Introduction)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400">
+                    <input id="videoYoutubeUrl" placeholder="YouTube URL" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400">
+                    <input id="videoSortOrder" type="number" placeholder="Order (1, 2, 3…)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-400">
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="saveVideo()" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700">✅ Save</button>
+                    <button onclick="document.getElementById('videoForm').classList.add('hidden')" class="bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                </div>
+                <div id="videoFormMsg" class="mt-2 text-sm hidden"></div>
+            </div>
+            <!-- Video list table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Order</th><th class="pb-2">Lesson Name</th><th class="pb-2">YouTube URL</th><th class="pb-2">Actions</th></tr></thead>
+                    <tbody id="adminVideoList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
 let allUsers = [];
@@ -7597,18 +7755,108 @@ async function init() {
     loadUsers();
     loadClasses();
     loadLinkDropdowns();
+    loadAdminVideos();
 }
 
 function showTab(tab) {
-    ['pending','users','classes','links'].forEach(t => {
+    ['pending','users','classes','links','videos'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
         const btn = document.getElementById('tab-'+t);
         if (btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    const activeColors = {pending:'bg-orange-500',users:'bg-indigo-600',classes:'bg-indigo-600',links:'bg-indigo-600'};
-    document.getElementById('tab-'+tab).className = \`tab-btn \${activeColors[tab]} text-white px-5 py-2 rounded-full font-bold text-sm\`;
+    const activeColors = {pending:'bg-orange-500',users:'bg-indigo-600',classes:'bg-indigo-600',links:'bg-indigo-600',videos:'bg-red-500'};
+    document.getElementById('tab-'+tab).className = \`tab-btn \${activeColors[tab]||'bg-indigo-600'} text-white px-5 py-2 rounded-full font-bold text-sm\`;
 }
+
+// ── Admin Video CRUD ─────────────────────────────────────────────────────────
+function ytEmbed(url) {
+    try {
+        var u = new URL(url);
+        var id = u.hostname === 'youtu.be' ? u.pathname.slice(1) : (u.searchParams.get('v') || '');
+        return id ? 'https://www.youtube.com/embed/' + id : url;
+    } catch(e) { return url; }
+}
+
+async function loadAdminVideos() {
+    const videos = await fetch('/api/videos').then(r=>r.json());
+    const tbody = document.getElementById('adminVideoList');
+    if (!Array.isArray(videos) || !videos.length) {
+        tbody.innerHTML = \`<tr><td colspan="4" class="text-center text-gray-400 py-8">No videos yet. Click "+ Add Video" to get started.</td></tr>\`;
+        return;
+    }
+    tbody.innerHTML = videos.map(v => \`
+        <tr class="border-b hover:bg-gray-50">
+            <td class="py-3 px-2 text-gray-500 w-12 text-center">\${v.sort_order||'-'}</td>
+            <td class="py-3 px-2 font-semibold text-gray-800">\${v.lesson_name}</td>
+            <td class="py-3 px-2 text-blue-600 text-xs max-w-xs"><a href="\${v.youtube_url}" target="_blank" class="hover:underline truncate block max-w-xs">\${v.youtube_url}</a></td>
+            <td class="py-3 px-2">
+                <div class="flex gap-2">
+                    <button onclick="openEditVideo(\${v.id})" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">✏️ Edit</button>
+                    <button onclick="deleteVideo(\${v.id})" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg text-xs font-bold">🗑️ Delete</button>
+                </div>
+            </td>
+        </tr>\`).join('');
+}
+
+let _adminVideos = [];
+async function _fetchAdminVideos() { _adminVideos = await fetch('/api/videos').then(r=>r.json()); }
+
+function showAddVideoForm() {
+    document.getElementById('videoFormTitle').textContent = 'Add New Video';
+    document.getElementById('editVideoId').value = '';
+    document.getElementById('videoLessonName').value = '';
+    document.getElementById('videoYoutubeUrl').value = '';
+    document.getElementById('videoSortOrder').value = '';
+    document.getElementById('videoFormMsg').classList.add('hidden');
+    document.getElementById('videoForm').classList.remove('hidden');
+}
+
+function openEditVideo(id) {
+    fetch('/api/videos').then(r=>r.json()).then(videos => {
+        const v = videos.find(x => x.id === id);
+        if (!v) return;
+        document.getElementById('videoFormTitle').textContent = 'Edit Video';
+        document.getElementById('editVideoId').value = v.id;
+        document.getElementById('videoLessonName').value = v.lesson_name;
+        document.getElementById('videoYoutubeUrl').value = v.youtube_url;
+        document.getElementById('videoSortOrder').value = v.sort_order || '';
+        document.getElementById('videoFormMsg').classList.add('hidden');
+        document.getElementById('videoForm').classList.remove('hidden');
+        document.getElementById('videoForm').scrollIntoView({behavior:'smooth'});
+    });
+}
+
+async function saveVideo() {
+    const id = document.getElementById('editVideoId').value;
+    const lesson_name = document.getElementById('videoLessonName').value.trim();
+    const youtube_url = document.getElementById('videoYoutubeUrl').value.trim();
+    const sort_order = parseInt(document.getElementById('videoSortOrder').value) || 0;
+    const msg = document.getElementById('videoFormMsg');
+    if (!lesson_name || !youtube_url) {
+        msg.textContent = '⚠️ Please fill in the lesson name and YouTube URL.';
+        msg.className = 'mt-2 text-sm text-red-600'; msg.classList.remove('hidden'); return;
+    }
+    const res = await fetch(id ? '/api/admin/videos/'+id : '/api/admin/videos', {
+        method: id ? 'PUT' : 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({lesson_name, youtube_url, sort_order})
+    }).then(r=>r.json());
+    if (res.ok) {
+        document.getElementById('videoForm').classList.add('hidden');
+        loadAdminVideos();
+    } else {
+        msg.textContent = '❌ ' + (res.error || 'Failed to save');
+        msg.className = 'mt-2 text-sm text-red-600'; msg.classList.remove('hidden');
+    }
+}
+
+async function deleteVideo(id) {
+    if (!confirm('Delete this video?')) return;
+    await fetch('/api/admin/videos/'+id, {method:'DELETE'});
+    loadAdminVideos();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function loadPending() {
     const pending = await fetch('/api/admin/pending').then(r=>r.json());
