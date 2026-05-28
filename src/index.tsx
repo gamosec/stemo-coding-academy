@@ -1470,6 +1470,14 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-emerald-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-emerald-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('clear_waypoints')">
                         🗑️ Clear List
                     </div>
+
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔧 Functions</div>
+                    <div class="block-item text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:scale-105 transition-all text-xs font-bold shadow" style="background:#7c3aed" onclick="addBlock('define_function')">
+                        🔧 Define Function
+                    </div>
+                    <div class="block-item text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:scale-105 transition-all text-xs font-bold shadow" style="background:#6d28d9" onclick="addBlock('call_function')">
+                        ▶ Call Function
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -1990,6 +1998,7 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // Named variables students can set and reuse
         var robotVars = { speed: 3, count: 4, angle: 90, distance: 5 };
+        var userFunctions = {};  // stores { funcName: [commands] }
 
         // Saved positions: A, B, C, D — store x,y coordinates
         var savedPositions = { A: null, B: null, C: null, D: null };
@@ -3407,6 +3416,34 @@ const htmlContent = `<!DOCTYPE html>
                 this.setTooltip("Remove all waypoints from the list");
             }
         };
+
+        // ── FUNCTION BLOCKS ───────────────────────────────────────────────
+        Blockly.Blocks['define_function'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔧 Define Function:")
+                    .appendField(new Blockly.FieldTextInput("myFunction"), "FNAME");
+                this.appendStatementInput("DO")
+                    .setCheck(null)
+                    .appendField("do");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(260);
+                this.setTooltip("Define a reusable function. Give it a name, then add blocks inside. Call it anywhere with 'Call Function'.");
+            }
+        };
+
+        Blockly.Blocks['call_function'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("▶ Call Function:")
+                    .appendField(new Blockly.FieldTextInput("myFunction"), "FNAME");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(280);
+                this.setTooltip("Call a function you defined. Type the exact function name to run its blocks.");
+            }
+        };
         
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
@@ -3483,6 +3520,24 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // CODE EXECUTION
         // ============================================
+        // Pre-scan workspace for define_function blocks and populate userFunctions
+        function scanUserFunctions() {
+            userFunctions = {};
+            if (!workspace) return;
+            var allBlocks = workspace.getAllBlocks(false);
+            allBlocks.forEach(function(b) {
+                if (b.type === 'define_function') {
+                    var name = (b.getFieldValue('FNAME') || '').trim();
+                    if (name) {
+                        var bodyBlock = b.getInputTargetBlock('DO');
+                        var bodyCmds = [];
+                        if (bodyBlock) parseBlocks(bodyBlock, bodyCmds);
+                        userFunctions[name] = bodyCmds;
+                    }
+                }
+            });
+        }
+
         function runCode() {
             console.log('Running code...');
             
@@ -3499,6 +3554,9 @@ const htmlContent = `<!DOCTYPE html>
                 addChatMessage('stemo', "🤖 Drag some blocks into the workspace first, then click Run!");
                 return;
             }
+
+            // Pre-scan all define_function blocks first
+            scanUserFunctions();
 
             // Reset robot before running
             robot.x = 275;
@@ -3641,6 +3699,11 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'foreach_waypoint', doCommands: fwDoCmds });
                 } else if (type === 'clear_waypoints') {
                     commands.push({ action: 'clear_waypoints' });
+                } else if (type === 'define_function') {
+                    // Already pre-scanned into userFunctions — skip during main execution
+                } else if (type === 'call_function') {
+                    var fname = block.getFieldValue('FNAME') || 'myFunction';
+                    commands.push({ action: 'call_function', name: fname });
                 } else if (type === 'if_hot_ahead') {
                     var distance = parseInt(block.getFieldValue('DISTANCE'));
                     var doBlock = block.getInputTargetBlock('DO');
@@ -3774,6 +3837,22 @@ const htmlContent = `<!DOCTYPE html>
                         if (challengeMode) checkChallengeObjectives();
                         setTimeout(executeNext, 150);
                     });
+                    return;
+                }
+
+                // ── FUNCTION CALL HANDLER ─────────────────────────────────
+                if (cmd.action === 'call_function') {
+                    var fnBody = userFunctions[cmd.name];
+                    if (!fnBody || fnBody.length === 0) {
+                        addChatMessage('stemo', "⚠️ Function <b>" + cmd.name + "</b> not found! Make sure you have a 🔧 Define Function block with that exact name.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        addChatMessage('stemo', "🔧 Calling <b>" + cmd.name + "()</b>…");
+                        executeCommands(fnBody, function() {
+                            if (challengeMode) checkChallengeObjectives();
+                            setTimeout(executeNext, 150);
+                        });
+                    }
                     return;
                 }
 
