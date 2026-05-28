@@ -2562,6 +2562,17 @@ const htmlContent = `<!DOCTYPE html>
             requestAnimationFrame(animationLoop);
         }
 
+        // Returns true if there is an active fire close enough to block this metal
+        function hasFireOnMetal(metal) {
+            for (var i = 0; i < fireObjects.length; i++) {
+                var f = fireObjects[i];
+                var dx = f.x - metal.x;
+                var dy = f.y - metal.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 40) return true;
+            }
+            return false;
+        }
+
         function updateMagneticPull() {
             if (!robot.magnetOn || robot.carrying) return;
 
@@ -2569,7 +2580,7 @@ const htmlContent = `<!DOCTYPE html>
             var pullStrength = 1.5;
 
             metalObjects.forEach(function(metal) {
-                if (!metal.pickedUp) {
+                if (!metal.pickedUp && !hasFireOnMetal(metal)) {
                     var dx = robot.x - metal.x;
                     var dy = robot.y - metal.y;
                     var dist = Math.sqrt(dx * dx + dy * dy);
@@ -4095,6 +4106,10 @@ const htmlContent = `<!DOCTYPE html>
                             var dy = metal.y - robot.y;
                             var dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist < pickupRange) {
+                                if (hasFireOnMetal(metal)) {
+                                    addChatMessage('stemo', "🔥🧲 Can't pick up metal — fire is burning here! Extinguish the fire first, then collect. 💧");
+                                    break;
+                                }
                                 metal.pickedUp = true;
                                 playSound('pickup');
                                 if (challengeMode) {
@@ -4142,6 +4157,11 @@ const htmlContent = `<!DOCTYPE html>
                                 var dy = metal.y - robot.y;
                                 var dist = Math.sqrt(dx * dx + dy * dy);
                                 if (dist < pickupRange) {
+                                    if (hasFireOnMetal(metal)) {
+                                        addChatMessage('stemo', "🔥🧲 Can't pick up metal — fire is burning here! Extinguish the fire first, then collect. 💧");
+                                        gotOne = true; // suppress generic "move closer" message
+                                        break;
+                                    }
                                     metal.pickedUp = true;
                                     robot.carrying = metal; // always carry so Magnet OFF can show the drop
                                     gotOne = true;
@@ -4253,28 +4273,32 @@ const htmlContent = `<!DOCTYPE html>
                     addChatMessage('stemo', "🌡️ Temperature: " + fireInfo.temp + "°C - All clear ahead!");
                 }
             } else if (cmd.action === 'spray_water') {
-                // Spray water to extinguish fire
+                // Spray water — keep spraying until fire is out or tank is empty
                 if (robot.waterLevel <= 0) {
                     addChatMessage('stemo', "💧 Water tank empty! Return to base to refill.");
                 } else {
                     var fireInfo = detectFireAhead();
                     if (fireInfo.fire && fireInfo.distance < 60) { // Within 3 steps
-                        robot.waterLevel--;
-                        fireInfo.fire.health--;
+                        var targetFire = fireInfo.fire;
+                        var spraysUsed = 0;
+                        // Loop: keep spraying until fire is gone or tank is empty
+                        while (targetFire.health > 0 && robot.waterLevel > 0) {
+                            robot.waterLevel--;
+                            targetFire.health--;
+                            spraysUsed++;
+                        }
                         robot.spraying = true;
                         playSound('spray');
-                        
-                        if (fireInfo.fire.health <= 0) {
-                            // Fire extinguished!
-                            fireObjects = fireObjects.filter(function(f) { return f !== fireInfo.fire; });
+                        if (targetFire.health <= 0) {
+                            fireObjects = fireObjects.filter(function(f) { return f !== targetFire; });
                             playSound('fire_out');
-                            addChatMessage('stemo', "💧💥 Fire extinguished! Great job! 🎉 Water left: " + robot.waterLevel + "/5");
+                            addChatMessage('stemo', "💧💥 Fire extinguished with " + spraysUsed + " spray" + (spraysUsed > 1 ? "s" : "") + "! Great job! 🎉 Water left: " + robot.waterLevel + "/5");
+                            checkChallengeObjectives();
                         } else {
-                            addChatMessage('stemo', "💧 Spraying water! Fire health: " + fireInfo.fire.health + "/3 | Water left: " + robot.waterLevel + "/5");
+                            addChatMessage('stemo', "💧 Sprayed " + spraysUsed + " time" + (spraysUsed > 1 ? "s" : "") + " — water ran out! Fire still active. Refill and try again.");
                         }
-                        
                         // Visual effect - clear spray flag after delay
-                        setTimeout(function() { robot.spraying = false; drawRobot(); }, 500);
+                        setTimeout(function() { robot.spraying = false; drawRobot(); }, 600);
                     } else {
                         addChatMessage('stemo', "💧 No fire within range! Move closer (within 3 steps).");
                     }
