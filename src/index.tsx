@@ -4002,16 +4002,22 @@ const htmlContent = `<!DOCTYPE html>
                     return;
                 }
                 if (cmd.action === 'foreach_waypoint') {
-                    if (waypointList.length === 0) {
-                        addChatMessage('stemo', "🔂 Waypoint list is empty! Add waypoints first.");
+                    var ptsToUse = waypointList.slice();
+                    // If list is empty but fires are on the board, auto-load fire positions
+                    if (ptsToUse.length === 0 && fireObjects.length > 0) {
+                        ptsToUse = fireObjects.map(function(f) { return { x: f.x, y: f.y }; });
+                        addChatMessage('stemo', "🔂 Waypoint list was empty — detected " + ptsToUse.length + " fire(s) on the board! Auto-loading fire locations as waypoints. Navigating and running your blocks…");
+                    } else if (ptsToUse.length === 0) {
+                        addChatMessage('stemo', "🔂 Waypoint list is empty and no fires detected! Place fires or add waypoints first (use the 📌 Add Waypoint block or button).");
                         setTimeout(executeNext, 200);
+                        return;
                     } else {
-                        addChatMessage('stemo', "🔂 For each of " + waypointList.length + " waypoints — navigating and running your blocks…");
-                        executeForeachWaypoint(waypointList.slice(), 0, cmd.doCommands, function() {
-                            if (challengeMode) checkChallengeObjectives();
-                            setTimeout(executeNext, 200);
-                        });
+                        addChatMessage('stemo', "🔂 For each of " + ptsToUse.length + " waypoints — navigating and running your blocks…");
                     }
+                    executeForeachWaypoint(ptsToUse, 0, cmd.doCommands, function() {
+                        if (challengeMode) checkChallengeObjectives();
+                        setTimeout(executeNext, 200);
+                    });
                     return;
                 }
                 if (cmd.action === 'clear_waypoints') {
