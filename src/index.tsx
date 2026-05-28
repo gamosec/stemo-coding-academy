@@ -2042,19 +2042,25 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-11': {
-                title: 'Solve the branching maze!',
-                description: 'A wall splits the board in two — only one path leads to the target. Use If/Else logic to find the gap and pass through!',
+                title: 'Navigate the 3-turn maze with If/Else!',
+                description: 'Use "If Wall Within 2 steps → Turn Right, else Move 1" inside Repeat loops to steer STEMO through three turns and reach the target. Go To Target is disabled — you must write the logic yourself!',
                 setup: function() {
-                    // Vertical wall with a gap in the middle — students must navigate through the gap
                     wallObjects = [
-                        { id: wallIdCounter++, x: 245, y: 70,  width: 40, height: 140 }, // top segment
-                        { id: wallIdCounter++, x: 245, y: 330, width: 40, height: 150 }  // bottom segment (gap 210–330)
+                        // Top horizontal wall — Turn 1 (STEMO heading north)
+                        // Bottom face at y=195 → detected 2 steps away when STEMO reaches y=235
+                        { id: wallIdCounter++, x: 175, y: 155, width: 120, height: 40 },
+                        // Right vertical wall — Turn 2 (STEMO heading east)
+                        // Left face at x=415 → detected 2 steps away when STEMO reaches x=375
+                        { id: wallIdCounter++, x: 415, y: 175, width: 40, height: 200 },
+                        // Bottom horizontal wall — Turn 3 (STEMO heading south)
+                        // Top face at y=415 → detected 2 steps away when STEMO reaches y=375
+                        { id: wallIdCounter++, x: 215, y: 415, width: 200, height: 40 }
                     ];
-                    // Target on the RIGHT side of the wall
-                    targetPoint = { x: 430, y: 275 };
+                    // Target is to the west after all 3 turns — 11 steps from (375,375)
+                    targetPoint = { x: 155, y: 375 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Reach the target through the gap', check: function() {
+                    { id: 'reach', label: '🎯 Navigate all 3 walls and reach the target!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
@@ -3167,6 +3173,12 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Handle go_to_target specially
                 if (cmd.action === 'go_to_target') {
+                    // Lesson-11 challenge requires manual If/Else navigation — block auto-navigator
+                    if (challengeMode && challengeActiveLessonId === 'lesson-11') {
+                        addChatMessage('stemo', "🚫 Go To Target is disabled for this challenge! Use <b>If Wall</b> blocks inside a <b>Repeat</b> loop to navigate the maze yourself.");
+                        setTimeout(executeNext, 200);
+                        return;
+                    }
                     if (!targetPoint) {
                         addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target.");
                         setTimeout(executeNext, 200);
