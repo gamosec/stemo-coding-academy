@@ -8711,23 +8711,27 @@ const landingPage = `<!DOCTYPE html>
 
 <!-- ========== STATS ========== -->
 <section class="bg-purple-700 py-12">
-    <div class="max-w-5xl mx-auto px-6">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div class="stat-card rounded-2xl p-6">
-                <div class="fredoka text-4xl text-white mb-1">10+</div>
-                <div class="text-purple-200 text-sm font-semibold">Interactive Lessons</div>
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+            <div class="stat-card rounded-2xl p-5">
+                <div class="fredoka text-4xl text-white mb-1">19</div>
+                <div class="text-purple-200 text-sm font-semibold">Lessons</div>
             </div>
-            <div class="stat-card rounded-2xl p-6">
+            <div class="stat-card rounded-2xl p-5">
+                <div class="fredoka text-4xl text-white mb-1">4</div>
+                <div class="text-purple-200 text-sm font-semibold">Difficulty Levels</div>
+            </div>
+            <div class="stat-card rounded-2xl p-5">
+                <div class="fredoka text-4xl text-white mb-1">50+</div>
+                <div class="text-purple-200 text-sm font-semibold">Block Types</div>
+            </div>
+            <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">4</div>
                 <div class="text-purple-200 text-sm font-semibold">User Roles</div>
             </div>
-            <div class="stat-card rounded-2xl p-6">
-                <div class="fredoka text-4xl text-white mb-1">100%</div>
-                <div class="text-purple-200 text-sm font-semibold">Interactive Learning</div>
-            </div>
-            <div class="stat-card rounded-2xl p-6">
-                <div class="fredoka text-4xl text-white mb-1">∞</div>
-                <div class="text-purple-200 text-sm font-semibold">Fun Guaranteed</div>
+            <div class="stat-card rounded-2xl p-5">
+                <div class="fredoka text-4xl text-white mb-1">AI</div>
+                <div class="text-purple-200 text-sm font-semibold">Powered Tutor</div>
             </div>
         </div>
     </div>
@@ -8761,59 +8765,161 @@ const landingPage = `<!DOCTYPE html>
     </div>
 </section>
 
-<!-- ========== FEATURES ========== -->
+<!-- ========== WHAT KIDS LEARN ========== -->
 <section class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center mb-16">
+            <span class="badge-pill mb-4">📚 Full Curriculum</span>
+            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">19 Lessons. Real Skills. Real Fun.</h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto">A complete learning journey from "what is code?" to writing reusable functions — designed for ages 7 to 16.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <!-- Beginner -->
+            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+                <div class="bg-gradient-to-r from-green-400 to-emerald-500 p-5 text-white">
+                    <div class="text-3xl mb-2">🟢</div>
+                    <div class="fredoka text-2xl">Beginner</div>
+                    <div class="text-green-100 text-sm mt-1">Lessons 1 – 5</div>
+                </div>
+                <div class="bg-white p-5 space-y-3">
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">🚶</div><div><div class="font-bold text-gray-800 text-sm">First Steps</div><div class="text-gray-500 text-xs">Move, turn, go home</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">🎨</div><div><div class="font-bold text-gray-800 text-sm">Drawing Bot</div><div class="text-gray-500 text-xs">Pen, color, size controls</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">🔷</div><div><div class="font-bold text-gray-800 text-sm">Shape Artist</div><div class="text-gray-500 text-xs">Squares, triangles, stars</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">🔁</div><div><div class="font-bold text-gray-800 text-sm">Loop Lab</div><div class="text-gray-500 text-xs">Repeat blocks, efficiency</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">🌀</div><div><div class="font-bold text-gray-800 text-sm">Spiral Master</div><div class="text-gray-500 text-xs">Complex loop patterns</div></div></div>
+                </div>
+            </div>
+            <!-- Intermediate -->
+            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+                <div class="bg-gradient-to-r from-blue-400 to-cyan-500 p-5 text-white">
+                    <div class="text-3xl mb-2">🔵</div>
+                    <div class="fredoka text-2xl">Intermediate</div>
+                    <div class="text-blue-100 text-sm mt-1">Lessons 6 – 9</div>
+                </div>
+                <div class="bg-white p-5 space-y-3">
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">🔩</div><div><div class="font-bold text-gray-800 text-sm">Metal Collector</div><div class="text-gray-500 text-xs">Magnet, objects, pickup</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">🧭</div><div><div class="font-bold text-gray-800 text-sm">Smart Navigator</div><div class="text-gray-500 text-xs">Pathfinding, BFS routing</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">📡</div><div><div class="font-bold text-gray-800 text-sm">Sensor Explorer</div><div class="text-gray-500 text-xs">Ultrasonic, wall detection</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm">🤔</div><div><div class="font-bold text-gray-800 text-sm">Decision Maker</div><div class="text-gray-500 text-xs">If/else logic, conditions</div></div></div>
+                </div>
+            </div>
+            <!-- Advanced -->
+            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+                <div class="bg-gradient-to-r from-orange-400 to-red-500 p-5 text-white">
+                    <div class="text-3xl mb-2">🔴</div>
+                    <div class="fredoka text-2xl">Advanced</div>
+                    <div class="text-orange-100 text-sm mt-1">Lessons 10 – 14</div>
+                </div>
+                <div class="bg-white p-5 space-y-3">
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm">🧱</div><div><div class="font-bold text-gray-800 text-sm">Wall Avoider</div><div class="text-gray-500 text-xs">Maze solving, smart turns</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm">🌡️</div><div><div class="font-bold text-gray-800 text-sm">Fire Watch</div><div class="text-gray-500 text-xs">Temperature sensors, alerts</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm">🚒</div><div><div class="font-bold text-gray-800 text-sm">Firefighter Hero</div><div class="text-gray-500 text-xs">Water system, extinguish</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm">🏆</div><div><div class="font-bold text-gray-800 text-sm">Master Coder</div><div class="text-gray-500 text-xs">All skills combined, final challenge</div></div></div>
+                </div>
+            </div>
+            <!-- Expert -->
+            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+                <div class="bg-gradient-to-r from-purple-500 to-violet-600 p-5 text-white">
+                    <div class="text-3xl mb-2">🟣</div>
+                    <div class="fredoka text-2xl">Expert</div>
+                    <div class="text-purple-100 text-sm mt-1">Lessons 15 – 19</div>
+                </div>
+                <div class="bg-white p-5 space-y-3">
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">🔢</div><div><div class="font-bold text-gray-800 text-sm">Variable Vault</div><div class="text-gray-500 text-xs">Named data, dynamic control</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">📍</div><div><div class="font-bold text-gray-800 text-sm">Position Memory</div><div class="text-gray-500 text-xs">GPS coordinates, navigation</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">🗺️</div><div><div class="font-bold text-gray-800 text-sm">Waypoint Trail</div><div class="text-gray-500 text-xs">Recorded paths, replay</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">🎯</div><div><div class="font-bold text-gray-800 text-sm">List Hunt</div><div class="text-gray-500 text-xs">Iteration, data lists, AI logic</div></div></div>
+                    <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-sm">🔧</div><div><div class="font-bold text-gray-800 text-sm">Function Factory</div><div class="text-gray-500 text-xs">Define & call reusable functions</div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills kids gain -->
+        <div class="bg-gradient-to-br from-purple-50 to-violet-100 rounded-3xl p-10 border border-purple-100">
+            <div class="text-center mb-10">
+                <h3 class="fredoka text-3xl text-gray-800 mb-2">Real Programming Skills, Taught Visually</h3>
+                <p class="text-gray-500">By the end of STEMO Coding, every student understands these core concepts — the same ones professional developers use every day.</p>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">🔁</div><div class="text-xs font-bold text-gray-700">Loops</div></div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">🤔</div><div class="text-xs font-bold text-gray-700">Conditions</div></div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">🔢</div><div class="text-xs font-bold text-gray-700">Variables</div></div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">🔧</div><div class="text-xs font-bold text-gray-700">Functions</div></div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">📋</div><div class="text-xs font-bold text-gray-700">Lists & Data</div></div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm"><div class="text-3xl mb-2">📡</div><div class="text-xs font-bold text-gray-700">Sensors & I/O</div></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FEATURES ========== -->
+<section class="py-24 bg-gray-50">
     <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
             <span class="badge-pill mb-4">🎯 Platform Features</span>
             <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">Everything Kids Need to Thrive</h2>
             <p class="text-gray-500 text-lg max-w-2xl mx-auto">A complete ecosystem built for modern STEAM education — engaging, measurable, and fun.</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-purple-50 to-violet-100 border border-purple-100">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">🤖</div>
                 <h3 class="text-xl font-extrabold text-gray-800 mb-2">AI Robot Guide (STEMO)</h3>
-                <p class="text-gray-600 leading-relaxed">A friendly AI-powered robot character who teaches, encourages, and guides students through every lesson with personality and humor.</p>
+                <p class="text-gray-500 text-sm leading-relaxed">A friendly AI-powered tutor who explains concepts, gives hints, and encourages students in real-time — powered by Llama 3.</p>
             </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-blue-50 to-cyan-100 border border-blue-100">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">🧩</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Block-Based Programming</h3>
-                <p class="text-gray-600 leading-relaxed">Visual drag-and-drop coding blocks make programming intuitive — no typing required. Kids learn logic, loops, conditions, and sensors.</p>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Visual Block Programming</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">50+ drag-and-drop blocks covering movement, drawing, loops, conditions, sensors, variables, lists, and functions — no typing needed.</p>
             </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-yellow-50 to-amber-100 border border-yellow-100">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">🔧</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Custom Functions</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Students define their own reusable functions by name, then call them anywhere. The same concept used by every professional programmer.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">📡</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Command Center</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">A real-time satellite terminal that displays data transmissions from STEMO — kids use the "Send to CC" block like a print() function to debug their programs.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">🗺️</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">GPS & Waypoint System</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Save positions A–D, navigate back to them like GPS, record waypoint paths, and replay them automatically. Real spatial reasoning skills.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">📐</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">3D Isometric View</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Switch the canvas to an isometric 3D perspective — STEMO comes alive in three dimensions, making spatial programming even more visual.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">💾</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Project Save & Load</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Save programs as .stemo files and reload them at any time. Students can build projects over multiple sessions and share them with the class.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
+                <div class="text-4xl mb-4">🎯</div>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Challenge Mode</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Each lesson has a locked challenge with specific objectives that auto-check as the student runs their code. Complete all objectives to unlock the next lesson.</p>
+            </div>
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">⭐</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Gamification & XP System</h3>
-                <p class="text-gray-600 leading-relaxed">Earn XP points, level up, unlock badges, and maintain daily streaks. Learning feels like a game — kids come back every day.</p>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">XP, Levels & Badges</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">Earn XP for every lesson, level up, maintain daily streaks, and unlock achievement badges. A full gamification system keeps motivation high.</p>
             </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-green-50 to-emerald-100 border border-green-100">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">📊</div>
                 <h3 class="text-xl font-extrabold text-gray-800 mb-2">Teacher Dashboard</h3>
-                <p class="text-gray-600 leading-relaxed">Teachers manage classes, approve students, assign specific lessons, monitor progress in real-time, and reset passwords easily.</p>
+                <p class="text-gray-500 text-sm leading-relaxed">Manage classes, approve students, assign specific lessons to a class, view every student's XP and level, and reset passwords with one click.</p>
             </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-pink-50 to-rose-100 border border-pink-100">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">👨‍👩‍👧</div>
                 <h3 class="text-xl font-extrabold text-gray-800 mb-2">Parent Monitoring Portal</h3>
-                <p class="text-gray-600 leading-relaxed">Parents stay connected with a dedicated portal to view their child's XP, completed lessons, badges earned, and daily streaks.</p>
+                <p class="text-gray-500 text-sm leading-relaxed">Parents link to their child's account and see XP, lessons completed, badges earned, and streaks — always in the loop without interrupting learning.</p>
             </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-orange-50 to-red-100 border border-orange-100">
+            <div class="feature-card rounded-3xl p-7 bg-white border border-gray-100 shadow-sm">
                 <div class="text-4xl mb-4">🏆</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Live Leaderboard</h3>
-                <p class="text-gray-600 leading-relaxed">A class-wide leaderboard ranks students by XP and level, creating healthy competition and motivating every learner to push further.</p>
-            </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-teal-50 to-cyan-100 border border-teal-100">
-                <div class="text-4xl mb-4">📡</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Robotics Simulation</h3>
-                <p class="text-gray-600 leading-relaxed">Students program a virtual robot with sensors, magnets, ultrasonic sight, and movement commands — real robotics concepts made accessible.</p>
-            </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-indigo-50 to-blue-100 border border-indigo-100">
-                <div class="text-4xl mb-4">💬</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">AI Chat Assistant</h3>
-                <p class="text-gray-600 leading-relaxed">Students can ask STEMO questions anytime. The AI assistant explains concepts in kid-friendly language, keeping learning fun and self-directed.</p>
-            </div>
-            <div class="feature-card rounded-3xl p-8 bg-gradient-to-br from-violet-50 to-purple-100 border border-violet-100">
-                <div class="text-4xl mb-4">🎯</div>
-                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Structured Curriculum</h3>
-                <p class="text-gray-600 leading-relaxed">10+ carefully designed lessons covering movement, drawing, loops, sensors, magnets, and advanced challenges — progressive and comprehensive.</p>
+                <h3 class="text-xl font-extrabold text-gray-800 mb-2">Live Class Leaderboard</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">A real-time leaderboard ranks every student in the class by XP and level — healthy competition that drives everyone to practice more.</p>
             </div>
         </div>
     </div>
