@@ -1449,6 +1449,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-teal-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-teal-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('show_coords')">
                         📍 Show Coords
                     </div>
+                    <div class="block-item bg-sky-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-sky-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('send_data')">
+                        📡 Send to Command Center
+                    </div>
                     <div class="block-item bg-teal-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-teal-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('save_position')">
                         💾 Save Position
                     </div>
@@ -3329,6 +3332,26 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['send_data'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📡 Send to Command Center:")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["My Location",  "my_location"],
+                        ["Position A",   "pos_A"],
+                        ["Position B",   "pos_B"],
+                        ["Position C",   "pos_C"],
+                        ["Position D",   "pos_D"],
+                        ["All Positions","all_positions"],
+                        ["Waypoint List","waypoint_list"]
+                    ]), "DATA");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(200);
+                this.setTooltip("Transmit location data to the Command Center (chat). Use like a print() function to report coordinates.");
+            }
+        };
+
         Blockly.Blocks['clear_waypoints'] = {
             init: function() {
                 this.appendDummyInput()
@@ -3556,6 +3579,8 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'repeat_var', varName: block.getFieldValue('VAR'), doCommands: innerCmds });
                 } else if (type === 'show_coords') {
                     commands.push({ action: 'show_coords' });
+                } else if (type === 'send_data') {
+                    commands.push({ action: 'send_data', data: block.getFieldValue('DATA') });
                 } else if (type === 'save_position') {
                     commands.push({ action: 'save_position', slot: block.getFieldValue('SLOT') });
                 } else if (type === 'go_to_saved') {
@@ -3717,6 +3742,41 @@ const htmlContent = `<!DOCTYPE html>
                     drawRobot();
                     setTimeout(function() { robot.posFlash = null; drawRobot(); }, 2500);
                     setTimeout(executeNext, 200);
+                    return;
+                }
+                if (cmd.action === 'send_data') {
+                    var d = cmd.data;
+                    var lines = [];
+                    function fmtPos(px, py) {
+                        return 'X=<b>' + Math.round((px-275)/20) + '</b>, Y=<b>' + Math.round((275-py)/20) + '</b>';
+                    }
+                    if (d === 'my_location') {
+                        lines.push('📍 STEMO location → ' + fmtPos(robot.x, robot.y));
+                    } else if (d === 'pos_A' || d === 'pos_B' || d === 'pos_C' || d === 'pos_D') {
+                        var slot = d.slice(-1); // 'A','B','C','D'
+                        var sp = savedPositions[slot];
+                        if (sp) lines.push('📍 Position <b>' + slot + '</b> → ' + fmtPos(sp.x, sp.y));
+                        else lines.push('📍 Position <b>' + slot + '</b> → NOT SET (use 💾 Save Position ' + slot + ' first)');
+                    } else if (d === 'all_positions') {
+                        ['A','B','C','D'].forEach(function(s) {
+                            var sp = savedPositions[s];
+                            if (sp) lines.push('📍 Position <b>' + s + '</b> → ' + fmtPos(sp.x, sp.y));
+                            else lines.push('📍 Position <b>' + s + '</b> → NOT SET');
+                        });
+                    } else if (d === 'waypoint_list') {
+                        if (waypointList.length === 0) {
+                            lines.push('📌 Waypoint list is EMPTY');
+                        } else {
+                            waypointList.forEach(function(pt, i) {
+                                lines.push('📌 Waypoint #' + (i+1) + ' → ' + fmtPos(pt.x, pt.y));
+                            });
+                        }
+                    }
+                    var header = '<div style="border-left:3px solid #38bdf8;padding-left:8px;margin:2px 0">' +
+                        '<span style="color:#0ea5e9;font-weight:700">📡 COMMAND CENTER RECEIVED:</span><br>' +
+                        lines.join('<br>') + '</div>';
+                    addChatMessage('stemo', header);
+                    setTimeout(executeNext, 250);
                     return;
                 }
                 if (cmd.action === 'save_position') {
