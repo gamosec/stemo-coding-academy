@@ -1849,7 +1849,7 @@ const htmlContent = `<!DOCTYPE html>
             visible: true,
             magnetOn: false,
             carrying: null,
-            waterLevel: 5,
+            waterLevel: 10,
             spraying: false,
             lastTemp: 25
         };
@@ -2868,7 +2868,7 @@ const htmlContent = `<!DOCTYPE html>
             targetTrails = [];
             metalObjects = []; wallObjects = []; fireObjects = [];
             targetPoint = null; selectedObject = null; selectedObjectType = null;
-            robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
+            robot.waterLevel = 10; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
 
             if (withChallenge) {
                 challengeActiveLessonId = currentLesson.id; // snapshot now — won't drift when Next Lesson loads
@@ -2889,7 +2889,7 @@ const htmlContent = `<!DOCTYPE html>
                     setTimeout(function() {
                         metalObjects = []; wallObjects = []; fireObjects = [];
                         targetPoint = null;
-                        robot.waterLevel = 5; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
+                        robot.waterLevel = 10; robot.spraying = false; robot.carrying = null; robot.magnetOn = false;
                         var ch = LESSON_CHALLENGES[lessonId];
                         if (ch) {
                             ch.setup();
@@ -4292,7 +4292,7 @@ const htmlContent = `<!DOCTYPE html>
                         if (targetFire.health <= 0) {
                             fireObjects = fireObjects.filter(function(f) { return f !== targetFire; });
                             playSound('fire_out');
-                            addChatMessage('stemo', "💧💥 Fire extinguished with " + spraysUsed + " spray" + (spraysUsed > 1 ? "s" : "") + "! Great job! 🎉 Water left: " + robot.waterLevel + "/5");
+                            addChatMessage('stemo', "💧💥 Fire extinguished with " + spraysUsed + " spray" + (spraysUsed > 1 ? "s" : "") + "! Great job! 🎉 Water left: " + robot.waterLevel + "/10");
                             checkChallengeObjectives();
                         } else {
                             addChatMessage('stemo', "💧 Sprayed " + spraysUsed + " time" + (spraysUsed > 1 ? "s" : "") + " — water ran out! Fire still active. Refill and try again.");
@@ -4554,9 +4554,9 @@ const htmlContent = `<!DOCTYPE html>
                     var dist = Math.sqrt(dx * dx + dy * dy);
                     
                     if (dist < 30) {
-                        robot.waterLevel = 5;
+                        robot.waterLevel = 10;
                         playSound('success');
-                        addChatMessage('stemo', "💧 Tank refilled! Water: 5/5");
+                        addChatMessage('stemo', "💧 Tank refilled! Water: 10/10");
                     } else {
                         var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
                         robot.angle = desiredAngle;
@@ -4596,7 +4596,7 @@ const htmlContent = `<!DOCTYPE html>
                     if (nearestFire.health <= 0) {
                         fireObjects = fireObjects.filter(function(f) { return f !== nearestFire; });
                         playSound('fire_out');
-                        addChatMessage('stemo', "🚒💧 Fire out! " + fireObjects.length + " fires remaining. Water: " + robot.waterLevel + "/5");
+                        addChatMessage('stemo', "🚒💧 Fire out! " + fireObjects.length + " fires remaining. Water: " + robot.waterLevel + "/10");
                     }
                     
                     setTimeout(function() { robot.spraying = false; drawRobot(); }, 300);
@@ -5546,13 +5546,13 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.fillStyle = '#1e3a5f';
                 ctx.font = '10px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText('💧 Water: ' + robot.waterLevel + '/5', 10, canvas.height - 20);
+                ctx.fillText('💧 Water: ' + robot.waterLevel + '/10', 10, canvas.height - 20);
                 
                 // Draw water bar
                 ctx.fillStyle = '#e5e7eb';
                 ctx.fillRect(10, canvas.height - 15, 50, 8);
                 ctx.fillStyle = '#3b82f6';
-                ctx.fillRect(10, canvas.height - 15, (robot.waterLevel / 5) * 50, 8);
+                ctx.fillRect(10, canvas.height - 15, (robot.waterLevel / 10) * 50, 8);
                 ctx.restore();
             }
             
@@ -5724,7 +5724,7 @@ const htmlContent = `<!DOCTYPE html>
                 visible: true,
                 magnetOn: false,
                 carrying: null,
-                waterLevel: 5,
+                waterLevel: 10,
                 spraying: false,
                 lastTemp: 25
             };
@@ -6415,7 +6415,7 @@ const htmlContent = `<!DOCTYPE html>
                 robot.carrying = null;
                 robot.magnetOn = false;
             }
-            robot.waterLevel = 5; // Refill water
+            robot.waterLevel = 10; // Refill water
             robot.spraying = false;
             drawRobot();
             addChatMessage('stemo', "🤖 🗑️ Board cleared! Water refilled 💧. Click buttons to add walls, metals, fires, or targets.");
