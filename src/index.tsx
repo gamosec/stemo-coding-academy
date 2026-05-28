@@ -877,6 +877,82 @@ const curriculum = {
             ],
             hint: 'Break the mission into phases (Scan → Collect → Extinguish → Return) and build each phase separately first, then connect them. Use loops wherever actions repeat. Check water level before every spray. This top-down design approach is how real software is built!',
             homework: 'You are now a Master Coder! 🎓 Your challenge: design a completely NEW mission scenario and write the autonomous program for it. Ideas: delivery robot (pick up packages, avoid fires, drop at destination), rescue robot (find stranded people behind walls), or artist robot (draw a shape while collecting metals). Share your creation!',
+            nextLesson: 'lesson-15'
+        },
+        {
+            id: 'lesson-15',
+            title: 'Variable Vault',
+            description: 'Store numbers in variables and use them to control STEMO — change one number, change everything!',
+            difficulty: 'hard',
+            xpReward: 400,
+            icon: '🔢',
+            introduction: "Real programs use VARIABLES — named boxes that store values you can reuse. Instead of writing Forward 4, Forward 4, Forward 4, Forward 4 four times, you write: Set speed=4, then Move speed steps — and if you change speed to 6, every move updates instantly! This is how ALL programs work: from video game physics engines (speed, gravity, jump_force are all variables) to NASA trajectory calculators (velocity, angle, thrust_power). Variables make your code flexible, powerful, and reusable.",
+            tasks: [
+                { id: 't1', text: 'Drag "📦 Set Var" → set speed to 4. Add "🚀 Move [speed] steps". Run — STEMO moves 4 steps forward!', completed: false },
+                { id: 't2', text: 'Change speed to 7 and rerun — no other blocks to change! The move automatically uses the new value.', completed: false },
+                { id: 't3', text: 'Add "📦 Set Var" count=4, angle=90. Build: Pen Down → Repeat [count] times → Move [speed] steps + Turn [angle] degrees. Draw a square!', completed: false },
+                { id: 't4', text: 'Change speed to 8 — rerun. Your square is now bigger, with ZERO other changes needed. That is the power of variables!', completed: false },
+                { id: 't5', text: 'Mission: set count=8, angle=45. Draw an 8-pointed star using variables. Change speed from 3 to 6. Watch the star grow!', completed: false }
+            ],
+            hint: 'Variables are like labelled jars — you put a number in once, then use the label anywhere. Pen Down before moving, or the trail will not be drawn. For the square: Repeat count → Move speed steps → Turn angle degrees right.',
+            homework: 'Build a "Zoom Spiral": Set speed=1. Repeat 20 times: Move speed steps → Turn 90 right → Change speed by 1. The variable grows each loop — STEMO spirals outward! This is called an accumulator variable.',
+            nextLesson: 'lesson-16'
+        },
+        {
+            id: 'lesson-16',
+            title: 'Position Memory',
+            description: 'Save your X,Y coordinates and navigate back — exactly like GPS home-point technology!',
+            difficulty: 'hard',
+            xpReward: 450,
+            icon: '📍',
+            introduction: "Every drone has a HOME POINT — the GPS coordinate where it took off, saved automatically. When the battery is low, it navigates back to that exact point and lands. STEMO has the same feature! You can save up to 4 named positions (A, B, C, D), explore freely, then command STEMO to return to any saved spot using the full BFS pathfinder — it never gets lost. Real search-and-rescue drones use this to drop rescue kits and return to base for resupply.",
+            tasks: [
+                { id: 't1', text: 'Add "📍 Show My Position" block and Run. See STEMO\'s starting coordinates (0, 0 = centre) printed in the chat!', completed: false },
+                { id: 't2', text: 'Add "💾 Save Position A" as your FIRST block — this records the starting point. Move STEMO forward 5 steps. Then "🔙 Go to Position A" — watch it return home!', completed: false },
+                { id: 't3', text: 'Save Position A (start), move somewhere complex (turns + moves), then Go to Position A. BFS finds the shortest route back!', completed: false },
+                { id: 't4', text: 'Try saving TWO positions: Save A at start, move east, Save B at current spot. Then Go to Position A, and Go to Position B — STEMO shuttles between them!', completed: false },
+                { id: 't5', text: 'Mission challenge: Save Position A. Smart Navigate to the target. Then Go to Position A to return home. Both objectives must be achieved!', completed: false }
+            ],
+            hint: 'Save Position A must come BEFORE any movement, or A will store the wrong location! Show My Position displays coordinates as steps from the centre (0,0). Use Go to Position to return — it uses the BFS pathfinder to avoid all walls.',
+            homework: 'Build a "Patrol Route": Save A (start), move east 5, Save B, move south 5, Save C. Then loop: Go to A → Go to B → Go to C → Go to A. This is how security robots patrol buildings!',
+            nextLesson: 'lesson-17'
+        },
+        {
+            id: 'lesson-17',
+            title: 'Waypoint Trail',
+            description: 'A list of locations is pre-loaded — replay the path to collect all the metals!',
+            difficulty: 'extreme',
+            xpReward: 500,
+            icon: '🗺️',
+            introduction: "Delivery drones store WAYPOINTS — a list of GPS coordinates for every stop on their route. They navigate point-to-point automatically, picking up or dropping off cargo at each stop. The list can have 3 entries or 300 — the same code handles both! This lesson pre-loads the waypoint list with 3 metal locations. Your job: turn the magnet on and tell STEMO to replay the list. One block collects everything!",
+            tasks: [
+                { id: 't1', text: 'Run "▶️ Replay Path" alone — STEMO visits all 3 pre-loaded locations in order. No magnet yet, just watch the path!', completed: false },
+                { id: 't2', text: 'Add "Magnet ON" BEFORE Replay Path. Run — STEMO follows the same path but now picks up metals along the way!', completed: false },
+                { id: 't3', text: 'Add "📍 Show My Position" inside the exploration: move STEMO, Add Waypoint, move again, Add Waypoint — your own custom list!', completed: false },
+                { id: 't4', text: 'Clear the list (🗑️ Clear Waypoints), manually move STEMO to 2 spots adding waypoints, then Replay Path to retrace your custom route.', completed: false },
+                { id: 't5', text: 'Mission: Magnet ON → Replay Path → Magnet OFF. Collect all 3 metals in one program!', completed: false }
+            ],
+            hint: 'The waypoint list is already loaded when the challenge starts — just add Magnet ON before Replay Path. Each waypoint is visited using the BFS pathfinder so STEMO never gets stuck. Metals are picked up automatically when STEMO arrives within range with magnet ON.',
+            homework: 'Create a "Recording Robot": place 4 metals yourself, then write a program that visits each and records its position using Add Waypoint. Clear the board, reset, then Replay Path — your recorded path drives STEMO to all 4 locations again!',
+            nextLesson: 'lesson-18'
+        },
+        {
+            id: 'lesson-18',
+            title: 'List Hunt',
+            description: 'Iterate through a list of fire targets and act at each one — the core of AI data processing!',
+            difficulty: 'extreme',
+            xpReward: 600,
+            icon: '🎯',
+            introduction: "Artificial Intelligence systems work by storing data in LISTS and LOOPING through them to make decisions. A fire-detection AI stores detected fire coordinates in a list, then iterates through it: for each fire location → navigate there → spray water. The same pattern processes medical scan results, controls warehouse robots, and pilots delivery drones. This lesson teaches the single most important concept in computer science: ITERATION — repeating an action for every item in a list. One block. Three fires. Let's go!",
+            tasks: [
+                { id: 't1', text: 'Drag "🔂 For Each Waypoint" block. Inside the DO section, add "💧 Spray Water". Run — STEMO navigates to fire 1, sprays, fire 2, sprays, fire 3, sprays. ALL DONE!', completed: false },
+                { id: 't2', text: 'Add "📍 Show My Position" inside the For Each — STEMO announces its location at every fire. This is called LOGGING, and real systems do it for debugging!', completed: false },
+                { id: 't3', text: 'Modify: add "🌡️ Check Temp" inside For Each BEFORE Spray Water — see the temperature spike at each fire just before extinguishing!', completed: false },
+                { id: 't4', text: 'Clear the waypoints (🗑️). Place 2 fires manually. Move STEMO near each and add waypoints manually. Then run For Each → Spray Water. Your own fire list!', completed: false },
+                { id: 't5', text: 'MASTER challenge: Clear all. Add 3 metals and 2 fires. Use TWO separate waypoint replays (reload with different waypoints between them) to first collect metals, then extinguish fires.', completed: false }
+            ],
+            hint: 'The waypoint list is pre-loaded with all 3 fire locations. "For Each Waypoint → Spray Water" is the ENTIRE solution — one compound block handles navigation + action for every item in the list. If you run out of water (starts at 5), press Reset and try again.',
+            homework: 'Design the ultimate list program: place items of your choice (metals, fires, targets). Build a waypoint list manually using Add Waypoint. Then write a For Each program that handles each item appropriately. Present your program to the class!',
             nextLesson: null
         }
     ]
@@ -1351,6 +1427,46 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-red-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('firefighter_mode')">
                         🚒 Firefighter
                     </div>
+
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔢 Variables</div>
+                    <div class="block-item bg-orange-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('set_variable')">
+                        📦 Set Var
+                    </div>
+                    <div class="block-item bg-orange-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('change_variable')">
+                        ➕ Change Var
+                    </div>
+                    <div class="block-item bg-orange-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('move_var_steps')">
+                        🚀 Move [Var]
+                    </div>
+                    <div class="block-item bg-orange-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('turn_var_degrees')">
+                        🔄 Turn [Var]
+                    </div>
+                    <div class="block-item bg-orange-700 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-orange-800 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('repeat_var_times')">
+                        🔁 Repeat [Var]
+                    </div>
+
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">📍 Position &amp; Lists</div>
+                    <div class="block-item bg-teal-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-teal-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('show_coords')">
+                        📍 Show Coords
+                    </div>
+                    <div class="block-item bg-teal-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-teal-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('save_position')">
+                        💾 Save Position
+                    </div>
+                    <div class="block-item bg-teal-700 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-teal-800 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_to_saved')">
+                        🔙 Go to Position
+                    </div>
+                    <div class="block-item bg-emerald-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-emerald-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('add_waypoint')">
+                        📌 Add Waypoint
+                    </div>
+                    <div class="block-item bg-emerald-600 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-emerald-700 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('replay_waypoints')">
+                        ▶️ Replay Path
+                    </div>
+                    <div class="block-item bg-emerald-700 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-emerald-800 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('foreach_waypoint')">
+                        🔂 For Each Waypoint
+                    </div>
+                    <div class="block-item bg-emerald-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-emerald-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('clear_waypoints')">
+                        🗑️ Clear List
+                    </div>
                 </div>
                 
                 <!-- Blockly Workspace - Center -->
@@ -1813,6 +1929,18 @@ const htmlContent = `<!DOCTYPE html>
         
         // Target point for navigation
         var targetPoint = null;
+
+        // ============================================
+        // VARIABLES SYSTEM
+        // ============================================
+        // Named variables students can set and reuse
+        var robotVars = { speed: 3, count: 4, angle: 90, distance: 5 };
+
+        // Saved positions: A, B, C, D — store x,y coordinates
+        var savedPositions = { A: null, B: null, C: null, D: null };
+
+        // Waypoint list — a list of {x, y} locations
+        var waypointList = [];
         
         // Placement mode: 'none', 'wall', 'target', 'metal'
         var placementMode = null; // null = Select mode (click objects to select/delete)
@@ -1825,7 +1953,7 @@ const htmlContent = `<!DOCTYPE html>
         var missionObjectives = null;
         var challengeCompleted = false;
 
-        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14'];
+        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18'];
 
         // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
         var targetTrails = [];
@@ -2160,9 +2288,115 @@ const htmlContent = `<!DOCTYPE html>
                         return Math.sqrt(dx*dx + dy*dy) < 40;
                     }}
                 ]
+            },
+
+            // Lesson 15 — Variable Vault
+            'lesson-15': {
+                title: 'Variable Vault — change one number, change everything!',
+                description: 'Set speed=4 and count=4, then draw a square using only variable blocks. Change speed to 6 and rerun — your square grows instantly!',
+                setup: function() {
+                    robotVars = { speed: 4, count: 4, angle: 90, distance: 5 };
+                    savedPositions = { A: null, B: null, C: null, D: null };
+                    waypointList = [];
+                    wallObjects = [];
+                    targetPoint = null;
+                },
+                objectives: [
+                    { id: 'moved', label: '📦 Use a variable to move STEMO (trail length > 200px)', check: function() {
+                        var total = 0;
+                        penTrails.forEach(function(t){ total += Math.sqrt((t.x2-t.x1)*(t.x2-t.x1)+(t.y2-t.y1)*(t.y2-t.y1)); });
+                        return total > 200;
+                    }},
+                    { id: 'closed', label: '🔁 Draw a closed shape (return within 80px of start)', check: function() {
+                        var dx = robot.x - 275, dy = robot.y - 275;
+                        return Math.sqrt(dx*dx+dy*dy) < 80;
+                    }}
+                ]
+            },
+
+            // Lesson 16 — Position Memory
+            'lesson-16': {
+                title: 'Position Memory — save your spot and return home!',
+                description: 'Use Save Position A at the start. Navigate to the target. Then Go to Position A to return. Like setting a GPS home point!',
+                setup: function() {
+                    robotVars = { speed: 3, count: 4, angle: 90, distance: 5 };
+                    savedPositions = { A: null, B: null, C: null, D: null };
+                    waypointList = [];
+                    wallObjects = [
+                        { id: wallIdCounter++, x: 185, y: 185, width: 40, height: 160 },
+                        { id: wallIdCounter++, x: 185, y: 325, width: 200, height: 40 }
+                    ];
+                    targetPoint = { x: 415, y: 135 };
+                },
+                objectives: [
+                    { id: 'target', label: '🎯 Reach the target', check: function() {
+                        if (!targetPoint) return false;
+                        var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
+                        return Math.sqrt(dx*dx+dy*dy) < 40;
+                    }},
+                    { id: 'home', label: '🏠 Return to start (within 60px)', check: function() {
+                        var dx = robot.x - 275, dy = robot.y - 275;
+                        return Math.sqrt(dx*dx+dy*dy) < 60;
+                    }}
+                ]
+            },
+
+            // Lesson 17 — Waypoint Trail
+            'lesson-17': {
+                title: 'Waypoint Trail — record a path, replay it automatically!',
+                description: 'Three metal pieces are waiting. The waypoint list is pre-loaded with their locations. Turn Magnet ON, then Replay Path to visit all three and collect them all!',
+                setup: function() {
+                    robotVars = { speed: 3, count: 3, angle: 90, distance: 5 };
+                    savedPositions = { A: null, B: null, C: null, D: null };
+                    metalObjects = [
+                        { id: metalIdCounter++, x: 135, y: 135, type: 'bolt',  pickedUp: false },
+                        { id: metalIdCounter++, x: 415, y: 275, type: 'gear',  pickedUp: false },
+                        { id: metalIdCounter++, x: 135, y: 415, type: 'bolt',  pickedUp: false }
+                    ];
+                    waypointList = [
+                        { x: 135, y: 135 },
+                        { x: 415, y: 275 },
+                        { x: 135, y: 415 }
+                    ];
+                    wallObjects = [];
+                    targetPoint = null;
+                },
+                objectives: [
+                    { id: 'metals', label: '🔩 Collect all 3 metal pieces using Replay Path', check: function() {
+                        return metalObjects.length === 3 && metalObjects.every(function(m){ return m.pickedUp; });
+                    }}
+                ]
+            },
+
+            // Lesson 18 — List Hunt
+            'lesson-18': {
+                title: 'List Hunt — loop through a list and act on each item!',
+                description: 'Three fires are pre-loaded in the waypoint list. Use "For Each Waypoint → Spray Water" to visit every fire and extinguish it. This is how AI iterates through data!',
+                setup: function() {
+                    robotVars = { speed: 3, count: 3, angle: 90, distance: 5 };
+                    savedPositions = { A: null, B: null, C: null, D: null };
+                    fireObjects = [
+                        { id: fireIdCounter++, x: 135, y: 135, health: 1 },
+                        { id: fireIdCounter++, x: 415, y: 275, health: 1 },
+                        { id: fireIdCounter++, x: 135, y: 415, health: 1 }
+                    ];
+                    waypointList = [
+                        { x: 135, y: 135 },
+                        { x: 415, y: 275 },
+                        { x: 135, y: 415 }
+                    ];
+                    wallObjects = [];
+                    targetPoint = null;
+                    robot.waterLevel = 5;
+                },
+                objectives: [
+                    { id: 'fires', label: '💧 Extinguish all 3 fires using For Each Waypoint', check: function() {
+                        return fireObjects.length === 3 && fireObjects.every(function(f){ return f.health <= 0; });
+                    }}
+                ]
             }
         };
-        
+
         // Ultrasonic sensor settings
         var sensorRange = 100; // pixels (5 steps)
         var showSensorBeam = true;
@@ -2930,6 +3164,172 @@ const htmlContent = `<!DOCTYPE html>
                 this.setTooltip("Auto-navigate and extinguish all fires");
             }
         };
+
+        // ── VARIABLE BLOCKS ──────────────────────────────────────────
+        Blockly.Blocks['set_variable'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📦 Set")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["speed","speed"],["count","count"],["angle","angle"],["distance","distance"]
+                    ]), "VAR")
+                    .appendField("to")
+                    .appendField(new Blockly.FieldNumber(3, 1, 999), "VALUE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(30);
+                this.setTooltip("Store a number in a named variable");
+            }
+        };
+
+        Blockly.Blocks['change_variable'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("➕ Change")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["speed","speed"],["count","count"],["angle","angle"],["distance","distance"]
+                    ]), "VAR")
+                    .appendField("by")
+                    .appendField(new Blockly.FieldNumber(1, -999, 999), "AMOUNT");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(30);
+                this.setTooltip("Add or subtract from a variable");
+            }
+        };
+
+        Blockly.Blocks['move_var_steps'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🚀 Move")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["speed","speed"],["count","count"],["distance","distance"]
+                    ]), "VAR")
+                    .appendField("steps");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(30);
+                this.setTooltip("Move forward using a variable as the step count");
+            }
+        };
+
+        Blockly.Blocks['turn_var_degrees'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔄 Turn")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["angle","angle"],["count","count"],["speed","speed"]
+                    ]), "VAR")
+                    .appendField("degrees right");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(30);
+                this.setTooltip("Turn using a variable as the degree amount");
+            }
+        };
+
+        Blockly.Blocks['repeat_var_times'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔁 Repeat")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["count","count"],["speed","speed"],["distance","distance"]
+                    ]), "VAR")
+                    .appendField("times");
+                this.appendStatementInput("DO")
+                    .appendField("do");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(30);
+                this.setTooltip("Repeat blocks using a variable for the count");
+            }
+        };
+
+        // ── POSITION & LIST BLOCKS ───────────────────────────────────
+        Blockly.Blocks['show_coords'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📍 Show My Position");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(165);
+                this.setTooltip("Display STEMO's current X and Y coordinates in the chat");
+            }
+        };
+
+        Blockly.Blocks['save_position'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💾 Save Position as")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["A","A"],["B","B"],["C","C"],["D","D"]
+                    ]), "SLOT");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(165);
+                this.setTooltip("Save STEMO's current X,Y into a named slot (A, B, C, or D)");
+            }
+        };
+
+        Blockly.Blocks['go_to_saved'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔙 Go to Position")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["A","A"],["B","B"],["C","C"],["D","D"]
+                    ]), "SLOT");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(165);
+                this.setTooltip("Navigate (BFS path) to a previously saved position");
+            }
+        };
+
+        Blockly.Blocks['add_waypoint'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📌 Add Waypoint to List");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(150);
+                this.setTooltip("Add STEMO's current position to the waypoint list");
+            }
+        };
+
+        Blockly.Blocks['replay_waypoints'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("▶️ Replay Path");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(150);
+                this.setTooltip("Navigate through all waypoints in the list in order");
+            }
+        };
+
+        Blockly.Blocks['foreach_waypoint'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔂 For Each Waypoint:");
+                this.appendStatementInput("DO")
+                    .appendField("do");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(150);
+                this.setTooltip("Navigate to each waypoint in the list and run the DO blocks at each one");
+            }
+        };
+
+        Blockly.Blocks['clear_waypoints'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🗑️ Clear Waypoint List");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(150);
+                this.setTooltip("Remove all waypoints from the list");
+            }
+        };
         
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
@@ -3132,6 +3532,36 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'spray_water' });
                 } else if (type === 'firefighter_mode') {
                     commands.push({ action: 'firefighter_mode' });
+                } else if (type === 'set_variable') {
+                    commands.push({ action: 'set_variable', varName: block.getFieldValue('VAR'), value: parseFloat(block.getFieldValue('VALUE')) });
+                } else if (type === 'change_variable') {
+                    commands.push({ action: 'change_variable', varName: block.getFieldValue('VAR'), amount: parseFloat(block.getFieldValue('AMOUNT')) });
+                } else if (type === 'move_var_steps') {
+                    commands.push({ action: 'move_var_steps', varName: block.getFieldValue('VAR') });
+                } else if (type === 'turn_var_degrees') {
+                    commands.push({ action: 'turn_var_degrees', varName: block.getFieldValue('VAR') });
+                } else if (type === 'repeat_var_times') {
+                    var innerBlock = block.getInputTargetBlock('DO');
+                    var innerCmds = [];
+                    if (innerBlock) parseBlocks(innerBlock, innerCmds);
+                    commands.push({ action: 'repeat_var', varName: block.getFieldValue('VAR'), doCommands: innerCmds });
+                } else if (type === 'show_coords') {
+                    commands.push({ action: 'show_coords' });
+                } else if (type === 'save_position') {
+                    commands.push({ action: 'save_position', slot: block.getFieldValue('SLOT') });
+                } else if (type === 'go_to_saved') {
+                    commands.push({ action: 'go_to_saved', slot: block.getFieldValue('SLOT') });
+                } else if (type === 'add_waypoint') {
+                    commands.push({ action: 'add_waypoint' });
+                } else if (type === 'replay_waypoints') {
+                    commands.push({ action: 'replay_waypoints' });
+                } else if (type === 'foreach_waypoint') {
+                    var fwDoBlock = block.getInputTargetBlock('DO');
+                    var fwDoCmds = [];
+                    if (fwDoBlock) parseBlocks(fwDoBlock, fwDoCmds);
+                    commands.push({ action: 'foreach_waypoint', doCommands: fwDoCmds });
+                } else if (type === 'clear_waypoints') {
+                    commands.push({ action: 'clear_waypoints' });
                 } else if (type === 'if_hot_ahead') {
                     var distance = parseInt(block.getFieldValue('DISTANCE'));
                     var doBlock = block.getInputTargetBlock('DO');
@@ -3223,7 +3653,119 @@ const htmlContent = `<!DOCTYPE html>
                     }
                     return;
                 }
-                
+
+                // ── VARIABLE HANDLERS ─────────────────────────────────────
+                if (cmd.action === 'set_variable') {
+                    robotVars[cmd.varName] = cmd.value;
+                    addChatMessage('stemo', "📦 Variable <b>" + cmd.varName + "</b> = <b>" + cmd.value + "</b>");
+                    setTimeout(executeNext, 150);
+                    return;
+                }
+                if (cmd.action === 'change_variable') {
+                    robotVars[cmd.varName] = (robotVars[cmd.varName] || 0) + cmd.amount;
+                    addChatMessage('stemo', "➕ Variable <b>" + cmd.varName + "</b> is now <b>" + robotVars[cmd.varName] + "</b>");
+                    setTimeout(executeNext, 150);
+                    return;
+                }
+                if (cmd.action === 'move_var_steps') {
+                    var vSteps = Math.round(robotVars[cmd.varName] || 1);
+                    var vMoves = [];
+                    for (var vi = 0; vi < vSteps; vi++) vMoves.push({ action: 'move', value: 20 });
+                    executeCommands(vMoves, function() {
+                        if (challengeMode) checkChallengeObjectives();
+                        setTimeout(executeNext, 150);
+                    });
+                    return;
+                }
+                if (cmd.action === 'turn_var_degrees') {
+                    var vDeg = robotVars[cmd.varName] || 90;
+                    robot.angle += vDeg;
+                    playSound('turn');
+                    drawRobot();
+                    setTimeout(executeNext, 200);
+                    return;
+                }
+                if (cmd.action === 'repeat_var') {
+                    var vCount = Math.round(robotVars[cmd.varName] || 1);
+                    var vLoop = [];
+                    for (var vj = 0; vj < vCount; vj++) {
+                        for (var vk = 0; vk < cmd.doCommands.length; vk++) vLoop.push(cmd.doCommands[vk]);
+                    }
+                    executeCommands(vLoop, function() {
+                        if (challengeMode) checkChallengeObjectives();
+                        setTimeout(executeNext, 150);
+                    });
+                    return;
+                }
+
+                // ── POSITION & LIST HANDLERS ──────────────────────────────
+                if (cmd.action === 'show_coords') {
+                    var cx = Math.round((robot.x - 275) / 20), cy = Math.round((275 - robot.y) / 20);
+                    addChatMessage('stemo', "📍 My position: X=<b>" + cx + "</b>, Y=<b>" + cy + "</b> (steps from centre)  |  Canvas: (" + Math.round(robot.x) + ", " + Math.round(robot.y) + ")");
+                    setTimeout(executeNext, 200);
+                    return;
+                }
+                if (cmd.action === 'save_position') {
+                    savedPositions[cmd.slot] = { x: robot.x, y: robot.y };
+                    var sx = Math.round((robot.x - 275) / 20), sy = Math.round((275 - robot.y) / 20);
+                    addChatMessage('stemo', "💾 Position <b>" + cmd.slot + "</b> saved! (X=" + sx + ", Y=" + sy + ")");
+                    setTimeout(executeNext, 200);
+                    return;
+                }
+                if (cmd.action === 'go_to_saved') {
+                    var sp = savedPositions[cmd.slot];
+                    if (!sp) {
+                        addChatMessage('stemo', "🔙 Position <b>" + cmd.slot + "</b> has not been saved yet! Use 💾 Save Position first.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        executeNavigateToPoint(sp.x, sp.y, "🔙 Navigating to saved position " + cmd.slot + "…", function() {
+                            if (challengeMode) checkChallengeObjectives();
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+                if (cmd.action === 'add_waypoint') {
+                    waypointList.push({ x: robot.x, y: robot.y });
+                    var wx = Math.round((robot.x - 275) / 20), wy = Math.round((275 - robot.y) / 20);
+                    addChatMessage('stemo', "📌 Waypoint #" + waypointList.length + " added at X=" + wx + ", Y=" + wy + "  |  List now has <b>" + waypointList.length + "</b> point(s)");
+                    setTimeout(executeNext, 200);
+                    return;
+                }
+                if (cmd.action === 'replay_waypoints') {
+                    if (waypointList.length === 0) {
+                        addChatMessage('stemo', "▶️ Waypoint list is empty! Use 📌 Add Waypoint first.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        addChatMessage('stemo', "▶️ Replaying " + waypointList.length + " waypoints…");
+                        executeReplayWaypoints(waypointList.slice(), 0, function() {
+                            if (challengeMode) checkChallengeObjectives();
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+                if (cmd.action === 'foreach_waypoint') {
+                    if (waypointList.length === 0) {
+                        addChatMessage('stemo', "🔂 Waypoint list is empty! Add waypoints first.");
+                        setTimeout(executeNext, 200);
+                    } else {
+                        addChatMessage('stemo', "🔂 For each of " + waypointList.length + " waypoints — navigating and running your blocks…");
+                        executeForeachWaypoint(waypointList.slice(), 0, cmd.doCommands, function() {
+                            if (challengeMode) checkChallengeObjectives();
+                            setTimeout(executeNext, 200);
+                        });
+                    }
+                    return;
+                }
+                if (cmd.action === 'clear_waypoints') {
+                    var oldCount = waypointList.length;
+                    waypointList = [];
+                    addChatMessage('stemo', "🗑️ Cleared " + oldCount + " waypoints from the list.");
+                    setTimeout(executeNext, 200);
+                    return;
+                }
+
                 // Handle if_hot (fire detection conditional)
                 if (cmd.action === 'if_hot') {
                     var fireInfo = detectFireAhead();
@@ -3984,6 +4526,77 @@ const htmlContent = `<!DOCTYPE html>
             }
 
             followPath();
+        }
+
+        // Navigate to any arbitrary {x,y} point using BFS
+        function executeNavigateToPoint(tx, ty, msg, onComplete) {
+            var savedTarget = targetPoint;
+            targetPoint = { x: tx, y: ty };
+            if (msg) addChatMessage('stemo', msg);
+            var path = bfsPath(robot.x, robot.y, tx, ty);
+            targetPoint = savedTarget;
+            if (!path || path.length === 0) {
+                if (onComplete) onComplete();
+                return;
+            }
+            var si = 1;
+            function step() {
+                if (si >= path.length) {
+                    robot.x = tx; robot.y = ty;
+                    drawRobot();
+                    if (onComplete) onComplete();
+                    return;
+                }
+                var pt = path[si], prev = path[si - 1];
+                var dx = pt.x - prev.x, dy = pt.y - prev.y;
+                if (dx !== 0 || dy !== 0) robot.angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                robot.x = pt.x; robot.y = pt.y;
+                si++; playSound('move'); drawRobot();
+                var edx = robot.x - tx, edy = robot.y - ty;
+                if (Math.sqrt(edx*edx + edy*edy) < 25) {
+                    robot.x = tx; robot.y = ty;
+                    drawRobot();
+                    if (onComplete) onComplete();
+                    return;
+                }
+                setTimeout(step, 120);
+            }
+            step();
+        }
+
+        // Replay all waypoints in sequence
+        function executeReplayWaypoints(pts, idx, onComplete) {
+            if (idx >= pts.length) {
+                addChatMessage('stemo', "✅ Replayed all " + pts.length + " waypoints!");
+                if (onComplete) onComplete();
+                return;
+            }
+            var pt = pts[idx];
+            executeNavigateToPoint(pt.x, pt.y, null, function() {
+                if (challengeMode) checkChallengeObjectives();
+                setTimeout(function() { executeReplayWaypoints(pts, idx + 1, onComplete); }, 200);
+            });
+        }
+
+        // For each waypoint: navigate there, then run doCommands
+        function executeForeachWaypoint(pts, idx, doCommands, onComplete) {
+            if (idx >= pts.length) {
+                addChatMessage('stemo', "✅ Visited all " + pts.length + " waypoints!");
+                if (onComplete) onComplete();
+                return;
+            }
+            var pt = pts[idx];
+            executeNavigateToPoint(pt.x, pt.y, "🔂 [" + (idx+1) + "/" + pts.length + "] Going to waypoint…", function() {
+                if (challengeMode) checkChallengeObjectives();
+                if (doCommands && doCommands.length > 0) {
+                    executeCommands(doCommands, function() {
+                        if (challengeMode) checkChallengeObjectives();
+                        setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete); }, 200);
+                    });
+                } else {
+                    setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete); }, 200);
+                }
+            });
         }
 
         // ============================================
@@ -6004,7 +6617,11 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-11': { id: 'lesson-11', title: 'Smart Explorer',    description: 'Use If/Else logic to find the correct path.',         hint: 'Check which direction is clear before moving. If wall is close, go another way!',           icon: '🧠', xpReward: 350, nextLesson: 'lesson-12' },
             'lesson-12': { id: 'lesson-12', title: 'Fire Watch',        description: 'Detect heat sources with your temperature sensor.',   hint: 'Scan in each direction — when temperature rises, you are near a fire!',                     icon: '🔥', xpReward: 400, nextLesson: 'lesson-13' },
             'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water when close to a fire. Watch your water level — refill at home base!',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-14' },
-            'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: null }
+            'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: 'lesson-15' },
+            'lesson-15': { id: 'lesson-15', title: 'Variable Vault',    description: 'Store values in variables and use them to control STEMO.',  hint: 'Set speed=4, count=4, angle=90. Then: Pen Down → Repeat count → Move speed steps, Turn angle degrees. One number controls everything!', icon: '🔢', xpReward: 400, nextLesson: 'lesson-16' },
+            'lesson-16': { id: 'lesson-16', title: 'Position Memory',   description: 'Save your coordinates and navigate back home like GPS.',     hint: 'First block: Save Position A (records start). Navigate to target. Last block: Go to Position A (returns home via shortest path)!',            icon: '📍', xpReward: 450, nextLesson: 'lesson-17' },
+            'lesson-17': { id: 'lesson-17', title: 'Waypoint Trail',    description: 'Follow a pre-loaded list of locations to collect metals.',   hint: 'The list is already loaded! Add Magnet ON, then Replay Path — STEMO visits every waypoint in order and picks up metals along the way.',       icon: '🗺️', xpReward: 500, nextLesson: 'lesson-18' },
+            'lesson-18': { id: 'lesson-18', title: 'List Hunt',         description: 'Loop through a list of fire targets — AI iteration in action!', hint: 'Use For Each Waypoint → Spray Water. STEMO navigates to each fire location and sprays automatically. This is how AI processes data lists!', icon: '🎯', xpReward: 600, nextLesson: null }
         };
 
         // Load Project from .stemo file
@@ -6899,7 +7516,11 @@ const CURRICULUM = [
     {id:'lesson-11',title:'Smart Explorer',icon:'🧠',desc:'Make decisions with If/Else logic',diff:'hard',xp:350,group:'🔴 Advanced'},
     {id:'lesson-12',title:'Fire Watch',icon:'🔥',desc:'Detect heat with temperature sensors',diff:'hard',xp:400,group:'🔴 Advanced'},
     {id:'lesson-13',title:'Firefighter Hero',icon:'🚒',desc:'Extinguish fires with water',diff:'extreme',xp:500,group:'🔴 Advanced'},
-    {id:'lesson-14',title:'Master Coder',icon:'🏆',desc:'The final autonomous challenge',diff:'extreme',xp:1000,group:'🔴 Advanced'}
+    {id:'lesson-14',title:'Master Coder',icon:'🏆',desc:'The final autonomous challenge',diff:'extreme',xp:1000,group:'🔴 Advanced'},
+    {id:'lesson-15',title:'Variable Vault',icon:'🔢',desc:'Control STEMO with named variables',diff:'hard',xp:400,group:'🟣 Expert'},
+    {id:'lesson-16',title:'Position Memory',icon:'📍',desc:'Save & return to GPS coordinates',diff:'hard',xp:450,group:'🟣 Expert'},
+    {id:'lesson-17',title:'Waypoint Trail',icon:'🗺️',desc:'Replay a list of locations automatically',diff:'extreme',xp:500,group:'🟣 Expert'},
+    {id:'lesson-18',title:'List Hunt',icon:'🎯',desc:'Iterate a list and act at each item',diff:'extreme',xp:600,group:'🟣 Expert'}
 ];
 
 let allClasses = [];
