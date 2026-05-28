@@ -1495,6 +1495,15 @@ const htmlContent = `<!DOCTYPE html>
                             <button onclick="setPlacementMode('target')" id="modeTargetBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Target">
                                 🎯
                             </button>
+                            <select id="posSlotSelect" title="Choose which position slot to place" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:9999px;padding:2px 4px;font-size:11px;font-weight:700;cursor:pointer;outline:none;">
+                                <option value="A" style="color:#000">A</option>
+                                <option value="B" style="color:#000">B</option>
+                                <option value="C" style="color:#000">C</option>
+                                <option value="D" style="color:#000">D</option>
+                            </select>
+                            <button onclick="setPlacementMode('position')" id="modePositionBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Position Marker (A/B/C/D)">
+                                📍
+                            </button>
                             <button onclick="toggleIsometricView()" id="isometricBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle 3D View">
                                 📐
                             </button>
@@ -3701,14 +3710,20 @@ const htmlContent = `<!DOCTYPE html>
                 // ── POSITION & LIST HANDLERS ──────────────────────────────
                 if (cmd.action === 'show_coords') {
                     var cx = Math.round((robot.x - 275) / 20), cy = Math.round((275 - robot.y) / 20);
-                    addChatMessage('stemo', "📍 My position: X=<b>" + cx + "</b>, Y=<b>" + cy + "</b> (steps from centre)  |  Canvas: (" + Math.round(robot.x) + ", " + Math.round(robot.y) + ")");
+                    var coordLabel = 'X=' + cx + '  Y=' + cy;
+                    addChatMessage('stemo', "📍 <b>My position:</b> X=<b>" + cx + "</b>, Y=<b>" + cy + "</b>  (steps from centre, right=+X, up=+Y)");
+                    // Flash coordinates on canvas near robot
+                    robot.posFlash = { x: robot.x, y: robot.y, label: coordLabel, expires: Date.now() + 2500 };
+                    drawRobot();
+                    setTimeout(function() { robot.posFlash = null; drawRobot(); }, 2500);
                     setTimeout(executeNext, 200);
                     return;
                 }
                 if (cmd.action === 'save_position') {
                     savedPositions[cmd.slot] = { x: robot.x, y: robot.y };
                     var sx = Math.round((robot.x - 275) / 20), sy = Math.round((275 - robot.y) / 20);
-                    addChatMessage('stemo', "💾 Position <b>" + cmd.slot + "</b> saved! (X=" + sx + ", Y=" + sy + ")");
+                    addChatMessage('stemo', "💾 Position <b>" + cmd.slot + "</b> saved at X=" + sx + ", Y=" + sy + " — a pin marker now shows on the canvas!");
+                    drawRobot();
                     setTimeout(executeNext, 200);
                     return;
                 }
@@ -4776,6 +4791,114 @@ const htmlContent = `<!DOCTYPE html>
                 
                 ctx.restore();
             }
+
+            // Draw saved position markers (A / B / C / D)
+            var posColors = { A: '#3b82f6', B: '#8b5cf6', C: '#f59e0b', D: '#ec4899' };
+            ['A','B','C','D'].forEach(function(slot) {
+                var pos = savedPositions[slot];
+                if (!pos) return;
+                var col = posColors[slot];
+                ctx.save();
+                // Glow
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
+                ctx.fillStyle = col.replace(')', ', 0.2)').replace('rgb', 'rgba');
+                ctx.fill();
+                // Filled circle
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = col;
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Pole
+                ctx.beginPath();
+                ctx.moveTo(pos.x + 1, pos.y - 9);
+                ctx.lineTo(pos.x + 1, pos.y - 22);
+                ctx.strokeStyle = '#1e3a5f';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Small flag
+                ctx.beginPath();
+                ctx.moveTo(pos.x + 1, pos.y - 22);
+                ctx.lineTo(pos.x + 9, pos.y - 18);
+                ctx.lineTo(pos.x + 1, pos.y - 14);
+                ctx.fillStyle = col;
+                ctx.fill();
+                // Letter label
+                ctx.font = 'bold 9px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(slot, pos.x, pos.y);
+                // Slot name below pin
+                ctx.font = 'bold 10px Arial';
+                ctx.fillStyle = col;
+                ctx.textAlign = 'center';
+                ctx.fillText('POS ' + slot, pos.x, pos.y + 22);
+                // If selected, draw dashed ring
+                if (selectedObject === pos && selectedObjectType === 'position') {
+                    ctx.strokeStyle = '#06b6d4';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 3]);
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 16, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                ctx.restore();
+            });
+
+            // Draw waypoint list markers
+            waypointList.forEach(function(pt, idx) {
+                ctx.save();
+                // Connecting line to next waypoint (dashed)
+                if (idx < waypointList.length - 1) {
+                    var next = waypointList[idx + 1];
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 4]);
+                    ctx.strokeStyle = 'rgba(16,185,129,0.5)';
+                    ctx.lineWidth = 1.5;
+                    ctx.moveTo(pt.x, pt.y);
+                    ctx.lineTo(next.x, next.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                // Circle pin
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = '#10b981';
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                // Number
+                ctx.font = 'bold 9px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((idx + 1).toString(), pt.x, pt.y);
+                ctx.restore();
+            });
+
+            // Draw position coordinate flash (Show My Position block)
+            if (robot.posFlash && Date.now() < robot.posFlash.expires) {
+                ctx.save();
+                var fx = robot.posFlash.x, fy = robot.posFlash.y - 30;
+                var flabel = robot.posFlash.label;
+                ctx.font = 'bold 13px Arial';
+                var tw = ctx.measureText(flabel).width + 16;
+                ctx.fillStyle = 'rgba(15,23,42,0.85)';
+                ctx.beginPath();
+                ctx.roundRect ? ctx.roundRect(fx - tw/2, fy - 11, tw, 22, 6) : ctx.rect(fx - tw/2, fy - 11, tw, 22);
+                ctx.fill();
+                ctx.fillStyle = '#38bdf8';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(flabel, fx, fy);
+                ctx.restore();
+            }
             
             // Draw ultrasonic sensor beam
             /*
@@ -5710,17 +5833,22 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('modeTargetBtn').className = mode === 'target'
                 ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
                 : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
+            document.getElementById('modePositionBtn').className = mode === 'position'
+                ? 'bg-teal-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
+                : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
 
             // Cursor changes so the user feels what mode they are in
             var canvasEl = document.getElementById('robotCanvas');
             if (canvasEl) canvasEl.style.cursor = mode ? 'crosshair' : 'pointer';
 
             // Update indicator text
+            var posSlot = (document.getElementById('posSlotSelect') || {}).value || 'A';
             var modeText = {
-                'metal': 'Click to place: 🔩 Metal  (click 🧲 again to stop)',
-                'wall':  'Click & drag to place: 🧱 Wall  (click 🧱 again to stop)',
-                'fire':  'Click to place: 🔥 Fire  (click 🔥 again to stop)',
-                'target':'Click to place: 🎯 Target  (click 🎯 again to stop)'
+                'metal':    'Click to place: 🔩 Metal  (click again to stop)',
+                'wall':     'Click & drag to place: 🧱 Wall  (click again to stop)',
+                'fire':     'Click to place: 🔥 Fire  (click again to stop)',
+                'target':   'Click to place: 🎯 Target  (click again to stop)',
+                'position': 'Click to place: 📍 Position ' + posSlot + ' marker  (click 📍 again to stop)'
             };
             document.getElementById('placementModeText').textContent =
                 mode ? modeText[mode] : '🖱️ Select mode — click an object to select it, then press Delete';
@@ -5775,6 +5903,12 @@ const htmlContent = `<!DOCTYPE html>
                 addFireAt(x, y);
             } else if (placementMode === 'target') {
                 addTargetAt(x, y);
+            } else if (placementMode === 'position') {
+                var slot = (document.getElementById('posSlotSelect') || {}).value || 'A';
+                savedPositions[slot] = { x: x, y: y };
+                var sx = Math.round((x - 275) / 20), sy = Math.round((275 - y) / 20);
+                drawRobot();
+                addChatMessage('stemo', '📍 Position <b>' + slot + '</b> placed at X=' + sx + ', Y=' + sy + ' — use "🔙 Go to Position ' + slot + '" to navigate here!');
             }
         }
         
@@ -5812,6 +5946,18 @@ const htmlContent = `<!DOCTYPE html>
                 var dy = targetPoint.y - y;
                 if (Math.sqrt(dx * dx + dy * dy) < 25) {
                     return { obj: targetPoint, type: 'target' };
+                }
+            }
+            // Check saved position markers
+            var posSlots = ['A','B','C','D'];
+            for (var pi = 0; pi < posSlots.length; pi++) {
+                var ps = posSlots[pi];
+                var pp = savedPositions[ps];
+                if (pp) {
+                    var pdx = pp.x - x, pdy = pp.y - y;
+                    if (Math.sqrt(pdx*pdx + pdy*pdy) < 18) {
+                        return { obj: pp, type: 'position', slot: ps };
+                    }
                 }
             }
             return null;
@@ -5965,6 +6111,15 @@ const htmlContent = `<!DOCTYPE html>
                 fireObjects = fireObjects.filter(function(f) { return f !== selectedObject; });
             } else if (selectedObjectType === 'target') {
                 targetPoint = null;
+            } else if (selectedObjectType === 'position') {
+                // Find which slot this object belongs to
+                var delSlots = ['A','B','C','D'];
+                for (var di = 0; di < delSlots.length; di++) {
+                    if (savedPositions[delSlots[di]] === selectedObject) {
+                        savedPositions[delSlots[di]] = null;
+                        break;
+                    }
+                }
             }
             
             addChatMessage('stemo', "🤖 🗑️ Deleted " + selectedObjectType + "!");
