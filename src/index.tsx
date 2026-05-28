@@ -1560,8 +1560,20 @@ const htmlContent = `<!DOCTYPE html>
                         </style>
                     </div>
 
-                    <!-- Chat panel — compact, always visible below canvas -->
-                    <div id="panelChat" class="border-t-2 border-gray-200 bg-white p-3">
+                    <!-- Tab switcher -->
+                    <div class="flex border-t-2 border-gray-200">
+                        <button id="tabBtnChat" onclick="switchRobotTab('chat')"
+                            class="flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all">
+                            💬 STEMO Chat
+                        </button>
+                        <button id="tabBtnCC" onclick="switchRobotTab('cc')"
+                            class="flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all">
+                            📡 Command Center
+                        </button>
+                    </div>
+
+                    <!-- STEMO Chat panel -->
+                    <div id="panelChat" class="bg-white p-3">
                         <div id="chatMessages" class="h-14 overflow-y-auto mb-2 space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
@@ -1580,14 +1592,13 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                     </div>
 
-                    <!-- Command Center panel — hidden by default, appears below chat when triggered -->
+                    <!-- Command Center panel -->
                     <div id="panelCC" style="display:none;background:#0f172a;">
                         <!-- CC header -->
                         <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #1e293b;">
                             <div id="ccPulseDot" style="width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 7px #4ade80;animation:ccPulse 1.5s infinite;flex-shrink:0;"></div>
                             <span style="color:#4ade80;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:1px;">COMMAND CENTER — UPLINK ACTIVE</span>
                             <button onclick="clearCC()" title="Clear log" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 7px;cursor:pointer;">CLR</button>
-                            <button onclick="toggleCC()" title="Close" style="background:rgba(239,68,68,0.2);border:none;color:#f87171;font-size:12px;border-radius:4px;padding:1px 7px;cursor:pointer;font-weight:700;">✕</button>
                         </div>
                         <!-- Transmission log -->
                         <div id="ccMessages" style="height:96px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.6;padding:6px 12px;">
@@ -5730,18 +5741,20 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // COMMAND CENTER
         // ============================================
+        function switchRobotTab(tab) {
+            var isChat = tab === 'chat';
+            document.getElementById('panelChat').style.display = isChat ? 'block' : 'none';
+            document.getElementById('panelCC').style.display = isChat ? 'none' : 'block';
+            document.getElementById('tabBtnChat').className = isChat
+                ? 'flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all'
+                : 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all';
+            document.getElementById('tabBtnCC').className = isChat
+                ? 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all'
+                : 'flex-1 py-1.5 text-xs font-bold bg-gray-900 text-green-400 border-b-2 border-green-400 transition-all';
+        }
+
         function toggleCC(forceOpen) {
-            var panel = document.getElementById('panelCC');
-            if (!panel) return;
-            var open = forceOpen === true ? true : (panel.style.display === 'none' || panel.style.display === '');
-            panel.style.display = open ? 'block' : 'none';
-            // Update toolbar button appearance
-            var btn = document.getElementById('ccToggleBtn');
-            if (btn) {
-                btn.className = open
-                    ? 'bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold transition-all'
-                    : 'bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all';
-            }
+            switchRobotTab('cc');
         }
 
         function addCommandCenterMessage(htmlLines) {
