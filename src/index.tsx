@@ -2483,7 +2483,7 @@ const htmlContent = `<!DOCTYPE html>
             // Lesson 19 — Function Factory
             'lesson-19': {
                 title: 'Function Factory — write once, call forever!',
-                description: '1️⃣ Define "drawSquare": Pen Down → Repeat 4× (Move 3 steps, Turn Right 90°)  2️⃣ Define "bigSquare": Repeat 4× (Call drawSquare, Turn Right 90°)  3️⃣ Call bigSquare → Turn Right 45° → Call bigSquare. A geometric star appears!',
+                description: 'Match the faded star on the canvas!  1️⃣ Define "drawSquare": Pen Down → Repeat 4× (Move 3 steps, Turn Right 90°)  2️⃣ Define "bigSquare": Repeat 4× (Call drawSquare, Turn Right 90°)  3️⃣ Call bigSquare → Turn Right 45° → Call bigSquare',
                 setup: function() {
                     robotVars = { speed: 3, count: 4, angle: 90, distance: 5 };
                     savedPositions = { A: null, B: null, C: null, D: null };
@@ -2493,13 +2493,31 @@ const htmlContent = `<!DOCTYPE html>
                     fireObjects = [];
                     metalObjects = [];
                     userFunctions = {};
+                    // Pre-draw the target star as a ghost guide on the canvas
+                    targetTrails = [];
+                    (function() {
+                        var sx = 275, sy = 275, sa = -90;
+                        function sm(steps) {
+                            var d = steps * 20;
+                            var nx = sx + d * Math.cos(sa * Math.PI / 180);
+                            var ny = sy + d * Math.sin(sa * Math.PI / 180);
+                            targetTrails.push({ x1: sx, y1: sy, x2: nx, y2: ny, color: '#f59e0b' });
+                            sx = nx; sy = ny;
+                        }
+                        function st(deg) { sa += deg; }
+                        function sq() { for (var i = 0; i < 4; i++) { sm(3); st(90); } }
+                        function big() { for (var i = 0; i < 4; i++) { sq(); st(90); } }
+                        big();       // first cross — 16 segments
+                        st(45);      // rotate 45°
+                        big();       // second cross — 16 segments (total 32)
+                    })();
                 },
                 objectives: [
                     { id: 'funcs', label: '🔧 Define at least 2 functions', check: function() {
                         return Object.keys(userFunctions).length >= 2;
                     }},
-                    { id: 'pattern', label: '🌟 Draw the star pattern (trail > 40 segments)', check: function() {
-                        return targetTrails.length >= 40;
+                    { id: 'pattern', label: '🌟 Draw the star pattern (match the ghost guide)', check: function() {
+                        return robot.trails.length >= 32;
                     }}
                 ]
             }
