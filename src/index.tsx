@@ -2045,44 +2045,34 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-11': {
-                title: 'Escape the maze and reach the target!',
-                description: 'A real maze with corridors and dead ends! Use Go To Target for smart navigation, or combine Repeat + If Wall + Turn to navigate. STEMO starts surrounded by walls — explore your way to the target in the top-right area!',
+                title: 'Escape the maze — 3 ways to win!',
+                description: 'A 3×3 grid maze with wide corridors and dead ends. You can solve it three ways: (1) Manual: Turn Right, Repeat 7 Move, Turn Left, Repeat 7 Move. (2) If Wall: Repeat 25 → If Wall Within 2 → Turn Right, else Move 1. (3) Smart Navigate: place the block and let the AI find the shortest path!',
                 setup: function() {
                     wallObjects = [
-                        // === HORIZONTAL DIVIDERS ===
-                        // Row 1 divider — gap on far right (x=415+) for passage to top-right
-                        { id: wallIdCounter++, x: 95,  y: 135, width: 320, height: 40 },
-                        // Row 2 divider left — gap at x=335-375 (passage between C3 and C4)
-                        { id: wallIdCounter++, x: 95,  y: 215, width: 240, height: 40 },
-                        // Row 2 divider right
-                        { id: wallIdCounter++, x: 375, y: 215, width: 120, height: 40 },
-                        // Row 3 divider left — gap at x=255-295 (STEMO starts here, passage to C2)
-                        { id: wallIdCounter++, x: 95,  y: 295, width: 160, height: 40 },
-                        // Row 3 divider right
-                        { id: wallIdCounter++, x: 295, y: 295, width: 200, height: 40 },
-                        // Row 4 divider — solid bottom (dead end floor)
-                        { id: wallIdCounter++, x: 95,  y: 375, width: 400, height: 40 },
+                        // === HORIZONTAL WALLS (row boundaries) ===
+                        // Row 0–1 boundary (y=185–225): gap at col1 (x=225–325) and col2 (x=365–465)
+                        { id: wallIdCounter++, x: 85,  y: 185, width: 140, height: 40 }, // col0 closed
+                        { id: wallIdCounter++, x: 325, y: 185, width: 40,  height: 40 }, // vwall-1-2 section
+                        // Row 1–2 boundary (y=325–365): gap at col1 (x=225–325) only
+                        { id: wallIdCounter++, x: 85,  y: 325, width: 140, height: 40 }, // col0 closed
+                        { id: wallIdCounter++, x: 325, y: 325, width: 180, height: 40 }, // vwall + col2 closed
 
-                        // === VERTICAL DIVIDERS ===
-                        // Col 1 wall — solid (left dead-end wall)
-                        { id: wallIdCounter++, x: 135, y: 95,  width: 40, height: 360 },
-                        // Col 2 wall — gap at y=255-295 (passage from C2 to C1)
-                        { id: wallIdCounter++, x: 215, y: 95,  width: 40, height: 160 },
-                        { id: wallIdCounter++, x: 215, y: 295, width: 40, height: 160 },
-                        // Col 3 wall — gap at y=255-295 (STEMO's eastward passage)
-                        { id: wallIdCounter++, x: 295, y: 95,  width: 40, height: 160 },
-                        { id: wallIdCounter++, x: 295, y: 295, width: 40, height: 160 },
-                        // Col 4 wall — gap at y=175-215 (passage to top-right room)
-                        { id: wallIdCounter++, x: 375, y: 95,  width: 40, height: 80  },
-                        { id: wallIdCounter++, x: 375, y: 215, width: 40, height: 240 },
-                        // Right boundary wall — closes off the right side of the maze
-                        { id: wallIdCounter++, x: 455, y: 65,  width: 40, height: 420 }
+                        // === VERTICAL WALLS (column boundaries) ===
+                        // Col 0–1 boundary (x=185–225): gap at row1 (y=225–325) — dead-end west passage
+                        { id: wallIdCounter++, x: 185, y: 85,  width: 40, height: 140 }, // row0 closed
+                        { id: wallIdCounter++, x: 185, y: 325, width: 40, height: 140 }, // row2 closed
+                        // Col 1–2 boundary (x=325–365): gap at row1 (y=225–325) — east passage to col2
+                        { id: wallIdCounter++, x: 325, y: 85,  width: 40, height: 140 }, // row0 closed
+                        { id: wallIdCounter++, x: 325, y: 365, width: 40, height: 100 }, // row2 closed
+
+                        // === RIGHT BOUNDARY ===
+                        { id: wallIdCounter++, x: 465, y: 25,  width: 40, height: 440 }  // closes right side
                     ];
-                    // Target in the top-right room — only reachable via the correct corridor path
-                    targetPoint = { x: 435, y: 115 };
+                    // Target: center of top-right room (col2, row0)
+                    targetPoint = { x: 415, y: 135 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Escape the maze and reach the target!', check: function() {
+                    { id: 'reach', label: '🎯 Navigate through the maze and reach the target!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
