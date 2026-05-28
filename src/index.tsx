@@ -6230,7 +6230,7 @@ const htmlContent = `<!DOCTYPE html>
                     var thumbHtml = thumb
                         ? '<img src="' + thumb + '" class="w-full object-cover rounded-xl mb-3" style="aspect-ratio:16/9;" onerror="this.remove()">'
                         : '<div class="w-full bg-gradient-to-br from-red-400 to-red-600 rounded-xl mb-3 flex items-center justify-center text-white text-4xl" style="aspect-ratio:16/9;"><i class="fas fa-play-circle"></i></div>';
-                    return \`<div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer group" onclick="playStudentVideo('\${embed}',\${JSON.stringify(v.lesson_name)})">
+                    return \`<div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer group" onclick="playStudentVideo('\${embed}')">
                         \${thumbHtml}
                         <div class="flex items-start gap-2">
                             <div class="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
