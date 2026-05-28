@@ -8642,7 +8642,7 @@ const landingPage = `<!DOCTYPE html>
 <nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-purple-100">
     <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <a href="/" class="flex items-center gap-3">
-            <img src="/static/steam-logo-white.png" alt="STEMO Coding" class="h-10 object-contain" style="filter: invert(27%) sepia(90%) saturate(700%) hue-rotate(240deg) brightness(80%);">
+            <img src="/static/steam-logo.png" alt="STEMO Coding" class="h-10 object-contain">
             <span class="fredoka text-2xl text-purple-700 tracking-wide">STEMO Coding</span>
         </a>
         <div class="flex items-center gap-3">
@@ -8698,7 +8698,7 @@ const landingPage = `<!DOCTYPE html>
             <div class="flex justify-center lg:justify-end">
                 <div class="relative float-anim">
                     <div class="w-64 h-64 md:w-80 md:h-80 rounded-full bg-white/10 flex items-center justify-center border-4 border-white/20 shadow-2xl" style="box-shadow:0 0 60px rgba(167,139,250,0.5);">
-                        <img src="/static/steam-logo-white.png" alt="STEMO Robot" class="w-48 md:w-64 object-contain drop-shadow-2xl">
+                        <img src="/static/steam-logo.png" alt="STEMO Robot" class="w-48 md:w-64 object-contain drop-shadow-2xl">
                     </div>
                     <div class="absolute -top-4 -right-4 bg-yellow-400 text-gray-900 rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">⭐ +50 XP!</div>
                     <div class="absolute -bottom-4 -left-4 bg-green-500 text-white rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">🏆 Level Up!</div>
