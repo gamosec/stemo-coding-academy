@@ -3808,82 +3808,121 @@ const htmlContent = `<!DOCTYPE html>
             firefightStep();
         }
         
+        // --- BFS-based pathfinder helpers ---
+        function isCellBlocked(x, y) {
+            var margin = 8;
+            for (var i = 0; i < wallObjects.length; i++) {
+                var w = wallObjects[i];
+                if (x + margin > w.x && x - margin < w.x + w.width &&
+                    y + margin > w.y && y - margin < w.y + w.height) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function bfsPath(startX, startY, goalX, goalY) {
+            // Snap positions to 20-px grid (grid starts at x=25, y=25)
+            function snap(v) { return Math.round((v - 25) / 20) * 20 + 25; }
+            var sx = snap(startX), sy = snap(startY);
+            var gx = snap(goalX),  gy = snap(goalY);
+            gx = Math.max(25, Math.min(525, gx));
+            gy = Math.max(25, Math.min(525, gy));
+
+            var queue   = [{x: sx, y: sy}];
+            var parent  = {};
+            parent[sx + ',' + sy] = null;
+
+            while (queue.length > 0) {
+                var cur = queue.shift();
+
+                if (Math.abs(cur.x - gx) <= 10 && Math.abs(cur.y - gy) <= 10) {
+                    // Reconstruct path from start to cur
+                    var path = [];
+                    var node = {x: cur.x, y: cur.y};
+                    while (node !== null) {
+                        path.unshift(node);
+                        var pk = node.x + ',' + node.y;
+                        node = parent[pk];
+                    }
+                    return path;
+                }
+
+                var dirs = [{dx:20,dy:0},{dx:-20,dy:0},{dx:0,dy:20},{dx:0,dy:-20}];
+                for (var d = 0; d < dirs.length; d++) {
+                    var nx = cur.x + dirs[d].dx;
+                    var ny = cur.y + dirs[d].dy;
+                    if (nx < 25 || nx > 525 || ny < 25 || ny > 525) continue;
+                    var key = nx + ',' + ny;
+                    if (key in parent) continue;
+                    if (isCellBlocked(nx, ny)) continue;
+                    parent[key] = {x: cur.x, y: cur.y};
+                    queue.push({x: nx, y: ny});
+                }
+            }
+            return null; // no path
+        }
+
         function executeGoToTarget(onComplete) {
-            if (!targetPoint) {
+            if (!targetPoint) { if (onComplete) onComplete(); return; }
+
+            var path = bfsPath(robot.x, robot.y, targetPoint.x, targetPoint.y);
+
+            if (!path || path.length === 0) {
+                addChatMessage('stemo', "🚫 No path to target! The target might be completely surrounded by walls.");
                 if (onComplete) onComplete();
                 return;
             }
-            
-            var maxSteps = 100; // Safety limit
-            var stepCount = 0;
-            
-            function moveStep() {
-                if (stepCount >= maxSteps) {
-                    addChatMessage('stemo', "🎯 Gave up after 100 steps! Try clearing some walls.");
-                    if (onComplete) onComplete();
-                    return;
-                }
-                
-                // Check if reached target
-                var dx = targetPoint.x - robot.x;
-                var dy = targetPoint.y - robot.y;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist < 25) {
-                    // Snap to the exact target position so the robot lands ON the target,
-                    // not just within ~1 cell of it (step size is 20px so we'd otherwise
-                    // stop wherever we happened to be inside the 25px reach radius).
+
+            addChatMessage('stemo', "🧭 Path found! Navigating " + (path.length - 1) + " steps to target…");
+
+            var stepIndex = 1; // index 0 is the start position
+
+            function followPath() {
+                if (stepIndex >= path.length) {
+                    // Snap to exact target
                     robot.x = targetPoint.x;
                     robot.y = targetPoint.y;
                     playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
-                    if (currentLesson) {
-                        checkLessonCompletion();
-                    }
+                    if (currentLesson) checkLessonCompletion();
                     if (onComplete) onComplete();
                     return;
                 }
-                
-                // Calculate desired angle to target
-                var desiredAngle = Math.atan2(dy, dx) * 180 / Math.PI;
-                var angleDiff = desiredAngle - robot.angle;
-                
-                // Normalize angle difference
-                while (angleDiff > 180) angleDiff -= 360;
-                while (angleDiff < -180) angleDiff += 360;
-                
-                // Check for wall ahead
-                var wallDist = detectWallAhead();
-                
-                if (wallDist <= 30) {
-                    // Wall ahead - use smart turn to choose best direction
-                    playSound('bonk');
-                    var turnDir = chooseBestTurnDirection();
-                    robot.angle += turnDir;
-                } else if (Math.abs(angleDiff) > 15) {
-                    // Need to turn toward target
-                    playSound('turn');
-                    robot.angle += angleDiff > 0 ? 15 : -15;
-                } else {
-                    // Move forward
-                    playSound('move');
-                    var rad = robot.angle * Math.PI / 180;
-                    robot.x += Math.cos(rad) * 20;
-                    robot.y += Math.sin(rad) * 20;
-                    
-                    // Bounds
-                    robot.x = Math.max(25, Math.min(525, robot.x));
-                    robot.y = Math.max(25, Math.min(525, robot.y));
+
+                var pt   = path[stepIndex];
+                var prev = path[stepIndex - 1];
+
+                // Face the direction of movement
+                var dx = pt.x - prev.x, dy = pt.y - prev.y;
+                if (dx !== 0 || dy !== 0) {
+                    robot.angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 }
-                
-                stepCount++;
+
+                robot.x = pt.x;
+                robot.y = pt.y;
+                stepIndex++;
+                playSound('move');
                 drawRobot();
-                setTimeout(moveStep, 150);
+
+                // Early exit if already close enough to real target coordinates
+                var edx = robot.x - targetPoint.x, edy = robot.y - targetPoint.y;
+                if (Math.sqrt(edx*edx + edy*edy) < 25) {
+                    robot.x = targetPoint.x;
+                    robot.y = targetPoint.y;
+                    playSound('success');
+                    addChatMessage('stemo', "🎯 Target reached! 🎉");
+                    drawRobot();
+                    if (currentLesson) checkLessonCompletion();
+                    if (onComplete) onComplete();
+                    return;
+                }
+
+                setTimeout(followPath, 120);
             }
-            
-            addChatMessage('stemo', "🎯 Navigating to target...");
-            moveStep();
+
+            followPath();
         }
 
         // ============================================
