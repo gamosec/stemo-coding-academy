@@ -1551,7 +1551,8 @@ const htmlContent = `<!DOCTYPE html>
                                     <span class="text-base">🏆</span>
                                     <span class="text-xs font-bold uppercase tracking-widest opacity-90">Challenge Mission</span>
                                 </div>
-                                <div class="font-bold text-sm mb-2" id="missionTitle">Complete the mission!</div>
+                                <div class="font-bold text-sm mb-1" id="missionTitle">Complete the mission!</div>
+                                <div class="text-xs opacity-90 mb-2 leading-snug" id="missionDesc" style="display:none;"></div>
                                 <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
                             </div>
                         </div>
@@ -2347,7 +2348,7 @@ const htmlContent = `<!DOCTYPE html>
             // Lesson 15 — Variable Vault
             'lesson-15': {
                 title: 'Variable Vault — change one number, change everything!',
-                description: 'Set speed=4 and count=4, then draw a square using only variable blocks. Change speed to 6 and rerun — your square grows instantly!',
+                description: '1️⃣ Pen Down  2️⃣ Repeat [Var: count] times → Move [Var: speed] steps + Turn [Var: angle] degrees  3️⃣ Run! Variables speed=4, count=4, angle=90 are already set for you.',
                 setup: function() {
                     robotVars = { speed: 4, count: 4, angle: 90, distance: 5 };
                     savedPositions = { A: null, B: null, C: null, D: null };
@@ -2816,6 +2817,8 @@ const htmlContent = `<!DOCTYPE html>
                     });
                     // Prime the toast content
                     document.getElementById('missionTitle').textContent = challenge.title;
+                    var descEl = document.getElementById('missionDesc');
+                    if (descEl && challenge.description) { descEl.textContent = challenge.description; descEl.style.display = 'block'; }
                     updateMissionHUD();
                     addChatMessage('stemo', '🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪');
                     // Defer world population to ensure canvas is ready after tab switch
@@ -7054,6 +7057,8 @@ const htmlContent = `<!DOCTYPE html>
                             });
 
                             document.getElementById('missionTitle').textContent = ch.title;
+                            var descEl2 = document.getElementById('missionDesc');
+                            if (descEl2 && ch.description) { descEl2.textContent = ch.description; descEl2.style.display = 'block'; }
                             updateMissionHUD();
                             showMissionToast();
                             document.getElementById('missionBadge').classList.remove('hidden');
