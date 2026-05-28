@@ -2042,25 +2042,44 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-11': {
-                title: 'Navigate the 3-turn maze with If/Else!',
-                description: 'Use "If Wall Within 2 steps → Turn Right, else Move 1" inside Repeat loops to steer STEMO through three turns and reach the target. Go To Target is disabled — you must write the logic yourself!',
+                title: 'Escape the maze and reach the target!',
+                description: 'A real maze with corridors and dead ends! Use Go To Target for smart navigation, or combine Repeat + If Wall + Turn to navigate. STEMO starts surrounded by walls — explore your way to the target in the top-right area!',
                 setup: function() {
                     wallObjects = [
-                        // Top horizontal wall — Turn 1 (STEMO heading north)
-                        // Bottom face at y=195 → detected 2 steps away when STEMO reaches y=235
-                        { id: wallIdCounter++, x: 175, y: 155, width: 120, height: 40 },
-                        // Right vertical wall — Turn 2 (STEMO heading east)
-                        // Left face at x=415 → detected 2 steps away when STEMO reaches x=375
-                        { id: wallIdCounter++, x: 415, y: 175, width: 40, height: 200 },
-                        // Bottom horizontal wall — Turn 3 (STEMO heading south)
-                        // Top face at y=415 → detected 2 steps away when STEMO reaches y=375
-                        { id: wallIdCounter++, x: 215, y: 415, width: 200, height: 40 }
+                        // === HORIZONTAL DIVIDERS ===
+                        // Row 1 divider — gap on far right (x=415+) for passage to top-right
+                        { id: wallIdCounter++, x: 95,  y: 135, width: 320, height: 40 },
+                        // Row 2 divider left — gap at x=335-375 (passage between C3 and C4)
+                        { id: wallIdCounter++, x: 95,  y: 215, width: 240, height: 40 },
+                        // Row 2 divider right
+                        { id: wallIdCounter++, x: 375, y: 215, width: 120, height: 40 },
+                        // Row 3 divider left — gap at x=255-295 (STEMO starts here, passage to C2)
+                        { id: wallIdCounter++, x: 95,  y: 295, width: 160, height: 40 },
+                        // Row 3 divider right
+                        { id: wallIdCounter++, x: 295, y: 295, width: 200, height: 40 },
+                        // Row 4 divider — solid bottom (dead end floor)
+                        { id: wallIdCounter++, x: 95,  y: 375, width: 400, height: 40 },
+
+                        // === VERTICAL DIVIDERS ===
+                        // Col 1 wall — solid (left dead-end wall)
+                        { id: wallIdCounter++, x: 135, y: 95,  width: 40, height: 360 },
+                        // Col 2 wall — gap at y=255-295 (passage from C2 to C1)
+                        { id: wallIdCounter++, x: 215, y: 95,  width: 40, height: 160 },
+                        { id: wallIdCounter++, x: 215, y: 295, width: 40, height: 160 },
+                        // Col 3 wall — gap at y=255-295 (STEMO's eastward passage)
+                        { id: wallIdCounter++, x: 295, y: 95,  width: 40, height: 160 },
+                        { id: wallIdCounter++, x: 295, y: 295, width: 40, height: 160 },
+                        // Col 4 wall — gap at y=175-215 (passage to top-right room)
+                        { id: wallIdCounter++, x: 375, y: 95,  width: 40, height: 80  },
+                        { id: wallIdCounter++, x: 375, y: 215, width: 40, height: 240 },
+                        // Right boundary wall — closes off the right side of the maze
+                        { id: wallIdCounter++, x: 455, y: 65,  width: 40, height: 420 }
                     ];
-                    // Target is to the west after all 3 turns — 11 steps from (375,375)
-                    targetPoint = { x: 155, y: 375 };
+                    // Target in the top-right room — only reachable via the correct corridor path
+                    targetPoint = { x: 435, y: 115 };
                 },
                 objectives: [
-                    { id: 'reach', label: '🎯 Navigate all 3 walls and reach the target!', check: function() {
+                    { id: 'reach', label: '🎯 Escape the maze and reach the target!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
                         return Math.sqrt(dx*dx + dy*dy) < 40;
@@ -3173,12 +3192,6 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Handle go_to_target specially
                 if (cmd.action === 'go_to_target') {
-                    // Lesson-11 challenge requires manual If/Else navigation — block auto-navigator
-                    if (challengeMode && challengeActiveLessonId === 'lesson-11') {
-                        addChatMessage('stemo', "🚫 Go To Target is disabled for this challenge! Use <b>If Wall</b> blocks inside a <b>Repeat</b> loop to navigate the maze yourself.");
-                        setTimeout(executeNext, 200);
-                        return;
-                    }
                     if (!targetPoint) {
                         addChatMessage('stemo', "🎯 No target set! Click the 🎯 button and place a target.");
                         setTimeout(executeNext, 200);
