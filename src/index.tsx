@@ -1481,6 +1481,7 @@ const htmlContent = `<!DOCTYPE html>
                         <div class="flex items-center gap-2">
                             <span class="text-xl">🤖</span>
                             <span class="font-bold">STEMO's World</span>
+                            <div id="ccSignalDot" title="Command Center signal" style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;transition:all 0.3s;flex-shrink:0;"></div>
                         </div>
                         <div class="flex gap-1">
                             <button onclick="toggleSound()" id="soundToggleBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle sound effects">
@@ -1553,8 +1554,20 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                     </div>
                     
-                    <!-- Chat Area - Bigger -->
-                    <div class="border-t-2 border-gray-200 bg-white p-3">
+                    <!-- Tab switcher -->
+                    <div class="flex border-t-2 border-gray-200" id="robotTabBar">
+                        <button id="tabBtnChat" onclick="switchRobotTab('chat')"
+                            class="flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all">
+                            💬 STEMO Chat
+                        </button>
+                        <button id="tabBtnCC" onclick="switchRobotTab('cc')"
+                            class="flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all">
+                            📡 Command Center
+                        </button>
+                    </div>
+
+                    <!-- STEMO Chat Panel -->
+                    <div id="panelChat" class="bg-white p-3">
                         <div id="chatMessages" class="h-14 overflow-y-auto mb-2 space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
@@ -1564,7 +1577,7 @@ const htmlContent = `<!DOCTYPE html>
                             </div>
                         </div>
                         <div class="flex gap-2">
-                            <input type="text" id="chatInput" placeholder="Ask STEMO for help..." 
+                            <input type="text" id="chatInput" placeholder="Ask STEMO for help..."
                                 class="flex-1 border-2 border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-indigo-400"
                                 onkeypress="handleChatKeypress(event)">
                             <button onclick="sendChat()" class="bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 rounded-full transition-all flex items-center justify-center">
@@ -1572,6 +1585,35 @@ const htmlContent = `<!DOCTYPE html>
                             </button>
                         </div>
                     </div>
+
+                    <!-- Command Center Panel -->
+                    <div id="panelCC" class="hidden" style="background:#0f172a;padding:10px 12px;">
+                        <!-- Header bar -->
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <div id="ccPulseDot" style="width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 7px #4ade80;animation:ccPulse 1.5s infinite;flex-shrink:0;"></div>
+                            <span style="color:#4ade80;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:1px;">COMMAND CENTER — UPLINK ACTIVE</span>
+                            <button onclick="clearCC()" title="Clear log" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 6px;cursor:pointer;">CLR</button>
+                        </div>
+                        <!-- Transmission log -->
+                        <div id="ccMessages" style="height:96px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.6;padding-right:2px;">
+                            <div style="color:#374151;">// Waiting for transmissions from STEMO...</div>
+                            <div style="color:#374151;">// Use the 📡 Send to Command Center block to transmit data.</div>
+                        </div>
+                        <!-- Divider -->
+                        <div style="border-top:1px solid #1e293b;margin:8px 0;"></div>
+                        <!-- Send-order input -->
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <span style="color:#38bdf8;font-family:monospace;font-size:11px;font-weight:700;">⌨</span>
+                            <input id="ccInput" placeholder="Send order to STEMO…" onkeypress="ccInputKeypress(event)"
+                                style="flex:1;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 10px;font-family:monospace;font-size:11px;outline:none;"
+                                onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='#334155'">
+                            <button onclick="sendCCCommand()" title="Send order" style="background:#0ea5e9;border:none;color:white;font-size:12px;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▲</button>
+                        </div>
+                        <div style="color:#374151;font-family:monospace;font-size:9px;margin-top:4px;">// Two-way comms coming soon — STEMO will execute your orders!</div>
+                    </div>
+                    <style>
+                        @keyframes ccPulse { 0%,100%{opacity:1;box-shadow:0 0 7px #4ade80;} 50%{opacity:0.5;box-shadow:0 0 2px #4ade80;} }
+                    </style>
                 </div>
             </div>
 
@@ -3746,37 +3788,39 @@ const htmlContent = `<!DOCTYPE html>
                 }
                 if (cmd.action === 'send_data') {
                     var d = cmd.data;
-                    var lines = [];
-                    function fmtPos(px, py) {
-                        return 'X=<b>' + Math.round((px-275)/20) + '</b>, Y=<b>' + Math.round((275-py)/20) + '</b>';
+                    var ccLines = [];
+                    function fmtPosCC(px, py) {
+                        return '<span style="color:#fbbf24">X=' + Math.round((px-275)/20) + '</span>  <span style="color:#fbbf24">Y=' + Math.round((275-py)/20) + '</span>';
                     }
                     if (d === 'my_location') {
-                        lines.push('📍 STEMO location → ' + fmtPos(robot.x, robot.y));
+                        ccLines.push('<span style="color:#4ade80">📍 STEMO</span> → ' + fmtPosCC(robot.x, robot.y));
                     } else if (d === 'pos_A' || d === 'pos_B' || d === 'pos_C' || d === 'pos_D') {
-                        var slot = d.slice(-1); // 'A','B','C','D'
-                        var sp = savedPositions[slot];
-                        if (sp) lines.push('📍 Position <b>' + slot + '</b> → ' + fmtPos(sp.x, sp.y));
-                        else lines.push('📍 Position <b>' + slot + '</b> → NOT SET (use 💾 Save Position ' + slot + ' first)');
+                        var sdSlot = d.slice(-1);
+                        var sdSp = savedPositions[sdSlot];
+                        if (sdSp) ccLines.push('<span style="color:#4ade80">📍 Position ' + sdSlot + '</span> → ' + fmtPosCC(sdSp.x, sdSp.y));
+                        else ccLines.push('<span style="color:#ef4444">📍 Position ' + sdSlot + ' → NOT SET</span>');
                     } else if (d === 'all_positions') {
                         ['A','B','C','D'].forEach(function(s) {
                             var sp = savedPositions[s];
-                            if (sp) lines.push('📍 Position <b>' + s + '</b> → ' + fmtPos(sp.x, sp.y));
-                            else lines.push('📍 Position <b>' + s + '</b> → NOT SET');
+                            if (sp) ccLines.push('<span style="color:#4ade80">📍 Pos ' + s + '</span> → ' + fmtPosCC(sp.x, sp.y));
+                            else ccLines.push('<span style="color:#475569">📍 Pos ' + s + ' → NOT SET</span>');
                         });
                     } else if (d === 'waypoint_list') {
                         if (waypointList.length === 0) {
-                            lines.push('📌 Waypoint list is EMPTY');
+                            ccLines.push('<span style="color:#ef4444">📌 Waypoint list EMPTY</span>');
                         } else {
                             waypointList.forEach(function(pt, i) {
-                                lines.push('📌 Waypoint #' + (i+1) + ' → ' + fmtPos(pt.x, pt.y));
+                                ccLines.push('<span style="color:#38bdf8">📌 WP#' + (i+1) + '</span> → ' + fmtPosCC(pt.x, pt.y));
                             });
                         }
                     }
-                    var header = '<div style="border-left:3px solid #38bdf8;padding-left:8px;margin:2px 0">' +
-                        '<span style="color:#0ea5e9;font-weight:700">📡 COMMAND CENTER RECEIVED:</span><br>' +
-                        lines.join('<br>') + '</div>';
-                    addChatMessage('stemo', header);
-                    setTimeout(executeNext, 250);
+                    // Show "TRANSMITTING" flash on canvas
+                    robot.txFlash = { expires: Date.now() + 1800 };
+                    drawRobot();
+                    setTimeout(function() { robot.txFlash = null; drawRobot(); }, 1800);
+                    // Send to Command Center terminal
+                    addCommandCenterMessage(ccLines);
+                    setTimeout(executeNext, 350);
                     return;
                 }
                 if (cmd.action === 'save_position') {
@@ -4942,6 +4986,33 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.restore();
             });
 
+            // Draw "TRANSMITTING" flash when send_data block fires
+            if (robot.txFlash && Date.now() < robot.txFlash.expires) {
+                var progress = (robot.txFlash.expires - Date.now()) / 1800;
+                ctx.save();
+                ctx.globalAlpha = Math.min(1, progress * 2);
+                // Expanding ring around robot
+                var ringR = 18 + (1 - progress) * 30;
+                ctx.beginPath();
+                ctx.arc(robot.x, robot.y, ringR, 0, Math.PI * 2);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                var ringR2 = 18 + (1 - progress) * 55;
+                ctx.beginPath();
+                ctx.arc(robot.x, robot.y, ringR2, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(56,189,248,0.4)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // "📡 TX" label above robot
+                ctx.font = 'bold 11px monospace';
+                ctx.fillStyle = '#38bdf8';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('📡 TRANSMITTING…', robot.x, robot.y - 22);
+                ctx.restore();
+            }
+
             // Draw position coordinate flash (Show My Position block)
             if (robot.posFlash && Date.now() < robot.posFlash.expires) {
                 ctx.save();
@@ -5665,6 +5736,80 @@ const htmlContent = `<!DOCTYPE html>
             .catch(function(err) {
                 addChatMessage('stemo', "🤖 Oops! I'm thinking too hard. Try again!");
             });
+        }
+
+        // ============================================
+        // COMMAND CENTER
+        // ============================================
+        function switchRobotTab(tab) {
+            var isChat = tab === 'chat';
+            document.getElementById('panelChat').style.display = isChat ? 'block' : 'none';
+            document.getElementById('panelCC').style.display = isChat ? 'none' : 'block';
+            document.getElementById('tabBtnChat').className = isChat
+                ? 'flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all'
+                : 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all';
+            document.getElementById('tabBtnCC').className = isChat
+                ? 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all'
+                : 'flex-1 py-1.5 text-xs font-bold bg-gray-900 text-green-400 border-b-2 border-green-400 transition-all';
+        }
+
+        function addCommandCenterMessage(htmlLines) {
+            var container = document.getElementById('ccMessages');
+            if (!container) return;
+            var now = new Date();
+            var hh = String(now.getHours()).padStart(2,'0');
+            var mm = String(now.getMinutes()).padStart(2,'0');
+            var ss = String(now.getSeconds()).padStart(2,'0');
+            var time = hh + ':' + mm + ':' + ss;
+
+            var sep = document.createElement('div');
+            sep.style.cssText = 'border-top:1px solid #1e293b;margin:3px 0;';
+            container.appendChild(sep);
+
+            var div = document.createElement('div');
+            div.style.cssText = 'padding:2px 0;';
+            div.innerHTML = '<span style="color:#475569">[' + time + ']</span> '
+                + htmlLines.map(function(l) {
+                    return '<span style="color:#e2e8f0">' + l + '</span>';
+                }).join('<br>');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+
+            // Flash signal dot in header toolbar
+            var dot = document.getElementById('ccSignalDot');
+            if (dot) {
+                dot.style.background = '#facc15';
+                dot.style.boxShadow = '0 0 10px #facc15';
+                setTimeout(function() {
+                    dot.style.background = '#4ade80';
+                    dot.style.boxShadow = '0 0 6px #4ade80';
+                }, 800);
+            }
+
+            // Auto-switch to Command Center tab so kids see the transmission arrive
+            switchRobotTab('cc');
+        }
+
+        function clearCC() {
+            var c = document.getElementById('ccMessages');
+            if (c) c.innerHTML = '<div style="color:#374151">// Log cleared. Ready for new transmissions.</div>';
+        }
+
+        function ccInputKeypress(e) {
+            if (e.key === 'Enter') sendCCCommand();
+        }
+
+        function sendCCCommand() {
+            var input = document.getElementById('ccInput');
+            var cmd = (input.value || '').trim();
+            if (!cmd) return;
+            input.value = '';
+            // Log the outgoing order in the CC terminal
+            addCommandCenterMessage(['<span style="color:#38bdf8">⬆ ORDER SENT:</span> <span style="color:#fbbf24">"' + cmd + '"</span>']);
+            // Mirror to STEMO chat for acknowledgement
+            setTimeout(function() {
+                addChatMessage('stemo', '📡 Command Center: <em>"' + cmd + '"</em> — message received! Direct command execution is coming soon.');
+            }, 300);
         }
 
         function addChatMessage(sender, message) {
