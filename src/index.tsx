@@ -8918,19 +8918,6 @@ const registerPage = `<!DOCTYPE html>
                         <input id="confirm" type="password" placeholder="Re-enter your password" autocomplete="new-password"
                             class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-600 mb-1">Class <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <select id="class_id" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
-                            <option value="">— Select your class —</option>
-                        </select>
-                        <p class="text-gray-400 text-xs mt-1">Choose your class if your teacher has already set one up.</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-600 mb-1">Parent Username <span class="text-gray-400 font-normal">(optional)</span></label>
-                        <input id="parent_username" type="text" placeholder="Your parent's STEMO username"
-                            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors">
-                        <p class="text-gray-400 text-xs mt-1">If your parent already has a STEMO account, enter their username to link automatically.</p>
-                    </div>
                     <button type="submit" id="regBtn"
                         class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
                         ✍️ Submit Registration
@@ -8950,17 +8937,6 @@ const registerPage = `<!DOCTYPE html>
         </div>
     </div>
     <script>
-        // Load available classes
-        fetch('/api/public/classes').then(r=>r.json()).then(classes => {
-            const sel = document.getElementById('class_id');
-            classes.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.name + (c.description ? ' — ' + c.description : '');
-                sel.appendChild(opt);
-            });
-        }).catch(()=>{});
-
         document.getElementById('regForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('regBtn');
@@ -8969,8 +8945,6 @@ const registerPage = `<!DOCTYPE html>
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm').value;
-            const classId = document.getElementById('class_id').value || null;
-            const parentUsername = document.getElementById('parent_username').value.trim() || null;
             err.classList.add('hidden');
             if (!fullName || !username || !password) { err.textContent = 'All fields are required.'; err.classList.remove('hidden'); return; }
             if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.classList.remove('hidden'); return; }
@@ -8982,7 +8956,7 @@ const registerPage = `<!DOCTYPE html>
                 const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ full_name: fullName, username, password, class_id: classId, parent_username: parentUsername })
+                    body: JSON.stringify({ full_name: fullName, username, password })
                 });
                 const data = await res.json();
                 if (data.success) {
