@@ -509,19 +509,95 @@ app.get('/api/progress/:studentId', authMiddleware, async (c) => {
     return c.json(progress || { student_id: studentId, xp: 0, level: 1, completed_lessons: '[]', earned_badges: '[]', streak: 0 })
 })
 
-// Save student progress
+// Save student progress — server-authoritative validation
 app.post('/api/progress', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'student') return c.json({ error: 'Only students can save progress' }, 403)
-    const { xp, level, completed_lessons, earned_badges, streak } = await c.req.json()
+
+    const body = await c.req.json()
+
+    // ── Build lookup maps from server-side curriculum ──────────────────────
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced] as any[]
+    const validLessonIds = new Set(allLessons.map((l: any) => l.id))
+    const lessonXpMap: Record<string, number> = {}
+    allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
+    const validBadgeIds = new Set((badges as any[]).map((b: any) => b.id))
+
+    // ── Load current stored progress (prevents rollback attacks) ───────────
+    const stored = await c.env.DB.prepare(
+        'SELECT completed_lessons, earned_badges, streak FROM student_progress WHERE student_id = ?'
+    ).bind(me.id).first() as any
+    const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
+    const storedBadges: string[]  = JSON.parse(stored?.earned_badges   || '[]')
+
+    // ── Sanitize completed_lessons ─────────────────────────────────────────
+    // Only valid lesson IDs; merge with stored so completions can never shrink
+    const incomingLessons = Array.isArray(body.completed_lessons) ? body.completed_lessons : []
+    const safeLessons = [...new Set([
+        ...storedLessons.filter((id: string) => validLessonIds.has(id)),
+        ...incomingLessons.filter((id: any) => typeof id === 'string' && validLessonIds.has(id))
+    ])]
+
+    // ── Compute XP server-side from completed lessons ──────────────────────
+    // Client-supplied XP is completely ignored — prevents any XP injection
+    const xp = safeLessons.reduce((sum: number, id: string) => sum + (lessonXpMap[id] || 0), 0)
+
+    // ── Compute level server-side ──────────────────────────────────────────
+    const level = Math.floor(xp / 500) + 1
+
+    // ── Sanitize earned_badges ─────────────────────────────────────────────
+    const incomingBadges = Array.isArray(body.earned_badges) ? body.earned_badges : []
+    const safeBadges = [...new Set([
+        ...storedBadges.filter((id: string) => validBadgeIds.has(id)),
+        ...incomingBadges.filter((id: any) => typeof id === 'string' && validBadgeIds.has(id))
+    ])]
+
+    // ── Sanitize streak ────────────────────────────────────────────────────
+    const rawStreak = Number(body.streak)
+    const safeStreak = Number.isFinite(rawStreak) ? Math.min(365, Math.max(0, Math.floor(rawStreak))) : (stored?.streak || 0)
+
     await c.env.DB.prepare(`
         INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(student_id) DO UPDATE SET xp=excluded.xp, level=excluded.level,
         completed_lessons=excluded.completed_lessons, earned_badges=excluded.earned_badges,
         streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
-    `).bind(me.id, xp, level, JSON.stringify(completed_lessons), JSON.stringify(earned_badges), streak).run()
-    return c.json({ success: true })
+    `).bind(me.id, xp, level, JSON.stringify(safeLessons), JSON.stringify(safeBadges), safeStreak).run()
+
+    return c.json({ success: true, xp, level })
+})
+
+// Admin: sanitize a student's stored progress to match server-computed values
+app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced] as any[]
+    const validLessonIds = new Set(allLessons.map((l: any) => l.id))
+    const lessonXpMap: Record<string, number> = {}
+    allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
+    const validBadgeIds = new Set((badges as any[]).map((b: any) => b.id))
+
+    const studentId = c.req.param('studentId')
+    const stored = await c.env.DB.prepare(
+        'SELECT * FROM student_progress WHERE student_id = ?'
+    ).bind(studentId).first() as any
+
+    if (!stored) return c.json({ error: 'No progress record found' }, 404)
+
+    const cleanLessons = JSON.parse(stored.completed_lessons || '[]')
+        .filter((id: string) => validLessonIds.has(id))
+    const cleanBadges = JSON.parse(stored.earned_badges || '[]')
+        .filter((id: string) => validBadgeIds.has(id))
+    const xp    = cleanLessons.reduce((s: number, id: string) => s + (lessonXpMap[id] || 0), 0)
+    const level = Math.floor(xp / 500) + 1
+    const streak = Math.min(365, Math.max(0, stored.streak || 0))
+
+    await c.env.DB.prepare(
+        'UPDATE student_progress SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=? WHERE student_id=?'
+    ).bind(xp, level, JSON.stringify(cleanLessons), JSON.stringify(cleanBadges), streak, studentId).run()
+
+    return c.json({ ok: true, xp, level, lessons: cleanLessons.length })
 })
 
 // ============================================
@@ -7919,7 +7995,10 @@ async function loadUsers() {
         <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${roleColors[u.role]}">\${roleEmoji[u.role]} \${u.role}</span></td>
         <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${u.status||'approved'}</span></td>
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
-        <td class="py-2"><button onclick="deleteUser(\${u.id}, '\${u.username}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button></td>
+        <td class="py-2 flex gap-2 items-center flex-wrap">
+            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${u.username}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
+            <button onclick="deleteUser(\${u.id}, '\${u.username}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
+        </td>
     </tr>\`).join('');
 }
 
@@ -8186,6 +8265,17 @@ async function deleteUser(id, username) {
     if (!confirm('Delete user @' + username + '?')) return;
     await fetch('/api/admin/users/' + id, { method: 'DELETE' });
     loadUsers();
+}
+
+async function sanitizeProgress(id, username) {
+    if (!confirm('Recalculate @' + username + '\'s XP from their actual completed lessons? This will correct any manipulated scores.')) return;
+    const res = await fetch('/api/admin/sanitize-progress/' + id, { method: 'POST' }).then(r => r.json());
+    if (res.ok) {
+        alert('✅ @' + username + ' sanitized — XP: ' + res.xp + ' | Level: ' + res.level + ' | Lessons: ' + res.lessons);
+        loadUsers();
+    } else {
+        alert('❌ ' + (res.error || 'Failed'));
+    }
 }
 
 async function linkParent() {
