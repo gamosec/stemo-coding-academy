@@ -8268,7 +8268,7 @@ async function deleteUser(id, username) {
 }
 
 async function sanitizeProgress(id, username) {
-    if (!confirm('Recalculate @' + username + '\'s XP from their actual completed lessons? This will correct any manipulated scores.')) return;
+    if (!confirm("Recalculate @" + username + "'s XP from their actual completed lessons? This will correct any manipulated scores.")) return;
     const res = await fetch('/api/admin/sanitize-progress/' + id, { method: 'POST' }).then(r => r.json());
     if (res.ok) {
         alert('✅ @' + username + ' sanitized — XP: ' + res.xp + ' | Level: ' + res.level + ' | Lessons: ' + res.lessons);
