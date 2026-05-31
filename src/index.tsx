@@ -234,8 +234,20 @@ app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const id = c.req.param('id')
-    await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
-    return c.json({ success: true })
+    try {
+        // Cascade: remove from all related tables before deleting the user
+        await c.env.DB.prepare('DELETE FROM parent_students WHERE parent_id = ? OR student_id = ?').bind(id, id).run()
+        await c.env.DB.prepare('DELETE FROM class_students WHERE student_id = ?').bind(id).run()
+        await c.env.DB.prepare('DELETE FROM student_progress WHERE student_id = ?').bind(id).run()
+        await c.env.DB.prepare('DELETE FROM chat_history WHERE student_id = ?').bind(id).run()
+        await c.env.DB.prepare('DELETE FROM assigned_lessons WHERE assigned_by = ?').bind(id).run()
+        // Remove as teacher from classes (nullify rather than delete the class)
+        await c.env.DB.prepare('UPDATE classes SET teacher_id = NULL WHERE teacher_id = ?').bind(id).run()
+        await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
+        return c.json({ success: true })
+    } catch (err: any) {
+        return c.json({ error: 'Delete failed: ' + (err?.message || String(err)) }, 500)
+    }
 })
 
 // ============================================
