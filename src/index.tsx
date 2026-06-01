@@ -6255,7 +6255,17 @@ const htmlContent = `<!DOCTYPE html>
                 return;
             }
             
-            // Free build / non-mission: complete lesson if robot moved or drew anything
+            // Mission lessons (4+) can ONLY be completed through challenge mode.
+            // Free build on a mission lesson is practice — it doesn't award XP or mark done.
+            if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
+                var robotActed = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90 || robot.trails.length > 0;
+                if (robotActed && !stemo.completedLessons.includes(currentLesson.id)) {
+                    addChatMessage('stemo', '🏆 Great practice! Mission lessons only award XP in <b>Challenge Mode</b>. Go back to the Lessons tab, select this lesson, and choose <b>🏆 Challenge Mode</b> to earn XP!');
+                }
+                return;
+            }
+            
+            // Non-mission lessons (1–3): complete as soon as the robot moves or draws
             var robotMoved = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90;
             var robotDrew = robot.trails.length > 0;
             
