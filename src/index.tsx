@@ -717,6 +717,102 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
     return c.json(results)
 })
 
+// Leaderboard — student's own class
+app.get('/api/leaderboard/class', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
+    try {
+        const { results } = await c.env.DB.prepare(`
+            SELECT u.id, u.full_name, u.username,
+                   COALESCE(sp.xp, 0) as xp,
+                   COALESCE(sp.level, 1) as level,
+                   COALESCE(sp.completed_lessons, '[]') as completed_lessons,
+                   COALESCE(sp.streak, 0) as streak,
+                   c.name as class_name,
+                   s.name as school_name
+            FROM class_students cs2
+            JOIN class_students cs ON cs.class_id = cs2.class_id
+            JOIN users u ON u.id = cs.student_id
+            LEFT JOIN student_progress sp ON sp.student_id = u.id
+            LEFT JOIN classes c ON c.id = cs.class_id
+            LEFT JOIN schools s ON s.id = c.school_id
+            WHERE cs2.student_id = ? AND u.role = 'student' AND u.status = 'approved'
+            GROUP BY u.id
+            ORDER BY COALESCE(sp.xp, 0) DESC
+            LIMIT 50
+        `).bind(me.id).all()
+        return c.json(results)
+    } catch (e: any) { return c.json({ error: e.message }, 500) }
+})
+
+// Leaderboard — student's own school
+app.get('/api/leaderboard/school', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
+    try {
+        const { results } = await c.env.DB.prepare(`
+            SELECT u.id, u.full_name, u.username,
+                   COALESCE(sp.xp, 0) as xp,
+                   COALESCE(sp.level, 1) as level,
+                   COALESCE(sp.completed_lessons, '[]') as completed_lessons,
+                   COALESCE(sp.streak, 0) as streak,
+                   c.name as class_name,
+                   s.name as school_name
+            FROM class_students mycs
+            JOIN classes myc ON myc.id = mycs.class_id
+            JOIN schools mys ON mys.id = myc.school_id
+            JOIN classes c ON c.school_id = mys.id
+            JOIN class_students cs ON cs.class_id = c.id
+            JOIN users u ON u.id = cs.student_id
+            LEFT JOIN student_progress sp ON sp.student_id = u.id
+            LEFT JOIN schools s ON s.id = c.school_id
+            WHERE mycs.student_id = ? AND u.role = 'student' AND u.status = 'approved'
+            GROUP BY u.id
+            ORDER BY COALESCE(sp.xp, 0) DESC
+            LIMIT 50
+        `).bind(me.id).all()
+        return c.json(results)
+    } catch (e: any) { return c.json({ error: e.message }, 500) }
+})
+
+// Student's ranks — platform, class, school
+app.get('/api/student/rank', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
+    try {
+        const myProg = await c.env.DB.prepare('SELECT xp FROM student_progress WHERE student_id = ?').bind(me.id).first() as any
+        const myXp = myProg?.xp || 0
+
+        // Platform rank
+        const pr = await c.env.DB.prepare(`SELECT COUNT(*) + 1 as rank FROM student_progress sp JOIN users u ON sp.student_id = u.id WHERE u.role = 'student' AND u.status = 'approved' AND sp.xp > ?`).bind(myXp).first() as any
+        const pt = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM users WHERE role = 'student' AND status = 'approved'`).first() as any
+
+        // Class rank
+        const myClass = await c.env.DB.prepare('SELECT class_id FROM class_students WHERE student_id = ? LIMIT 1').bind(me.id).first() as any
+        let classRank = null, classTotal = null
+        if (myClass) {
+            const cr = await c.env.DB.prepare(`SELECT COUNT(*) + 1 as rank FROM student_progress sp JOIN class_students cs ON cs.student_id = sp.student_id WHERE cs.class_id = ? AND sp.xp > ?`).bind(myClass.class_id, myXp).first() as any
+            const ct = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM class_students WHERE class_id = ?`).bind(myClass.class_id).first() as any
+            classRank = cr?.rank || 1; classTotal = ct?.total || 1
+        }
+
+        // School rank
+        const mySchool = await c.env.DB.prepare(`SELECT s.id as school_id, s.name as school_name FROM class_students cs JOIN classes c ON c.id = cs.class_id JOIN schools s ON s.id = c.school_id WHERE cs.student_id = ? LIMIT 1`).bind(me.id).first() as any
+        let schoolRank = null, schoolTotal = null
+        if (mySchool) {
+            const sr = await c.env.DB.prepare(`SELECT COUNT(*) + 1 as rank FROM student_progress sp JOIN class_students cs ON cs.student_id = sp.student_id JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ? AND sp.xp > ?`).bind(mySchool.school_id, myXp).first() as any
+            const st = await c.env.DB.prepare(`SELECT COUNT(DISTINCT cs.student_id) as total FROM class_students cs JOIN classes c ON c.id = cs.class_id WHERE c.school_id = ?`).bind(mySchool.school_id).first() as any
+            schoolRank = sr?.rank || 1; schoolTotal = st?.total || 1
+        }
+
+        return c.json({
+            platform: { rank: pr?.rank || 1, total: pt?.total || 1 },
+            class: myClass ? { rank: classRank, total: classTotal } : null,
+            school: mySchool ? { rank: schoolRank, total: schoolTotal, name: mySchool.school_name } : null
+        })
+    } catch (e: any) { return c.json({ error: e.message }, 500) }
+})
+
 // Current student's profile — their class and assigned lesson
 app.get('/api/student/profile', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -1118,14 +1214,32 @@ const curriculum = {
     ]
 }
 
-// Badges data
+// Badges data  (type: 'xp'|'lessons'|'streak'|'level', threshold: number used for non-xp checks)
 const badges = [
-    { id: 'first-steps', name: 'First Steps', description: 'Complete your first lesson', icon: '🎯', xpRequired: 50 },
-    { id: 'mover', name: 'Robot Mover', description: 'Move STEMO 100 times', icon: '🚀', xpRequired: 200 },
-    { id: 'artist', name: 'Code Artist', description: 'Draw 10 shapes', icon: '🎨', xpRequired: 500 },
-    { id: 'loop-master', name: 'Loop Master', description: 'Use loops 20 times', icon: '🔄', xpRequired: 750 },
-    { id: 'star-coder', name: 'Star Coder', description: 'Earn 1000 XP', icon: '⭐', xpRequired: 1000 },
-    { id: 'robot-friend', name: "Robot's Best Friend", description: 'Chat with STEMO 50 times', icon: '🤖', xpRequired: 1500 }
+    // ── XP milestones ──────────────────────────────────────────────
+    { id: 'first-steps',   name: 'First Steps',      description: 'Complete your first lesson',  icon: '🎯', type: 'xp',      threshold: 50,   xpRequired: 50,   req: '50 XP' },
+    { id: 'fast-starter',  name: 'Fast Starter',     description: 'Earn 100 XP',                  icon: '⚡', type: 'xp',      threshold: 100,  xpRequired: 100,  req: '100 XP' },
+    { id: 'mover',         name: 'Robot Mover',      description: 'Move STEMO 100 times',         icon: '🚀', type: 'xp',      threshold: 200,  xpRequired: 200,  req: '200 XP' },
+    { id: 'bronze-coder',  name: 'Bronze Coder',     description: 'Earn 250 XP',                  icon: '🥉', type: 'xp',      threshold: 250,  xpRequired: 250,  req: '250 XP' },
+    { id: 'artist',        name: 'Code Artist',      description: 'Draw 10 shapes',               icon: '🎨', type: 'xp',      threshold: 500,  xpRequired: 500,  req: '500 XP' },
+    { id: 'loop-master',   name: 'Loop Master',      description: 'Use loops 20 times',           icon: '🔁', type: 'xp',      threshold: 750,  xpRequired: 750,  req: '750 XP' },
+    { id: 'star-coder',    name: 'Star Coder',       description: 'Earn 1000 XP',                 icon: '⭐', type: 'xp',      threshold: 1000, xpRequired: 1000, req: '1000 XP' },
+    { id: 'robot-friend',  name: "Robot's Best Friend", description: 'Chat with STEMO 50 times',  icon: '🤖', type: 'xp',      threshold: 1500, xpRequired: 1500, req: '1500 XP' },
+    { id: 'silver-coder',  name: 'Silver Coder',     description: 'Earn 2000 XP',                 icon: '🥈', type: 'xp',      threshold: 2000, xpRequired: 2000, req: '2000 XP' },
+    { id: 'gold-coder',    name: 'Gold Coder',       description: 'Earn 3500 XP',                 icon: '🥇', type: 'xp',      threshold: 3500, xpRequired: 3500, req: '3500 XP' },
+    { id: 'diamond-coder', name: 'Diamond Coder',    description: 'Earn 5000 XP',                 icon: '💎', type: 'xp',      threshold: 5000, xpRequired: 5000, req: '5000 XP' },
+    // ── Lesson milestones ──────────────────────────────────────────
+    { id: 'quick-learner', name: 'Quick Learner',    description: 'Complete 3 lessons',           icon: '📚', type: 'lessons', threshold: 3,    xpRequired: 150,  req: '3 lessons' },
+    { id: 'halfway-hero',  name: 'Halfway Hero',     description: 'Complete 10 lessons',          icon: '🎯', type: 'lessons', threshold: 10,   xpRequired: 500,  req: '10 lessons' },
+    { id: 'completionist', name: 'Completionist',    description: 'Complete all 19 lessons',      icon: '🏅', type: 'lessons', threshold: 19,   xpRequired: 9999, req: '19 lessons' },
+    // ── Streak badges ─────────────────────────────────────────────
+    { id: 'on-fire',       name: 'On Fire',          description: '3-day coding streak',          icon: '🔥', type: 'streak',  threshold: 3,    xpRequired: 150,  req: '3-day streak' },
+    { id: 'unstoppable',   name: 'Unstoppable',      description: '7-day coding streak',          icon: '🌪️', type: 'streak',  threshold: 7,    xpRequired: 350,  req: '7-day streak' },
+    // ── Level badges ──────────────────────────────────────────────
+    { id: 'rising-star',   name: 'Rising Star',      description: 'Reach Level 3',                icon: '🌟', type: 'level',   threshold: 3,    xpRequired: 1000, req: 'Level 3' },
+    { id: 'coding-hero',   name: 'Coding Hero',      description: 'Reach Level 5',                icon: '🦸', type: 'level',   threshold: 5,    xpRequired: 2000, req: 'Level 5' },
+    { id: 'legend',        name: 'Legend',           description: 'Reach Level 10',               icon: '👑', type: 'level',   threshold: 10,   xpRequired: 4500, req: 'Level 10' },
+    { id: 'grandmaster',   name: 'Grandmaster',      description: 'Reach Level 13',               icon: '🏆', type: 'level',   threshold: 13,   xpRequired: 6000, req: 'Level 13' },
 ]
 
 // ============================================
@@ -1889,15 +2003,52 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                     </div>
                 </div>
+                <!-- Rankings -->
+                <div class="bg-white rounded-3xl card-shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-ranking-star text-yellow-500 mr-2"></i>My Rankings</h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="text-center p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                            <div class="text-xs text-blue-500 font-bold mb-2">🎒 My Class</div>
+                            <div class="text-3xl font-bold text-blue-700" id="rankClass">—</div>
+                            <div class="text-xs text-gray-400 mt-1" id="rankClassOf"></div>
+                        </div>
+                        <div class="text-center p-4 rounded-2xl bg-purple-50 border border-purple-100">
+                            <div class="text-xs text-purple-600 font-bold mb-2">🏫 School</div>
+                            <div class="text-3xl font-bold text-purple-700" id="rankSchool">—</div>
+                            <div class="text-xs text-gray-400 mt-1" id="rankSchoolOf"></div>
+                        </div>
+                        <div class="text-center p-4 rounded-2xl bg-yellow-50 border border-yellow-100">
+                            <div class="text-xs text-yellow-600 font-bold mb-2">🌍 Platform</div>
+                            <div class="text-3xl font-bold text-yellow-600" id="rankPlatform">—</div>
+                            <div class="text-xs text-gray-400 mt-1" id="rankPlatformOf"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Earned Badges showcase -->
+                <div class="bg-white rounded-3xl card-shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4"><i class="fas fa-medal text-yellow-500 mr-2"></i>My Badges</h3>
+                    <div class="flex flex-wrap gap-3" id="profileBadgesList">
+                        <p class="text-gray-400 text-sm italic">Loading badges...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Leaderboard Tab -->
         <div id="leaderboard-section" class="hidden">
             <div class="bg-white rounded-3xl card-shadow p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-trophy text-yellow-500 mr-2"></i>Student Leaderboard
+                <!-- 3-tab switcher -->
+                <div class="flex gap-2 mb-6 bg-gray-100 p-1 rounded-2xl w-fit">
+                    <button onclick="switchLbTab('class')" id="lb-tab-class"
+                        class="px-4 py-2 rounded-xl font-bold text-sm transition-all bg-white shadow text-indigo-700">🎒 My Class</button>
+                    <button onclick="switchLbTab('school')" id="lb-tab-school"
+                        class="px-4 py-2 rounded-xl font-bold text-sm transition-all text-gray-500 hover:text-gray-700">🏫 School</button>
+                    <button onclick="switchLbTab('platform')" id="lb-tab-platform"
+                        class="px-4 py-2 rounded-xl font-bold text-sm transition-all text-gray-500 hover:text-gray-700">🌍 Platform</button>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-800" id="lbTitle">
+                        <i class="fas fa-trophy text-yellow-500 mr-2"></i><span id="lbTitleText">Class Leaderboard</span>
                     </h3>
                     <button onclick="loadLeaderboard()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-full text-sm font-bold transition-all">🔄 Refresh</button>
                 </div>
@@ -3168,31 +3319,63 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // BADGES
         // ============================================
+        function isBadgeEarned(badge) {
+            if (stemo.badges.includes(badge.id)) return true;
+            if (badge.type === 'lessons') return stemo.completedLessons.length >= badge.threshold;
+            if (badge.type === 'streak')  return stemo.streak >= badge.threshold;
+            if (badge.type === 'level')   return stemo.level >= badge.threshold;
+            return stemo.xp >= badge.threshold; // xp (default)
+        }
+
         function loadBadges() {
             fetch('/api/badges')
-                .then(function(response) { return response.json(); })
-                .then(function(badges) {
+                .then(function(r) { return r.json(); })
+                .then(function(allBadges) {
                     var grid = document.getElementById('badgesGrid');
+                    var needSave = false;
                     var html = '';
-                    
-                    badges.forEach(function(badge) {
-                        var isEarned = stemo.badges.includes(badge.id) || stemo.xp >= badge.xpRequired;
-                        
+                    var earned = 0;
+
+                    allBadges.forEach(function(badge) {
+                        var isEarned = isBadgeEarned(badge);
                         if (isEarned && !stemo.badges.includes(badge.id)) {
                             stemo.badges.push(badge.id);
-                            saveProgress();
+                            needSave = true;
                         }
-                        
-                        html += '<div class="bg-white rounded-2xl card-shadow p-4 text-center ' + (isEarned ? '' : 'opacity-50 grayscale') + '">' +
-                                '<div class="text-4xl mb-2">' + badge.icon + '</div>' +
-                                '<h4 class="font-bold text-sm text-gray-800">' + badge.name + '</h4>' +
-                                '<p class="text-xs text-gray-500 mt-1">' + badge.description + '</p>' +
-                                '<div class="text-xs text-indigo-600 mt-2">' + badge.xpRequired + ' XP</div>' +
-                                '</div>';
+                        if (isEarned) earned++;
+                        var typeLabel = badge.req || (badge.xpRequired + ' XP');
+                        html += '<div class="rounded-2xl card-shadow p-4 text-center border-2 transition-all ' +
+                                (isEarned ? 'bg-white border-indigo-200 shadow-indigo-100' : 'bg-gray-50 border-transparent opacity-50 grayscale') + '">' +
+                            '<div class="text-4xl mb-2">' + badge.icon + '</div>' +
+                            '<h4 class="font-bold text-xs text-gray-800">' + badge.name + '</h4>' +
+                            '<p class="text-xs text-gray-400 mt-1">' + badge.description + '</p>' +
+                            '<div class="text-xs font-semibold mt-2 ' + (isEarned ? 'text-indigo-600' : 'text-gray-400') + '">' + typeLabel + '</div>' +
+                            (isEarned ? '<div class="text-xs text-green-500 font-bold mt-1">✓ Earned</div>' : '') +
+                            '</div>';
                     });
-                    
+
                     grid.innerHTML = html;
+                    document.getElementById('badgesEarned').textContent = earned;
+                    document.getElementById('profileBadges').textContent = earned;
+                    if (needSave) saveProgress();
+                    renderProfileBadges(allBadges);
                 });
+        }
+
+        function renderProfileBadges(allBadges) {
+            var container = document.getElementById('profileBadgesList');
+            if (!container) return;
+            var earned = (allBadges || []).filter(function(b) { return isBadgeEarned(b); });
+            if (earned.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm italic">No badges yet — complete lessons to earn your first badge! 🎯</p>';
+                return;
+            }
+            container.innerHTML = earned.map(function(b) {
+                return '<div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-2xl px-3 py-2">' +
+                    '<span class="text-2xl">' + b.icon + '</span>' +
+                    '<div><div class="text-xs font-bold text-indigo-800">' + b.name + '</div>' +
+                    '<div class="text-xs text-gray-400">' + b.description + '</div></div></div>';
+            }).join('');
         }
 
         // ============================================
@@ -6190,7 +6373,7 @@ const htmlContent = `<!DOCTYPE html>
             if (tab === 'code' && workspace) {
                 setTimeout(function() { Blockly.svgResize(workspace); }, 100);
             }
-            if (tab === 'leaderboard') loadLeaderboard();
+            if (tab === 'leaderboard') switchLbTab('class');
             if (tab === 'videos') loadStudentVideos();
         }
 
@@ -6246,6 +6429,10 @@ const htmlContent = `<!DOCTYPE html>
                 document.getElementById('profileClassInfo').innerHTML = classHtml;
                 // Stats (sync from stemo state)
                 updateProfileStats();
+                // Ranks
+                loadProfileRanks();
+                // Badges showcase
+                fetch('/api/badges').then(r => r.json()).then(renderProfileBadges).catch(function(){});
             } catch(e) {
                 console.log('Profile load error:', e);
                 // Fallback: use currentUser + stemo state
@@ -6263,6 +6450,32 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('profileLessons').textContent = stemo.completedLessons.length;
             document.getElementById('profileStreak').textContent = stemo.streak;
             document.getElementById('profileBadges').textContent = stemo.badges.length;
+        }
+
+        async function loadProfileRanks() {
+            try {
+                const r = await fetch('/api/student/rank').then(res => res.json());
+                if (r.error) return;
+                // Class rank
+                if (r.class) {
+                    document.getElementById('rankClass').textContent = '#' + r.class.rank;
+                    document.getElementById('rankClassOf').textContent = 'of ' + r.class.total + ' students';
+                } else {
+                    document.getElementById('rankClass').textContent = 'N/A';
+                    document.getElementById('rankClassOf').textContent = 'Not in a class';
+                }
+                // School rank
+                if (r.school) {
+                    document.getElementById('rankSchool').textContent = '#' + r.school.rank;
+                    document.getElementById('rankSchoolOf').textContent = 'of ' + r.school.total + ' students';
+                } else {
+                    document.getElementById('rankSchool').textContent = 'N/A';
+                    document.getElementById('rankSchoolOf').textContent = 'No school assigned';
+                }
+                // Platform rank
+                document.getElementById('rankPlatform').textContent = '#' + r.platform.rank;
+                document.getElementById('rankPlatformOf').textContent = 'of ' + r.platform.total + ' students';
+            } catch(e) {}
         }
 
         function findLessonById(id) {
@@ -6337,25 +6550,53 @@ const htmlContent = `<!DOCTYPE html>
         }
         // ────────────────────────────────────────────────────────────────────────
 
+        var currentLbTab = 'class';
+
+        function switchLbTab(tab) {
+            currentLbTab = tab;
+            ['class','school','platform'].forEach(function(t) {
+                var btn = document.getElementById('lb-tab-' + t);
+                if (!btn) return;
+                if (t === tab) {
+                    btn.className = 'px-4 py-2 rounded-xl font-bold text-sm transition-all bg-white shadow text-indigo-700';
+                } else {
+                    btn.className = 'px-4 py-2 rounded-xl font-bold text-sm transition-all text-gray-500 hover:text-gray-700';
+                }
+            });
+            var titles = { class: 'Class Leaderboard', school: 'School Leaderboard', platform: 'Platform Leaderboard' };
+            var titleEl = document.getElementById('lbTitleText');
+            if (titleEl) titleEl.textContent = titles[tab] || 'Leaderboard';
+            loadLeaderboard();
+        }
+
         async function loadLeaderboard() {
             document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading...</p>';
             document.getElementById('podiumRow').innerHTML = '';
+            var tab = currentLbTab || 'class';
+            var url = tab === 'class' ? '/api/leaderboard/class'
+                    : tab === 'school' ? '/api/leaderboard/school'
+                    : '/api/leaderboard';
             try {
-                const data = await fetch('/api/leaderboard').then(r => r.json());
+                const data = await fetch(url).then(r => r.json());
+                if (data && data.error) {
+                    var msg = tab === 'class' ? 'Join a class to see your classmates here! 🎒'
+                            : tab === 'school' ? 'No school assigned to your class yet. 🏫'
+                            : 'Unable to load leaderboard.';
+                    document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">' + msg + '</p>';
+                    return;
+                }
                 if (!Array.isArray(data) || data.length === 0) {
-                    document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">No students yet. Be the first! 🚀</p>';
+                    var empty = tab === 'class' ? 'No classmates yet — ask your teacher to add students! 🎒'
+                              : tab === 'school' ? 'No school leaderboard yet — your school may not be set up yet. 🏫'
+                              : 'No students yet. Be the first! 🚀';
+                    document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">' + empty + '</p>';
                     return;
                 }
                 const myId = currentUser ? currentUser.id : null;
                 const medals = ['🥇','🥈','🥉'];
-                const podiumColors = [
-                    'from-yellow-400 to-amber-500',
-                    'from-gray-300 to-gray-400',
-                    'from-orange-400 to-amber-600'
-                ];
+                const podiumColors = ['from-yellow-400 to-amber-500','from-gray-300 to-gray-400','from-orange-400 to-amber-600'];
                 const podiumSizes = ['h-28','h-20','h-16'];
 
-                // Helper: build one row for the full list
                 function lbRow(s, rank, isTop3) {
                     var isMe = s.id == myId;
                     var lessons = 0;
@@ -6383,7 +6624,7 @@ const htmlContent = `<!DOCTYPE html>
                         '</div>' +
                         '<div class="text-right shrink-0">' +
                             '<div class="font-bold text-yellow-500 text-base">⭐ ' + (s.xp || 0).toLocaleString() + '</div>' +
-                            '<div class="text-gray-400 text-xs">' + lessons + '/14 lessons</div>' +
+                            '<div class="text-gray-400 text-xs">' + lessons + '/19 lessons</div>' +
                             '<div class="text-gray-400 text-xs">' + (s.streak || 0) + ' 🔥 streak</div>' +
                         '</div>' +
                     '</div>';
@@ -6391,26 +6632,24 @@ const htmlContent = `<!DOCTYPE html>
 
                 // Top 3 podium
                 var podiumHtml = '';
-                var podiumOrder = [1, 0, 2]; // silver, gold, bronze display order
-                podiumOrder.forEach(function(idx) {
+                [1, 0, 2].forEach(function(idx) {
                     var s = data[idx];
                     if (!s) return;
                     var isMe = s.id == myId;
                     podiumHtml += '<div class="flex flex-col items-center gap-1 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
                     podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
                     podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + (s.full_name || 'S')[0].toUpperCase() + '</div>';
-                    podiumHtml += '<div class="text-center max-w-24">';
+                    podiumHtml += '<div class="text-center" style="max-width:6rem">';
                     podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
                     podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0).toLocaleString() + '</div>';
                     if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + s.school_name + '</div>';
-                    if (s.class_name) podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + s.class_name + '</div>';
+                    if (s.class_name)  podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + s.class_name + '</div>';
                     podiumHtml += '</div>';
                     podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
                     podiumHtml += '</div>';
                 });
                 document.getElementById('podiumRow').innerHTML = podiumHtml;
 
-                // Full ranked list (top 3 highlighted, rest normal)
                 var allRows = data.map(function(s, i) { return lbRow(s, i + 1, i < 3); }).join('');
                 document.getElementById('leaderboardList').innerHTML = '<div class="space-y-2">' + allRows + '</div>';
             } catch(e) {
