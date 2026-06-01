@@ -1,1 +1,3 @@
 - [Nested template literals in index.tsx](nested-template-literals.md) — client-side JS inside server-side HTML template strings must use escaped backticks (\`) or build fails.
+- [Challenge XP system](challenge-xp-system.md) — free build awards base XP; challenge mode awards 2× bonus via `lesson-X-challenge` IDs in completed_lessons; both validated server-side.
+- [Drawing challenge timing](drawing-challenge-timing.md) — use `robotExecuting` flag to suppress objective checks mid-execution for drawing lessons (4–7); action lessons (8–14) check during execution.
