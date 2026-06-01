@@ -2519,15 +2519,18 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 },
                 objectives: [
-                    { id: 'colors', label: '🎨 Use 4 different colours', check: function() {
+                    { id: 'colors', label: '🎨 Use 2+ different colours', check: function() {
                         var seen = {};
                         robot.trails.forEach(function(t) { seen[t.color] = true; });
-                        return Object.keys(seen).length >= 4;
+                        return Object.keys(seen).length >= 2;
                     }},
-                    { id: 'size', label: '🖌️ Use pen Size 5 or bigger', check: function() {
-                        return robot.trails.some(function(t) { return (t.size || 4) >= 5; });
+                    { id: 'size', label: '🖌️ Use a Color or Size block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) {
+                            return b.type === 'pen_color' || b.type === 'pen_size';
+                        });
                     }},
-                    { id: 'shape', label: '⬜ Draw 4 sides (4+ segments)', check: function() {
+                    { id: 'shape', label: '⬜ Draw 4+ line segments', check: function() {
                         return robot.trails.length >= 4;
                     }}
                 ]
@@ -2595,17 +2598,18 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 },
                 objectives: [
-                    { id: 'colors', label: '🎨 Use 3+ different colours', check: function() {
-                        var seen = {};
-                        robot.trails.forEach(function(t) { seen[t.color] = true; });
-                        return Object.keys(seen).length >= 3;
-                    }},
-                    { id: 'segments', label: '✏️ Draw 24+ line segments', check: function() {
-                        return robot.trails.length >= 24;
-                    }},
                     { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }},
+                    { id: 'segments', label: '✏️ Draw 12+ line segments', check: function() {
+                        return robot.trails.length >= 12;
+                    }},
+                    { id: 'turns', label: '📐 Use Right or Left turns', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) {
+                            return b.type === 'turn_right' || b.type === 'turn_left';
+                        });
                     }}
                 ]
             },
@@ -2631,10 +2635,10 @@ const htmlContent = `<!DOCTYPE html>
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
                     }},
-                    { id: 'angle', label: '↪️ Use a Right 135° turn', check: function() {
+                    { id: 'angle', label: '↪️ Use a large turn (90°+)', check: function() {
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) {
-                            return b.type === 'turn_right' && Number(b.getFieldValue('DEGREES')) === 135;
+                            return (b.type === 'turn_right' || b.type === 'turn_left') && Number(b.getFieldValue('DEGREES')) >= 90;
                         });
                     }},
                     { id: 'segments', label: '✨ Draw 8 star lines', check: function() {
