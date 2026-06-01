@@ -642,7 +642,7 @@ app.post('/api/progress', authMiddleware, async (c) => {
     const body = await c.req.json()
 
     // ── Build lookup maps from server-side curriculum ──────────────────────
-    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced] as any[]
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.challenges] as any[]
     const validLessonIds = new Set(allLessons.map((l: any) => l.id))
     const lessonXpMap: Record<string, number> = {}
     allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
@@ -697,7 +697,7 @@ app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) =>
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
 
-    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced] as any[]
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.challenges] as any[]
     const validLessonIds = new Set(allLessons.map((l: any) => l.id))
     const lessonXpMap: Record<string, number> = {}
     allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
@@ -1327,6 +1327,22 @@ const curriculum = {
             homework: 'Design your own geometric artwork: create at least 3 functions (e.g. drawTriangle, drawStar, drawSpiral). Combine them with different rotation angles to create a unique pattern. Save it and share with the class!',
             nextLesson: null
         }
+    ],
+    // Challenge bonus entries — awarded when a student completes challenge mode for a mission lesson.
+    // ID pattern: "<lessonId>-challenge". XP = 2× the base lesson reward.
+    // These IDs are stored in completed_lessons and are validated server-side exactly like normal lesson IDs.
+    challenges: [
+        { id: 'lesson-4-challenge',  xpReward: 200  },
+        { id: 'lesson-5-challenge',  xpReward: 300  },
+        { id: 'lesson-6-challenge',  xpReward: 400  },
+        { id: 'lesson-7-challenge',  xpReward: 600  },
+        { id: 'lesson-8-challenge',  xpReward: 400  },
+        { id: 'lesson-9-challenge',  xpReward: 500  },
+        { id: 'lesson-10-challenge', xpReward: 600  },
+        { id: 'lesson-11-challenge', xpReward: 700  },
+        { id: 'lesson-12-challenge', xpReward: 800  },
+        { id: 'lesson-13-challenge', xpReward: 1000 },
+        { id: 'lesson-14-challenge', xpReward: 2000 }
     ]
 }
 
@@ -3420,11 +3436,10 @@ const htmlContent = `<!DOCTYPE html>
                 challengeCompleted = true;
                 setTimeout(function() {
                     addChatMessage('stemo', '🎉 ALL STEPS COMPLETE! Amazing work! 🏆🏆🏆');
-                    if (currentLesson && !stemo.completedLessons.includes(currentLesson.id)) {
-                        completeLesson(currentLesson);
+                    if (currentLesson) {
+                        completeChallengeLesson(currentLesson);
                     } else {
-                        // Replay — no XP awarded, just show the celebration modal
-                        showSuccessModal(0);
+                        showSuccessModal(0, true);
                     }
                 }, 400);
             }
@@ -6255,23 +6270,19 @@ const htmlContent = `<!DOCTYPE html>
                 return;
             }
             
-            // Mission lessons (4+) can ONLY be completed through challenge mode.
-            // Free build on a mission lesson is practice — it doesn't award XP or mark done.
-            if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
-                var robotActed = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90 || robot.trails.length > 0;
-                if (robotActed && !stemo.completedLessons.includes(currentLesson.id)) {
-                    addChatMessage('stemo', '🏆 Great practice! Mission lessons only award XP in <b>Challenge Mode</b>. Go back to the Lessons tab, select this lesson, and choose <b>🏆 Challenge Mode</b> to earn XP!');
-                }
-                return;
-            }
-            
-            // Non-mission lessons (1–3): complete as soon as the robot moves or draws
+            // Free build: award base XP as soon as the robot moves or draws anything
             var robotMoved = robot.x !== 200 || robot.y !== 200 || robot.angle !== -90;
             var robotDrew = robot.trails.length > 0;
             
             if (robotMoved || robotDrew) {
                 if (!stemo.completedLessons.includes(currentLesson.id)) {
                     completeLesson(currentLesson);
+                    // Encourage challenge mode for mission lessons
+                    if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
+                        setTimeout(function() {
+                            addChatMessage('stemo', '🏆 Nice work! You earned base XP. Want to earn <b>2× bonus XP</b>? Try <b>Challenge Mode</b> to complete the real mission!');
+                        }, 2000);
+                    }
                 }
             }
         }
@@ -6290,21 +6301,54 @@ const htmlContent = `<!DOCTYPE html>
             loadLessons();
             loadBadges();
             
-            showSuccessModal(lesson.xpReward);
+            showSuccessModal(lesson.xpReward, false);
         }
 
-        function showSuccessModal(xp) {
+        // Completes a lesson via challenge mode: awards base XP (if not yet earned) + 2× challenge bonus
+        function completeChallengeLesson(lesson) {
+            var totalXp = 0;
+            // Award base lesson XP if the student hasn't done free build yet
+            if (!stemo.completedLessons.includes(lesson.id)) {
+                stemo.completedLessons.push(lesson.id);
+                stemo.xp += lesson.xpReward;
+                totalXp += lesson.xpReward;
+            }
+            // Award challenge bonus (2× base) if not already earned
+            var challengeId = lesson.id + '-challenge';
+            var bonusXp = lesson.xpReward * 2;
+            if (!stemo.completedLessons.includes(challengeId)) {
+                stemo.completedLessons.push(challengeId);
+                stemo.xp += bonusXp;
+                totalXp += bonusXp;
+            }
+
+            var newLevel = Math.floor(stemo.xp / 500) + 1;
+            if (newLevel > stemo.level) {
+                stemo.level = newLevel;
+            }
+
+            saveProgress();
+            updateUI();
+            loadLessons();
+            loadBadges();
+
+            showSuccessModal(totalXp, true);
+        }
+
+        function showSuccessModal(xp, isChallenge) {
             var modal = document.getElementById('successModal');
             var content = document.getElementById('successModalContent');
             var nextBtn = document.getElementById('nextLessonBtn');
 
             // XP banner: show points for first completion, "Already completed" for replays
             if (xp > 0) {
-                document.getElementById('xpBannerLabel').textContent = 'You earned';
+                document.getElementById('xpBannerLabel').textContent = isChallenge ? '🏆 Challenge Bonus!' : 'You earned';
                 document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
-                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6';
+                document.getElementById('xpBanner').className = isChallenge
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-4 mb-6'
+                    : 'bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6';
             } else {
-                document.getElementById('xpBannerLabel').textContent = 'Great practice!';
+                document.getElementById('xpBannerLabel').textContent = isChallenge ? 'Challenge Complete! 🏆' : 'Great practice!';
                 document.getElementById('xpEarned').textContent = 'Already completed ✓';
                 document.getElementById('xpBanner').className = 'bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl p-4 mb-6';
             }
