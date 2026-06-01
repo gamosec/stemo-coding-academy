@@ -2492,6 +2492,10 @@ const htmlContent = `<!DOCTYPE html>
         var challengeActiveLessonId = null; // locked at launch; never changes when "Next Lesson" is clicked
         var missionObjectives = null;
         var challengeCompleted = false;
+        // True while executeCommands is running; used to suppress premature objective checks on drawing lessons
+        var robotExecuting = false;
+        // Drawing lessons whose objectives should only be evaluated after execution finishes
+        var DRAWING_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7'];
 
         var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18','lesson-19'];
 
@@ -3414,6 +3418,10 @@ const htmlContent = `<!DOCTYPE html>
 
         function checkChallengeObjectives() {
             if (!challengeMode || !missionObjectives || challengeCompleted) return;
+            // Drawing lessons: suppress objective checks while the robot is still executing.
+            // Workspace-block checks (repeat, turn) are instantly true, causing premature completion.
+            // Wait until execution finishes so all objectives are evaluated together.
+            if (robotExecuting && DRAWING_LESSON_IDS.indexOf(challengeActiveLessonId) !== -1) return;
             var allDone = true;
             var anyChanged = false;
             missionObjectives.forEach(function(obj, idx) {
@@ -4124,6 +4132,7 @@ const htmlContent = `<!DOCTYPE html>
             scanUserFunctions();
 
             // Reset robot before running
+            robotExecuting = true;
             robot.x = 275;
             robot.y = 275;
             robot.angle = -90;
@@ -4301,6 +4310,7 @@ const htmlContent = `<!DOCTYPE html>
                 if (index >= commands.length) {
                     console.log('Execution batch complete!');
                     if (isTopLevel) {
+                        robotExecuting = false;
                         addChatMessage('stemo', "🤖 Great job! I finished running your code! " + (robot.trails.length > 0 ? "Look at that beautiful drawing! 🎨" : "Try adding more blocks to make me do cool things! ✨"));
                         
                         if (currentLesson) {
