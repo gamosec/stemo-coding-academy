@@ -18,6 +18,25 @@ type Variables = {
 }
 
 // ============================================
+// INPUT VALIDATION HELPERS
+// ============================================
+
+// Reject strings containing HTML-special characters (prevents stored XSS)
+function hasHtmlChars(str: string): boolean {
+    return /[<>"'`]/.test(str)
+}
+
+// Only allow http:// and https:// URLs — blocks javascript: data: etc.
+function isSafeUrl(url: string): boolean {
+    try {
+        const u = new URL(url)
+        return u.protocol === 'http:' || u.protocol === 'https:'
+    } catch { return false }
+}
+
+const VALID_ROLES = ['admin', 'teacher', 'student', 'parent']
+
+// ============================================
 // AUTH HELPERS (Web Crypto - Cloudflare compatible)
 // ============================================
 async function hashPassword(password: string): Promise<string> {
@@ -119,9 +138,30 @@ app.use('/api/*', cors({
         return null
     },
     credentials: true,
-    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
 }))
+
+// Security headers — applied to every response
+app.use('*', async (c, next) => {
+    await next()
+    c.res.headers.set('X-Content-Type-Options', 'nosniff')
+    c.res.headers.set('X-Frame-Options', 'DENY')
+    c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    // CSP: allow inline scripts/styles (needed for server-rendered pages) but lock down
+    // connect-src to self (blocks XSS data-exfiltration), frame-src to YouTube only
+    c.res.headers.set('Content-Security-Policy',
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://blockly-demo.appspot.com; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+        "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; " +
+        "img-src 'self' data: https://img.youtube.com https://i.ytimg.com; " +
+        "frame-src https://www.youtube.com https://youtube.com; " +
+        "connect-src 'self'; " +
+        "object-src 'none'; " +
+        "base-uri 'self'"
+    )
+})
 
 // Auto-migrate: create any missing tables on first request
 app.use('*', async (c, next) => {
@@ -169,7 +209,12 @@ app.post('/api/auth/register', async (c) => {
         const { username, password, full_name, class_id, parent_username } = await c.req.json()
         if (!username || !password || !full_name) return c.json({ error: 'All fields are required' }, 400)
         if (username.length < 3) return c.json({ error: 'Username must be at least 3 characters' }, 400)
+        if (username.length > 50) return c.json({ error: 'Username must be 50 characters or less' }, 400)
+        if (full_name.length > 100) return c.json({ error: 'Name must be 100 characters or less' }, 400)
         if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+        if (password.length > 200) return c.json({ error: 'Password too long' }, 400)
+        if (hasHtmlChars(username)) return c.json({ error: 'Username contains invalid characters' }, 400)
+        if (hasHtmlChars(full_name)) return c.json({ error: 'Name contains invalid characters (< > " \' ` not allowed)' }, 400)
         const hash = await hashPassword(password)
         try {
             const result = await c.env.DB.prepare(
@@ -204,6 +249,11 @@ app.post('/api/admin/users/:id/approve', authMiddleware, async (c) => {
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const id = c.req.param('id')
     const { action, class_id } = await c.req.json()
+    // Teachers can only approve/reject students — not other teachers or admins
+    if (me.role === 'teacher') {
+        const target = await c.env.DB.prepare("SELECT role FROM users WHERE id = ?").bind(id).first() as any
+        if (!target || target.role !== 'student') return c.json({ error: 'Teachers can only approve student accounts' }, 403)
+    }
     const status = action === 'approve' ? 'approved' : 'rejected'
     await c.env.DB.prepare('UPDATE users SET status = ? WHERE id = ?').bind(status, id).run()
     if (action === 'approve' && class_id) {
@@ -223,7 +273,7 @@ app.get('/api/admin/pending', authMiddleware, async (c) => {
 // Logout
 app.post('/api/auth/logout', (c) => {
     const res = c.json({ success: true })
-    res.headers.set('Set-Cookie', 'stemo_token=; Path=/; HttpOnly; Max-Age=0')
+    res.headers.set('Set-Cookie', 'stemo_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0')
     return res
 })
 
@@ -255,6 +305,12 @@ app.post('/api/admin/users', authMiddleware, async (c) => {
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const { username, password, role, full_name } = await c.req.json()
     if (!username || !password || !role || !full_name) return c.json({ error: 'All fields required' }, 400)
+    if (!VALID_ROLES.includes(role)) return c.json({ error: 'Invalid role' }, 400)
+    if (username.length > 50) return c.json({ error: 'Username must be 50 characters or less' }, 400)
+    if (full_name.length > 100) return c.json({ error: 'Name must be 100 characters or less' }, 400)
+    if (password.length > 200) return c.json({ error: 'Password too long' }, 400)
+    if (hasHtmlChars(username)) return c.json({ error: 'Username contains invalid characters' }, 400)
+    if (hasHtmlChars(full_name)) return c.json({ error: 'Name contains invalid characters' }, 400)
     const hash = await hashPassword(password)
     try {
         const result = await c.env.DB.prepare('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)').bind(username, hash, role, full_name).run()
@@ -275,6 +331,7 @@ app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const id = c.req.param('id')
+    if (String(id) === String(me.id)) return c.json({ error: 'Cannot delete your own account' }, 400)
     try {
         // Cascade: remove from all related tables before deleting the user
         await c.env.DB.prepare('DELETE FROM parent_students WHERE parent_id = ? OR student_id = ?').bind(id, id).run()
@@ -434,6 +491,11 @@ app.post('/api/classes/:id/students', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const classId = c.req.param('id')
+    // Teachers can only add students to their own classes
+    if (me.role === 'teacher') {
+        const cls = await c.env.DB.prepare('SELECT id FROM classes WHERE id = ? AND teacher_id = ?').bind(classId, me.id).first()
+        if (!cls) return c.json({ error: 'Forbidden: not your class' }, 403)
+    }
     const { student_id } = await c.req.json()
     await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(classId, student_id).run()
     return c.json({ success: true })
@@ -444,6 +506,11 @@ app.delete('/api/classes/:id/students/:studentId', authMiddleware, async (c) => 
     const me = c.get('user')
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const classId = c.req.param('id')
+    // Teachers can only remove students from their own classes
+    if (me.role === 'teacher') {
+        const cls = await c.env.DB.prepare('SELECT id FROM classes WHERE id = ? AND teacher_id = ?').bind(classId, me.id).first()
+        if (!cls) return c.json({ error: 'Forbidden: not your class' }, 403)
+    }
     const studentId = c.req.param('studentId')
     await c.env.DB.prepare('DELETE FROM class_students WHERE class_id = ? AND student_id = ?').bind(classId, studentId).run()
     return c.json({ success: true })
@@ -556,8 +623,13 @@ app.get('/api/public/classes', async (c) => {
 app.get('/api/progress/:studentId', authMiddleware, async (c) => {
     const me = c.get('user')
     const studentId = c.req.param('studentId')
-    // Students can only view their own
+    // Students can only view their own progress
     if (me.role === 'student' && String(me.id) !== studentId) return c.json({ error: 'Forbidden' }, 403)
+    // Parents can only view progress of their linked children
+    if (me.role === 'parent') {
+        const link = await c.env.DB.prepare('SELECT 1 FROM parent_students WHERE parent_id = ? AND student_id = ?').bind(me.id, studentId).first()
+        if (!link) return c.json({ error: 'Forbidden' }, 403)
+    }
     const progress = await c.env.DB.prepare('SELECT * FROM student_progress WHERE student_id = ?').bind(studentId).first()
     return c.json(progress || { student_id: studentId, xp: 0, level: 1, completed_lessons: '[]', earned_badges: '[]', streak: 0 })
 })
@@ -701,6 +773,7 @@ app.post('/api/admin/videos', authMiddleware, async (c) => {
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const { lesson_name, youtube_url, sort_order } = await c.req.json()
     if (!lesson_name || !youtube_url) return c.json({ error: 'lesson_name and youtube_url are required' }, 400)
+    if (!isSafeUrl(youtube_url.trim())) return c.json({ error: 'URL must start with http:// or https://' }, 400)
     await c.env.DB.prepare(
         'INSERT INTO lesson_videos (lesson_name, youtube_url, sort_order) VALUES (?, ?, ?)'
     ).bind(lesson_name.trim(), youtube_url.trim(), sort_order || 0).run()
@@ -711,6 +784,8 @@ app.put('/api/admin/videos/:id', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const { lesson_name, youtube_url, sort_order } = await c.req.json()
+    if (!lesson_name || !youtube_url) return c.json({ error: 'lesson_name and youtube_url are required' }, 400)
+    if (!isSafeUrl(youtube_url.trim())) return c.json({ error: 'URL must start with http:// or https://' }, 400)
     await c.env.DB.prepare(
         'UPDATE lesson_videos SET lesson_name=?, youtube_url=?, sort_order=? WHERE id=?'
     ).bind(lesson_name.trim(), youtube_url.trim(), sort_order || 0, c.req.param('id')).run()
@@ -783,7 +858,7 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
             LIMIT 50
         `).bind(me.id).all()
         return c.json(results)
-    } catch (e: any) { return c.json({ error: e.message }, 500) }
+    } catch (e: any) { console.error('Leaderboard class error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
 // Leaderboard — student's own school
@@ -813,7 +888,7 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
             LIMIT 50
         `).bind(me.id).all()
         return c.json(results)
-    } catch (e: any) { return c.json({ error: e.message }, 500) }
+    } catch (e: any) { console.error('Leaderboard school error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
 // Student's ranks — platform, class, school
@@ -851,7 +926,7 @@ app.get('/api/student/rank', authMiddleware, async (c) => {
             class: myClass ? { rank: classRank, total: classTotal } : null,
             school: mySchool ? { rank: schoolRank, total: schoolTotal, name: mySchool.school_name } : null
         })
-    } catch (e: any) { return c.json({ error: e.message }, 500) }
+    } catch (e: any) { console.error('Student rank error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
 // Current student's profile — their class and assigned lesson
@@ -1287,13 +1362,13 @@ const badges = [
 // API ROUTES
 // ============================================
 
-// Get curriculum
-app.get('/api/curriculum', (c) => {
+// Get curriculum — requires authentication
+app.get('/api/curriculum', authMiddleware, (c) => {
     return c.json(curriculum)
 })
 
-// Get lesson by ID
-app.get('/api/lesson/:id', (c) => {
+// Get lesson by ID — requires authentication
+app.get('/api/lesson/:id', authMiddleware, (c) => {
     const id = c.req.param('id')
     const allLessons = [
         ...curriculum.basic,
@@ -1307,15 +1382,17 @@ app.get('/api/lesson/:id', (c) => {
     return c.json(lesson)
 })
 
-// Get all badges
-app.get('/api/badges', (c) => {
+// Get all badges — requires authentication
+app.get('/api/badges', authMiddleware, (c) => {
     return c.json(badges)
 })
 
-// AI Chat endpoint
-app.post('/api/chat', async (c) => {
+// AI Chat endpoint — requires authentication
+app.post('/api/chat', authMiddleware, async (c) => {
     try {
         const { message, context } = await c.req.json()
+        if (!message || typeof message !== 'string') return c.json({ error: 'Message required' }, 400)
+        if (message.length > 1000) return c.json({ error: 'Message too long (max 1000 characters)' }, 400)
         const response = await generateAIResponse(c.env.AI, message, context)
         return c.json({
             response: response,
@@ -6270,6 +6347,19 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // ============================================
+        // ============================================
+        // HTML ESCAPE HELPER — prevents XSS in innerHTML
+        // ============================================
+        function escHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // CHAT FUNCTIONALITY
         // ============================================
         function handleChatKeypress(event) {
@@ -6378,11 +6468,13 @@ const htmlContent = `<!DOCTYPE html>
             var cmd = (input.value || '').trim();
             if (!cmd) return;
             input.value = '';
+            // Escape before injecting into innerHTML
+            var safeCmd = escHtml(cmd);
             // Log the outgoing order in the CC terminal
-            addCommandCenterMessage(['<span style="color:#38bdf8">⬆ ORDER SENT:</span> <span style="color:#fbbf24">"' + cmd + '"</span>']);
+            addCommandCenterMessage(['<span style="color:#38bdf8">⬆ ORDER SENT:</span> <span style="color:#fbbf24">"' + safeCmd + '"</span>']);
             // Mirror to STEMO chat for acknowledgement
             setTimeout(function() {
-                addChatMessage('stemo', '📡 Command Center: <em>"' + cmd + '"</em> — message received! Direct command execution is coming soon.');
+                addChatMessage('stemo', '📡 Command Center: "' + safeCmd + '" — message received! Direct command execution is coming soon.');
             }, 300);
         }
 
@@ -6390,11 +6482,13 @@ const htmlContent = `<!DOCTYPE html>
             var container = document.getElementById('chatMessages');
             var div = document.createElement('div');
             div.className = 'flex items-start gap-2';
-            
+            // User messages are plain text — escape to prevent XSS
+            // AI/stemo responses are trusted structured text — also escaped for safety
+            var safeMsg = escHtml(message);
             if (sender === 'stemo') {
-                div.innerHTML = '<span class="text-2xl">🤖</span><div class="chat-bubble bg-blue-100 text-sm">' + message + '</div>';
+                div.innerHTML = '<span class="text-2xl">🤖</span><div class="chat-bubble bg-blue-100 text-sm">' + safeMsg + '</div>';
             } else {
-                div.innerHTML = '<div class="chat-bubble bg-indigo-100 text-sm ml-auto">' + message + '</div><span class="text-2xl">👦</span>';
+                div.innerHTML = '<div class="chat-bubble bg-indigo-100 text-sm ml-auto">' + safeMsg + '</div><span class="text-2xl">👦</span>';
             }
             
             container.appendChild(div);
@@ -6649,18 +6743,20 @@ const htmlContent = `<!DOCTYPE html>
                     var rowBg = isMe ? 'bg-indigo-50 border-2 border-indigo-400'
                                : isTop3 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200'
                                : 'border border-gray-100 hover:bg-gray-50';
+                    var safeName = escHtml(s.full_name || s.username);
+                    var safeUser = escHtml(s.username);
                     var schoolBit = s.school_name
-                        ? '<span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full">🏫 ' + s.school_name + '</span>'
+                        ? '<span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full">🏫 ' + escHtml(s.school_name) + '</span>'
                         : '';
                     var classBit = s.class_name
-                        ? '<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">🎒 ' + s.class_name + '</span>'
+                        ? '<span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">🎒 ' + escHtml(s.class_name) + '</span>'
                         : '';
                     return '<div class="flex items-center gap-3 p-3 rounded-2xl ' + rowBg + ' transition-all">' +
                         rankBadge +
-                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br ' + avatarGrad + ' flex items-center justify-center text-lg font-bold text-white shrink-0">' + (s.full_name || 'S')[0].toUpperCase() + '</div>' +
+                        '<div class="w-10 h-10 rounded-full bg-gradient-to-br ' + avatarGrad + ' flex items-center justify-center text-lg font-bold text-white shrink-0">' + escHtml((s.full_name || 'S')[0].toUpperCase()) + '</div>' +
                         '<div class="flex-1 min-w-0">' +
-                            '<div class="font-bold text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
-                            '<div class="text-gray-400 text-xs mb-1">@' + s.username + ' · Level ' + (s.level || 1) + '</div>' +
+                            '<div class="font-bold text-gray-800 truncate">' + safeName + (isMe ? ' <span class="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">You</span>' : '') + '</div>' +
+                            '<div class="text-gray-400 text-xs mb-1">@' + safeUser + ' · Level ' + (s.level || 1) + '</div>' +
                             '<div class="flex flex-wrap gap-1">' + schoolBit + classBit + '</div>' +
                         '</div>' +
                         '<div class="text-right shrink-0">' +
@@ -6679,12 +6775,12 @@ const htmlContent = `<!DOCTYPE html>
                     var isMe = s.id == myId;
                     podiumHtml += '<div class="flex flex-col items-center gap-1 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
                     podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
-                    podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + (s.full_name || 'S')[0].toUpperCase() + '</div>';
+                    podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + escHtml((s.full_name || 'S')[0].toUpperCase()) + '</div>';
                     podiumHtml += '<div class="text-center" style="max-width:6rem">';
-                    podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + (s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
+                    podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + escHtml(s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
                     podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0).toLocaleString() + '</div>';
-                    if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + s.school_name + '</div>';
-                    if (s.class_name)  podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + s.class_name + '</div>';
+                    if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + escHtml(s.school_name) + '</div>';
+                    if (s.class_name)  podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + escHtml(s.class_name) + '</div>';
                     podiumHtml += '</div>';
                     podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
                     podiumHtml += '</div>';
@@ -8131,6 +8227,11 @@ let allUsers = [];
 const roleColors = {admin:'bg-red-100 text-red-700',teacher:'bg-blue-100 text-blue-700',student:'bg-green-100 text-green-700',parent:'bg-yellow-100 text-yellow-700'};
 const roleEmoji = {admin:'🛡️',teacher:'📚',student:'🎓',parent:'👨‍👩‍👧'};
 
+function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 async function init() {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     if (!me.user || me.user.role !== 'admin') { window.location.href='/login'; return; }
@@ -8253,8 +8354,8 @@ async function loadPending() {
     list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
         <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <div>
-                <div class="font-bold text-gray-800">\${u.full_name}</div>
-                <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10) || 'today'}</div>
+                <div class="font-bold text-gray-800">\${escHtml(u.full_name)}</div>
+                <div class="text-gray-500 text-sm">@\${escHtml(u.username)} • registered \${u.created_at?.slice(0,10) || 'today'}</div>
             </div>
             <div class="flex gap-2">
                 <button onclick="approveUser(\${u.id}, 'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">✅ Approve</button>
@@ -8282,14 +8383,14 @@ async function loadUsers() {
     document.getElementById('statTeachers').textContent = teachers;
     const tbody = document.getElementById('usersTable');
     tbody.innerHTML = allUsers.map(u => \`<tr class="border-b hover:bg-gray-50">
-        <td class="py-2 font-semibold">\${u.full_name}</td>
-        <td class="py-2 text-gray-500">@\${u.username}</td>
-        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${roleColors[u.role]}">\${roleEmoji[u.role]} \${u.role}</span></td>
-        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${u.status||'approved'}</span></td>
+        <td class="py-2 font-semibold">\${escHtml(u.full_name)}</td>
+        <td class="py-2 text-gray-500">@\${escHtml(u.username)}</td>
+        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${roleColors[u.role]}">\${roleEmoji[u.role]} \${escHtml(u.role)}</span></td>
+        <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${escHtml(u.status||'approved')}</span></td>
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
         <td class="py-2 flex gap-2 items-center flex-wrap">
-            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${u.username}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
-            <button onclick="deleteUser(\${u.id}, '\${u.username}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
+            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
+            <button onclick="deleteUser(\${u.id}, '\${escHtml(u.username)}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
         </td>
     </tr>\`).join('');
 }
@@ -8712,6 +8813,11 @@ const CURRICULUM = [
 ];
 
 let allClasses = [];
+
+function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 let pwResetStudentId = null;
 
 function showTab(tab) {
@@ -8747,11 +8853,11 @@ async function loadTeacherLeaderboard() {
             try { lessons = JSON.parse(s.completed_lessons||'[]').length; } catch(e) {}
             podiumHtml += \`<div class="flex flex-col items-center gap-2 \${idx===0?'order-2':idx===1?'order-1':'order-3'}">
                 <div class="text-3xl">\${medals[idx]}</div>
-                <div class="w-14 h-14 rounded-full bg-gradient-to-br \${podiumColors[idx]} flex items-center justify-center text-2xl font-bold text-white border-4 border-white">\${(s.full_name||'S')[0].toUpperCase()}</div>
+                <div class="w-14 h-14 rounded-full bg-gradient-to-br \${podiumColors[idx]} flex items-center justify-center text-2xl font-bold text-white border-4 border-white">\${escHtml((s.full_name||'S')[0].toUpperCase())}</div>
                 <div class="text-center">
-                    <div class="font-bold text-sm text-gray-800 max-w-[80px] truncate">\${s.full_name||s.username}</div>
+                    <div class="font-bold text-sm text-gray-800 max-w-[80px] truncate">\${escHtml(s.full_name||s.username)}</div>
                     <div class="text-yellow-500 font-bold text-sm">⭐ \${s.xp||0}</div>
-                    <div class="text-gray-400 text-xs">@\${s.username}</div>
+                    <div class="text-gray-400 text-xs">@\${escHtml(s.username)}</div>
                 </div>
                 <div class="bg-gradient-to-t \${podiumColors[idx]} rounded-t-xl w-20 \${podiumHeights[idx]}"></div>
             </div>\`;
@@ -8763,10 +8869,10 @@ async function loadTeacherLeaderboard() {
             const badgeCount = (() => { try { return JSON.parse(s.earned_badges||'[]').length; } catch(e) { return 0; } })();
             return \`<div class="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all">
                 <div class="text-lg font-bold w-10 text-center \${i<3?'text-yellow-500':'text-gray-400'}">\${i<3?medals[i]:'#'+(i+1)}</div>
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-lg font-bold text-white">\${(s.full_name||'S')[0].toUpperCase()}</div>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-lg font-bold text-white">\${escHtml((s.full_name||'S')[0].toUpperCase())}</div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-bold text-gray-800 truncate">\${s.full_name||s.username}</div>
-                    <div class="text-gray-400 text-xs">@\${s.username} · Level \${s.level||1}</div>
+                    <div class="font-bold text-gray-800 truncate">\${escHtml(s.full_name||s.username)}</div>
+                    <div class="text-gray-400 text-xs">@\${escHtml(s.username)} · Level \${s.level||1}</div>
                 </div>
                 <div class="text-right shrink-0 text-sm">
                     <div class="font-bold text-yellow-500">⭐ \${s.xp||0} XP</div>
@@ -8802,8 +8908,8 @@ async function loadPending() {
         <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <div class="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                    <div class="font-bold text-gray-800">\${u.full_name}</div>
-                    <div class="text-gray-500 text-sm">@\${u.username} • registered \${u.created_at?.slice(0,10)||'today'}</div>
+                    <div class="font-bold text-gray-800">\${escHtml(u.full_name)}</div>
+                    <div class="text-gray-500 text-sm">@\${escHtml(u.username)} • registered \${u.created_at?.slice(0,10)||'today'}</div>
                 </div>
                 <div class="flex gap-2 flex-wrap items-center">
                     \${allClasses.length ? \`<select id="approveClass_\${u.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-green-400"><option value="">No class yet</option>\${classOpts}</select>\` : ''}
@@ -8843,8 +8949,8 @@ async function loadClasses() {
             const done = JSON.parse(s.completed_lessons || '[]').length;
             return \`<tr class="border-b hover:bg-blue-50" id="row_\${s.id}">
                 <td class="py-2.5">
-                    <div class="font-semibold text-sm">\${s.full_name}</div>
-                    <div class="text-gray-400 text-xs">@\${s.username}</div>
+                    <div class="font-semibold text-sm">\${escHtml(s.full_name)}</div>
+                    <div class="text-gray-400 text-xs">@\${escHtml(s.username)}</div>
                     <div id="pwForm_\${s.id}" class="hidden mt-2 flex gap-2 items-center">
                         <input type="password" id="pwInput_\${s.id}" placeholder="New password" class="border rounded-lg px-2 py-1 text-xs w-32 focus:outline-none focus:border-blue-400">
                         <button onclick="submitResetPw(\${s.id})" class="bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold">Set</button>
@@ -8864,14 +8970,14 @@ async function loadClasses() {
                 </td>
             </tr>\`;
         }).join('');
-        const availableOpts = available.map(s=>\`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
+        const availableOpts = available.map(s=>\`<option value="\${s.id}">\${escHtml(s.full_name)} (@\${escHtml(s.username)})</option>\`).join('');
         const div = document.createElement('div');
         div.className = 'bg-white rounded-2xl shadow p-6';
         div.innerHTML = \`
             <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
-                    <h2 class="text-xl text-blue-700">🏫 \${cls.name}</h2>
-                    <p class="text-gray-400 text-sm mt-0.5">\${cls.description||''}</p>
+                    <h2 class="text-xl text-blue-700">🏫 \${escHtml(cls.name)}</h2>
+                    <p class="text-gray-400 text-sm mt-0.5">\${escHtml(cls.description||'')}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     \${lessonBadge}

@@ -1,0 +1,1 @@
+- [Nested template literals in index.tsx](nested-template-literals.md) — client-side JS inside server-side HTML template strings must use escaped backticks (\`) or build fails.
