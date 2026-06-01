@@ -4,6 +4,7 @@ import { cors } from 'hono/cors'
 type Bindings = {
     AI: any
     DB: D1Database
+    JWT_SECRET: string
 }
 
 type Variables = {
@@ -30,11 +31,17 @@ function b64url(str: string): string {
     return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-async function createToken(payload: any): Promise<string> {
+// JWT secret — reads from env var when available, falls back to default for dev
+// In production set JWT_SECRET via: wrangler pages secret put JWT_SECRET
+function getJwtSecret(env?: any): string {
+    return env?.JWT_SECRET || 'stemo-secret-key-2024'
+}
+
+async function createToken(payload: any, env?: any): Promise<string> {
     const header = b64url(btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })))
     const body = b64url(btoa(unescape(encodeURIComponent(JSON.stringify({ ...payload, exp: Date.now() + 86400000 * 7 })))))
     const encoder = new TextEncoder()
-    const key = await crypto.subtle.importKey('raw', encoder.encode('stemo-secret-key-2024'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+    const key = await crypto.subtle.importKey('raw', encoder.encode(getJwtSecret(env)), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
     const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`))
     const sigB64 = b64url(btoa(String.fromCharCode(...new Uint8Array(sig))))
     return `${header}.${body}.${sigB64}`
@@ -46,10 +53,28 @@ function b64urlDecode(str: string): string {
     return decodeURIComponent(escape(atob(str)))
 }
 
-async function verifyToken(token: string): Promise<any> {
+async function verifyToken(token: string, env?: any): Promise<any> {
     try {
         const parts = token.split('.')
         if (parts.length !== 3) return null
+
+        // 1. Verify HMAC signature before trusting any payload data
+        const encoder = new TextEncoder()
+        const key = await crypto.subtle.importKey(
+            'raw', encoder.encode(getJwtSecret(env)),
+            { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+        )
+        const sigBytes = Uint8Array.from(
+            atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')),
+            (c) => c.charCodeAt(0)
+        )
+        const valid = await crypto.subtle.verify(
+            'HMAC', key, sigBytes,
+            encoder.encode(`${parts[0]}.${parts[1]}`)
+        )
+        if (!valid) return null
+
+        // 2. Only decode payload after signature is confirmed valid
         const payload = JSON.parse(b64urlDecode(parts[1]))
         if (payload.exp < Date.now()) return null
         return payload
@@ -65,7 +90,7 @@ async function authMiddleware(c: any, next: any) {
     const cookie = c.req.header('cookie') || ''
     const token = getCookieToken(cookie)
     if (!token) return c.json({ error: 'Unauthorized' }, 401)
-    const payload = await verifyToken(token)
+    const payload = await verifyToken(token, c.env)
     if (!payload) return c.json({ error: 'Invalid token' }, 401)
     c.set('user', payload)
     await next()
@@ -73,14 +98,30 @@ async function authMiddleware(c: any, next: any) {
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// Global error handler — always return JSON so we can see the real error
+// Global error handler — log internally, never expose stack traces to clients
 app.onError((err, c) => {
-    return c.json({ error: err.message, stack: err.stack?.slice(0, 500) }, 500)
+    console.error('[ERROR]', err.message, err.stack)
+    return c.json({ error: 'Internal server error' }, 500)
 })
 
 
-// Enable CORS
-app.use('/api/*', cors())
+// Enable CORS — restrict to known production origins only
+app.use('/api/*', cors({
+    origin: (origin) => {
+        const allowed = [
+            'https://stemo-coding.pages.dev',
+            'https://8f1b3afd.stemo-coding.pages.dev',
+        ]
+        // Allow same-origin requests (no Origin header) and known origins
+        if (!origin || allowed.some(o => origin === o || origin.endsWith('.stemo-coding.pages.dev'))) {
+            return origin || '*'
+        }
+        return null
+    },
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type'],
+}))
 
 // Auto-migrate: create any missing tables on first request
 app.use('*', async (c, next) => {
@@ -112,7 +153,7 @@ app.post('/api/auth/login', async (c) => {
         if (!user) return c.json({ error: 'Invalid username or password' }, 401)
         if (user.status === 'pending') return c.json({ error: 'Your account is pending approval. Please wait for an admin or teacher to approve your registration.', pending: true }, 403)
         if (user.status === 'rejected') return c.json({ error: 'Your registration was not approved. Please contact your teacher.', rejected: true }, 403)
-        const token = await createToken({ id: user.id, username: user.username, role: user.role, full_name: user.full_name })
+        const token = await createToken({ id: user.id, username: user.username, role: user.role, full_name: user.full_name }, c.env)
         const res = c.json({ success: true, user: { id: user.id, username: user.username, role: user.role, full_name: user.full_name } })
         res.headers.set('Set-Cookie', `stemo_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`)
         return res
@@ -191,7 +232,7 @@ app.get('/api/auth/me', async (c) => {
     const cookie = c.req.header('cookie') || ''
     const token = getCookieToken(cookie)
     if (!token) return c.json({ user: null })
-    const payload = await verifyToken(token)
+    const payload = await verifyToken(token, c.env)
     if (!payload) return c.json({ user: null })
     return c.json({ user: payload })
 })
@@ -9709,16 +9750,33 @@ const landingPage = `<!DOCTYPE html>
 
 app.get('/login', (c) => c.html(loginPage))
 app.get('/register', (c) => c.html(registerPage))
-app.get('/dashboard/admin', (c) => c.html(adminDashboard))
-app.get('/dashboard/teacher', (c) => c.html(teacherDashboard))
-app.get('/dashboard/parent', (c) => c.html(parentDashboard))
+
+// Dashboard routes — server-side auth guards prevent unauthenticated access
+app.get('/dashboard/admin', async (c) => {
+    const token = getCookieToken(c.req.header('cookie') || '')
+    const user = await verifyToken(token || '', c.env)
+    if (!user || user.role !== 'admin') return c.redirect('/login')
+    return c.html(adminDashboard)
+})
+app.get('/dashboard/teacher', async (c) => {
+    const token = getCookieToken(c.req.header('cookie') || '')
+    const user = await verifyToken(token || '', c.env)
+    if (!user || user.role !== 'teacher') return c.redirect('/login')
+    return c.html(teacherDashboard)
+})
+app.get('/dashboard/parent', async (c) => {
+    const token = getCookieToken(c.req.header('cookie') || '')
+    const user = await verifyToken(token || '', c.env)
+    if (!user || user.role !== 'parent') return c.redirect('/login')
+    return c.html(parentDashboard)
+})
 
 // Academy demo route — teachers and admins can view the academy without being redirected
 app.get('/academy', async (c) => {
     const cookie = c.req.header('cookie') || ''
     const token = getCookieToken(cookie)
     if (!token) return c.redirect('/login')
-    const payload = await verifyToken(token)
+    const payload = await verifyToken(token, c.env)
     if (!payload) return c.redirect('/login')
     // Show academy in demo mode for teachers/admins (no progress saved)
     const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
@@ -9733,7 +9791,7 @@ app.get('/', async (c) => {
     const cookie = c.req.header('cookie') || ''
     const token = getCookieToken(cookie)
     if (!token) return c.html(landingPage)
-    const payload = await verifyToken(token)
+    const payload = await verifyToken(token, c.env)
     if (!payload) return c.html(landingPage)
     // Redirect authenticated users to their dashboards
     if (payload.role === 'admin') return c.redirect('/dashboard/admin')
