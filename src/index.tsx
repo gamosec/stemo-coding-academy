@@ -1740,8 +1740,14 @@ const htmlContent = `<!DOCTYPE html>
                     <button onclick="runCode()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full font-bold transition-all transform hover:scale-105 flex items-center gap-2 text-base">
                         <i class="fas fa-play"></i> Run
                     </button>
-                    <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
+                    <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Reset robot position">
                         <i class="fas fa-undo"></i>
+                    </button>
+                    <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)">
+                        ↩️ Undo
+                    </button>
+                    <button onclick="deleteSelectedBlock()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Delete selected block (click a block first, then press this)">
+                        ✂️ Delete Block
                     </button>
                     <button onclick="saveProject()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Save Project (Download)">
                         <i class="fas fa-save"></i>
@@ -6273,6 +6279,22 @@ const htmlContent = `<!DOCTYPE html>
                 workspace.clear();
             }
             resetRobot();
+        }
+
+        function undoCode() {
+            if (workspace) {
+                workspace.undo(false);
+            }
+        }
+
+        function deleteSelectedBlock() {
+            if (!workspace) return;
+            var selected = Blockly.getSelected ? Blockly.getSelected() : null;
+            if (!selected) {
+                addChatMessage('stemo', '🤖 Click a block first to select it, then press Delete Block!');
+                return;
+            }
+            selected.dispose(true);
         }
 
         // ============================================
