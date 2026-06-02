@@ -1547,6 +1547,9 @@ const htmlContent = `<!DOCTYPE html>
             80% { opacity: 1; transform: translateY(-30px) scale(1); }
             100% { opacity: 0; transform: translateY(-50px) scale(0.8); }
         }
+        /* Hide all Blockly built-in UI widgets — zoom buttons, trashcan, minimap */
+        .blocklyZoom, .blocklyTrash, .blocklyFlyoutButton,
+        .blocklyZoomReset, .blocklyZoomIn, .blocklyZoomOut { display: none !important; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
@@ -4024,7 +4027,7 @@ const htmlContent = `<!DOCTYPE html>
                 scrollbars: true,
                 trashcan: false,
                 zoom: {
-                    controls: true,
+                    controls: false,
                     wheel: true,
                     startScale: 0.85,
                     maxScale: 2,
