@@ -2462,6 +2462,7 @@ const htmlContent = `<!DOCTYPE html>
         var currentColorIndex = 0;
         var currentLesson = null;
         var workspace = null;
+        var lastSelectedBlock = null;
         
         // Metal objects on the board
         var metalObjects = [];
@@ -4052,6 +4053,13 @@ const htmlContent = `<!DOCTYPE html>
                 }
             });
             
+            // Track selected block via Blockly events (Blockly.getSelected() is unreliable)
+            workspace.addChangeListener(function(event) {
+                if (event.type === Blockly.Events.SELECTED || event.type === 'selected') {
+                    var newId = event.newElementId || event.newValue;
+                    lastSelectedBlock = newId ? workspace.getBlockById(newId) : null;
+                }
+            });
             console.log('Blockly workspace initialized');
         }
         
@@ -6289,12 +6297,17 @@ const htmlContent = `<!DOCTYPE html>
 
         function deleteSelectedBlock() {
             if (!workspace) return;
-            var selected = Blockly.getSelected ? Blockly.getSelected() : null;
-            if (!selected) {
-                addChatMessage('stemo', '🤖 Click a block first to select it, then press Delete Block!');
+            // Use event-tracked selection (most reliable), fall back to Blockly APIs
+            var selected = lastSelectedBlock;
+            if (!selected || selected.disposed) {
+                selected = (Blockly.getSelected ? Blockly.getSelected() : null) || Blockly.selected || null;
+            }
+            if (!selected || selected.disposed) {
+                addChatMessage('stemo', '🤖 Click a block first to select it (it will highlight), then press Delete Block!');
                 return;
             }
             selected.dispose(true);
+            lastSelectedBlock = null;
         }
 
         // ============================================
