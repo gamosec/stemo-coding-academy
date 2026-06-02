@@ -4022,7 +4022,7 @@ const htmlContent = `<!DOCTYPE html>
             // Initialize workspace WITHOUT toolbox - we use our custom palette
             workspace = Blockly.inject('blocklyDiv', {
                 scrollbars: true,
-                trashcan: true,
+                trashcan: false,
                 zoom: {
                     controls: true,
                     wheel: true,
