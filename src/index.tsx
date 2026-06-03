@@ -2012,12 +2012,12 @@ const htmlContent = `<!DOCTYPE html>
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
                 <div id="robotPanel" class="w-[590px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
                     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-shrink-0">
                             <span class="text-xl">🤖</span>
                             <span class="font-bold">STEMO's World</span>
                             <div id="ccSignalDot" title="Command Center signal" style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;transition:all 0.3s;flex-shrink:0;"></div>
                         </div>
-                        <div class="flex gap-1">
+                        <div class="flex flex-wrap gap-1 justify-end flex-1 min-w-0">
                             <button onclick="toggleSound()" id="soundToggleBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle sound effects">
                                 🔊
                             </button>
