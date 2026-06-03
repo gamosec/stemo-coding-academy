@@ -1728,7 +1728,7 @@ const htmlContent = `<!DOCTYPE html>
                     <i class="fas fa-puzzle-piece text-lg"></i>
                     <div>
                         <h3 class="font-bold text-sm" id="currentLessonTitle">Code Playground</h3>
-                        <p class="text-xs text-purple-200" id="currentLessonDesc">Click blocks to add • Click numbers to edit</p>
+                        <p class="text-xs text-purple-200" id="currentLessonDesc">Click blocks to add • Right-click a block to delete it or a whole group</p>
                     </div>
                 </div>
                 <div class="flex gap-2 items-center">
@@ -1745,9 +1745,6 @@ const htmlContent = `<!DOCTYPE html>
                     </button>
                     <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)">
                         ↩️ Undo
-                    </button>
-                    <button onclick="deleteSelectedBlock()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Delete selected block (click a block first, then press this)">
-                        ✂️ Delete Block
                     </button>
                     <button onclick="saveProject()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Save Project (Download)">
                         <i class="fas fa-save"></i>
