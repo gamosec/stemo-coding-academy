@@ -1882,6 +1882,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-yellow-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-yellow-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_home')">
                         🏠 Home
                     </div>
+                    <div class="block-item bg-yellow-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-yellow-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('go_left_start')">
+                        ⬅️ Left Start
+                    </div>
                     <div class="block-item bg-gray-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-gray-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('hide_stemo')">
                         👻 Hide
                     </div>
@@ -3864,6 +3867,16 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['go_left_start'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("⬅️ Go to Left Start");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(60);
+            }
+        };
+
         Blockly.Blocks['hide_stemo'] = {
             init: function() {
                 this.appendDummyInput()
@@ -4442,6 +4455,8 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'turn', value: degrees });
                 } else if (type === 'go_home') {
                     commands.push({ action: 'home' });
+                } else if (type === 'go_left_start') {
+                    commands.push({ action: 'home_left' });
                 } else if (type === 'hide_stemo') {
                     var state = block.getFieldValue('STATE');
                     commands.push({ action: 'visibility', value: state === 'SHOW' });
@@ -4932,6 +4947,12 @@ const htmlContent = `<!DOCTYPE html>
                 robot.x = sp.x;
                 robot.y = sp.y;
                 robot.angle = sp.angle;
+            } else if (cmd.action === 'home_left') {
+                // Jump to the left start point (room to write long words)
+                var lp = STEMO_START_POINTS.left;
+                robot.x = lp.x;
+                robot.y = lp.y;
+                robot.angle = lp.angle;
             } else if (cmd.action === 'pen') {
                 robot.penDown = cmd.value;
             } else if (cmd.action === 'color') {
