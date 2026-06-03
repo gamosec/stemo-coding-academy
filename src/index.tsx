@@ -1746,6 +1746,12 @@ const htmlContent = `<!DOCTYPE html>
                     <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)">
                         ↩️ Undo
                     </button>
+                    <button id="groupSelectBtn" onclick="toggleGroupSelect()" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Select multiple blocks then delete them as a group">
+                        🔲 Select Group
+                    </button>
+                    <button id="deleteGroupBtn" onclick="deleteGroupSelected()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Delete all selected blocks" style="display:none">
+                        🗑️ Delete (<span id="groupCountSpan">0</span>)
+                    </button>
                     <button onclick="saveProject()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Save Project (Download)">
                         <i class="fas fa-save"></i>
                     </button>
@@ -2460,6 +2466,8 @@ const htmlContent = `<!DOCTYPE html>
         var currentLesson = null;
         var workspace = null;
         var lastSelectedBlock = null;
+        var groupSelectMode = false;
+        var groupSelectedBlocks = []; // block IDs in current group selection
         
         // Metal objects on the board
         var metalObjects = [];
@@ -4050,11 +4058,23 @@ const htmlContent = `<!DOCTYPE html>
                 }
             });
             
-            // Track selected block via Blockly events (Blockly.getSelected() is unreliable)
+            // Track selected block via Blockly events
             workspace.addChangeListener(function(event) {
                 if (event.type === Blockly.Events.SELECTED || event.type === 'selected') {
                     var newId = event.newElementId || event.newValue;
-                    lastSelectedBlock = newId ? workspace.getBlockById(newId) : null;
+                    var block = newId ? workspace.getBlockById(newId) : null;
+                    lastSelectedBlock = block;
+                    // Group select mode: each click toggles a block in/out of the group
+                    if (groupSelectMode && block) {
+                        var idx = groupSelectedBlocks.indexOf(block.id);
+                        if (idx >= 0) {
+                            groupSelectedBlocks.splice(idx, 1);
+                        } else {
+                            groupSelectedBlocks.push(block.id);
+                        }
+                        highlightGroupBlocks();
+                        updateGroupDeleteBtn();
+                    }
                 }
             });
             console.log('Blockly workspace initialized');
@@ -6290,6 +6310,71 @@ const htmlContent = `<!DOCTYPE html>
             if (workspace) {
                 workspace.undo(false);
             }
+        }
+
+        function toggleGroupSelect() {
+            groupSelectMode = !groupSelectMode;
+            var btn = document.getElementById('groupSelectBtn');
+            if (groupSelectMode) {
+                btn.textContent = '✖ Exit Select';
+                btn.classList.remove('bg-purple-500','hover:bg-purple-600');
+                btn.classList.add('bg-amber-500','hover:bg-amber-600');
+                addChatMessage('stemo', '🤖 Group Select ON! Click blocks to add them to your group, then press 🗑️ Delete to remove them all.');
+            } else {
+                btn.textContent = '🔲 Select Group';
+                btn.classList.add('bg-purple-500','hover:bg-purple-600');
+                btn.classList.remove('bg-amber-500','hover:bg-amber-600');
+                groupSelectedBlocks = [];
+                highlightGroupBlocks();
+                updateGroupDeleteBtn();
+            }
+        }
+
+        function highlightGroupBlocks() {
+            if (!workspace) return;
+            workspace.getAllBlocks(false).forEach(function(block) {
+                var svg = block.getSvgRoot ? block.getSvgRoot() : null;
+                if (!svg) return;
+                if (groupSelectedBlocks.indexOf(block.id) >= 0) {
+                    svg.style.filter = 'drop-shadow(0 0 6px #f59e0b) drop-shadow(0 0 3px #f59e0b)';
+                    svg.style.opacity = '1';
+                } else {
+                    svg.style.filter = groupSelectMode ? 'opacity(0.5)' : '';
+                    svg.style.opacity = '';
+                }
+            });
+        }
+
+        function updateGroupDeleteBtn() {
+            var btn = document.getElementById('deleteGroupBtn');
+            var span = document.getElementById('groupCountSpan');
+            if (!btn || !span) return;
+            if (groupSelectedBlocks.length > 0) {
+                btn.style.display = '';
+                span.textContent = groupSelectedBlocks.length;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        function deleteGroupSelected() {
+            if (!workspace || groupSelectedBlocks.length === 0) return;
+            var count = groupSelectedBlocks.length;
+            groupSelectedBlocks.forEach(function(id) {
+                var block = workspace.getBlockById(id);
+                if (block && !block.disposed) block.dispose(true);
+            });
+            groupSelectedBlocks = [];
+            groupSelectMode = false;
+            highlightGroupBlocks();
+            updateGroupDeleteBtn();
+            var btn = document.getElementById('groupSelectBtn');
+            if (btn) {
+                btn.textContent = '🔲 Select Group';
+                btn.classList.add('bg-purple-500','hover:bg-purple-600');
+                btn.classList.remove('bg-amber-500','hover:bg-amber-600');
+            }
+            addChatMessage('stemo', '🤖 Deleted ' + count + ' block(s)! ');
         }
 
         function deleteSelectedBlock() {
