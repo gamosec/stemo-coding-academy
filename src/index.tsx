@@ -1832,6 +1832,10 @@ const htmlContent = `<!DOCTYPE html>
                     <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Reset robot position">
                         <i class="fas fa-undo"></i>
                     </button>
+                    <div class="flex items-center gap-0.5 bg-gray-100 rounded-full px-1 py-0.5" title="Where STEMO starts">
+                        <button onclick="setStartPoint('center')" id="startCenterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from center (home)">🏠</button>
+                        <button onclick="setStartPoint('left')" id="startLeftBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from the left edge (more room to write)">⬅️ Left</button>
+                    </div>
                     <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)">
                         ↩️ Undo
                     </button>
@@ -2439,6 +2443,16 @@ const htmlContent = `<!DOCTYPE html>
             sayText: '',
             dancing: false
         };
+
+        // STEMO start points — center (home) is default; left gives room to write long words
+        var STEMO_START_POINTS = {
+            center: { x: 275, y: 275, angle: -90 },
+            left:   { x: 70,  y: 275, angle: -90 }
+        };
+        var stemoStartName = safeStorageGetEarly('stemoStartPoint') || 'center';
+        function getStemoStart() {
+            return STEMO_START_POINTS[stemoStartName] || STEMO_START_POINTS.center;
+        }
 
         // STEMO customization — persisted body color chosen by the kid
         var stemoBodyColor = safeStorageGetEarly('stemoBodyColor') || '#3b82f6';
@@ -3048,7 +3062,8 @@ const htmlContent = `<!DOCTYPE html>
                         return Math.sqrt(dx*dx+dy*dy) < 40;
                     }},
                     { id: 'home', label: '🏠 Return to start (within 60px)', check: function() {
-                        var dx = robot.x - 275, dy = robot.y - 275;
+                        var sp = getStemoStart();
+                        var dx = robot.x - sp.x, dy = robot.y - sp.y;
                         return Math.sqrt(dx*dx+dy*dy) < 60;
                     }}
                 ]
@@ -4912,10 +4927,11 @@ const htmlContent = `<!DOCTYPE html>
                 playSound('turn');
                 robot.angle += cmd.value;
             } else if (cmd.action === 'home') {
-                // Go home without drawing
-                robot.x = 275;
-                robot.y = 275;
-                robot.angle = -90;
+                // Go home without drawing — uses the chosen start point
+                var sp = getStemoStart();
+                robot.x = sp.x;
+                robot.y = sp.y;
+                robot.angle = sp.angle;
             } else if (cmd.action === 'pen') {
                 robot.penDown = cmd.value;
             } else if (cmd.action === 'color') {
@@ -6580,10 +6596,11 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         function resetRobot() {
+            var sp = getStemoStart();
             robot = {
-                x: 275,
-                y: 275,
-                angle: -90,
+                x: sp.x,
+                y: sp.y,
+                angle: sp.angle,
                 penDown: false,
                 penColor: '#6366f1',
                 penSize: 4,
@@ -6702,7 +6719,26 @@ const htmlContent = `<!DOCTYPE html>
         }
         document.addEventListener('DOMContentLoaded', function() {
             applyLanguage(currentLang);
+            updateStartPointUI();
         });
+
+        // STEMO start point — choose center (home) or left edge; moves STEMO there and persists
+        function setStartPoint(name) {
+            stemoStartName = (name === 'left') ? 'left' : 'center';
+            safeStorageSet('stemoStartPoint', stemoStartName);
+            updateStartPointUI();
+            resetRobot();
+            playSound('click');
+        }
+        function updateStartPointUI() {
+            var c = document.getElementById('startCenterBtn');
+            var l = document.getElementById('startLeftBtn');
+            if (!c || !l) return;
+            var active = 'bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs';
+            var idle = 'bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs';
+            if (stemoStartName === 'left') { l.className = active; c.className = idle; }
+            else { c.className = active; l.className = idle; }
+        }
 
         // STEMO body color customization (persisted)
         function openStemoColor() {
