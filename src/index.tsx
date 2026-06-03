@@ -642,7 +642,7 @@ app.post('/api/progress', authMiddleware, async (c) => {
     const body = await c.req.json()
 
     // ── Build lookup maps from server-side curriculum ──────────────────────
-    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.challenges] as any[]
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.creative, ...curriculum.challenges] as any[]
     const validLessonIds = new Set(allLessons.map((l: any) => l.id))
     const lessonXpMap: Record<string, number> = {}
     allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
@@ -697,7 +697,7 @@ app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) =>
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
 
-    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.challenges] as any[]
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.creative, ...curriculum.challenges] as any[]
     const validLessonIds = new Set(allLessons.map((l: any) => l.id))
     const lessonXpMap: Record<string, number> = {}
     allLessons.forEach((l: any) => { lessonXpMap[l.id] = l.xpReward || 0 })
@@ -1328,6 +1328,88 @@ const curriculum = {
             nextLesson: null
         }
     ],
+    creative: [
+        {
+            id: 'lesson-art-1',
+            title: 'Rainbow Spiral',
+            description: 'Draw a hypnotic spiral that grows as it spins',
+            difficulty: 'easy',
+            xpReward: 150,
+            icon: '🌀',
+            par: 6,
+            introduction: "Welcome to the ART STUDIO! 🎨 Here there are no wrong answers — only beautiful creations. Today we draw a SPIRAL, the same shape you see in snail shells, galaxies, and sunflowers! The secret of a spiral is simple: move a little, turn a little, then move a bit MORE, turn again — over and over. A Repeat block does the spinning for you. Add a Color block and even an Emotion block to give STEMO some personality while it paints. Ready, artist?",
+            tasks: [
+                { id: 't1', text: 'Add "Pen Down ✏️" so STEMO leaves a trail', completed: false },
+                { id: 't2', text: 'Add a "🎨 Color" block and pick your favourite colour', completed: false },
+                { id: 't3', text: 'Add "🔁 Repeat" set to a big number (try 30). Inside it put: Forward 1 and Right 25', completed: false },
+                { id: 't4', text: 'Press ▶ Run and watch your spiral appear!', completed: false },
+                { id: 't5', text: 'Add a "😊 Emotion → Excited" and a "🕺 Dance" block at the end to celebrate!', completed: false }
+            ],
+            hint: 'A spiral = Repeat many times → Forward a little + Turn a little. Change the turn angle (try 20, 25, 30) to make tighter or wider spirals!',
+            homework: 'Make a DOUBLE spiral: draw one spiral, then change the colour and draw another turning the OTHER way (use Left instead of Right).',
+            nextLesson: 'lesson-art-2'
+        },
+        {
+            id: 'lesson-art-2',
+            title: 'Rainbow Maker',
+            description: 'Paint a bright rainbow with every colour of the spectrum',
+            difficulty: 'easy',
+            xpReward: 150,
+            icon: '🌈',
+            par: 14,
+            introduction: "Did you know a real rainbow always has its colours in the same order — Red, Orange, Yellow, Green, Blue, Purple? ☀️🌧️ Today YOU are the rain and the sun! We'll draw curved arcs, one for each colour, stacked on top of each other. To make a curve, we move forward a tiny bit and turn a tiny bit, again and again — just like the spiral, but only a half-turn. Change the colour for each band and watch a rainbow grow!",
+            tasks: [
+                { id: 't1', text: 'Add "Pen Down ✏️" and a "🖌️ Size" block set to 6 for fat, juicy bands', completed: false },
+                { id: 't2', text: 'Add "🎨 Color" → red. Then "🔁 Repeat 18" → (Forward 1, Right 10) to draw an arc', completed: false },
+                { id: 't3', text: 'Change colour to orange and draw another arc just outside the first', completed: false },
+                { id: 't4', text: 'Keep going — yellow, green, blue, purple. One arc per colour!', completed: false },
+                { id: 't5', text: 'Finish with "💬 Say → I made a rainbow!" so STEMO shows off your art', completed: false }
+            ],
+            hint: 'Each colour band is the same arc (Repeat → Forward + Turn), just a different Color block before it. Move STEMO Forward a few steps between bands so they do not overlap.',
+            homework: 'Add a sun ☀️ next to your rainbow: change colour to yellow and draw a small circle (Repeat 36 → Forward 1, Right 10).',
+            nextLesson: 'lesson-art-3'
+        },
+        {
+            id: 'lesson-art-3',
+            title: 'Write Your Name',
+            description: 'Turn STEMO into a pen and sign your masterpiece',
+            difficulty: 'medium',
+            xpReward: 200,
+            icon: '✍️',
+            par: 16,
+            introduction: "Every great artist signs their work! ✍️ Today you'll guide STEMO like a pen to write the first letter of YOUR name. Letters are made of lines and turns — exactly the blocks you already know! Use Pen Up to jump (lift the pen) between strokes, and Pen Down to draw. Take it slow, one stroke at a time. This is how plotter robots and signing machines work in the real world!",
+            tasks: [
+                { id: 't1', text: 'Pick the first letter of your name. Imagine drawing it with straight lines', completed: false },
+                { id: 't2', text: 'Add "Pen Down ✏️" then build the first stroke with Forward and Turn blocks', completed: false },
+                { id: 't3', text: 'Use "Pen Up 🖊️" to move to the next stroke without drawing, then "Pen Down" again', completed: false },
+                { id: 't4', text: 'Finish all the strokes of your letter and press ▶ Run', completed: false },
+                { id: 't5', text: 'Add "😎 Emotion → Cool" and "🔊 Sound → Fanfare" to celebrate your signature!', completed: false }
+            ],
+            hint: 'Letters with straight lines (L, T, E, H, I, F, A) are easiest. Plan each stroke: Pen Down → draw → Pen Up → reposition → Pen Down → draw next stroke.',
+            homework: 'Write all the letters of your first name! Use Pen Up to leave a gap between each letter.',
+            nextLesson: 'lesson-art-4'
+        },
+        {
+            id: 'lesson-art-4',
+            title: 'Magic Mandala',
+            description: 'Create a symmetrical mandala using loops inside loops',
+            difficulty: 'medium',
+            xpReward: 250,
+            icon: '❄️',
+            par: 8,
+            introduction: "A MANDALA is a beautiful, perfectly symmetrical pattern — you'll find them in flowers, snowflakes ❄️, and art from around the world. The trick that makes them magical is a LOOP INSIDE A LOOP: the inner loop draws one shape (like a square), and the outer loop spins STEMO a little and draws it again, all the way around the circle. With just a few blocks you can make a pattern that looks incredibly complex. Let's create some magic!",
+            tasks: [
+                { id: 't1', text: 'Add "Pen Down ✏️" and a "🎨 Color" you love', completed: false },
+                { id: 't2', text: 'Add an OUTER "🔁 Repeat 12" block', completed: false },
+                { id: 't3', text: 'Inside it, add an INNER "🔁 Repeat 4" → (Forward 3, Right 90) to draw a square', completed: false },
+                { id: 't4', text: 'Still inside the OUTER loop but after the inner one, add "Right 30" to spin the square around', completed: false },
+                { id: 't5', text: 'Press ▶ Run — a stunning mandala! Add "🕺 Dance" to celebrate your art', completed: false }
+            ],
+            hint: 'Loop inside a loop! Outer Repeat = how many copies around the circle (12). Inner Repeat = the shape (square = 4 × Forward+Right 90). The extra turn (360 ÷ 12 = 30°) spins each copy.',
+            homework: 'Change the inner shape to a triangle (Repeat 3 → Forward 4, Right 120) and the outer turn to match. Try different colours for a kaleidoscope!',
+            nextLesson: null
+        }
+    ],
     // Challenge bonus entries — awarded when a student completes challenge mode for a mission lesson.
     // ID pattern: "<lessonId>-challenge". XP = 2× the base lesson reward.
     // These IDs are stored in completed_lessons and are validated server-side exactly like normal lesson IDs.
@@ -1389,7 +1471,8 @@ app.get('/api/lesson/:id', authMiddleware, (c) => {
     const allLessons = [
         ...curriculum.basic,
         ...curriculum.intermediate,
-        ...curriculum.advanced
+        ...curriculum.advanced,
+        ...curriculum.creative
     ]
     const lesson = allLessons.find((l: any) => l.id === id)
     if (!lesson) {
@@ -1587,23 +1670,29 @@ const htmlContent = `<!DOCTYPE html>
         <!-- Tabs -->
         <div class="flex gap-2 mb-6 flex-wrap">
             <button onclick="switchTab('learn')" id="tab-learn" class="tab-active px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-graduation-cap mr-1"></i>Learn
+                <i class="fas fa-graduation-cap mr-1"></i><span data-i18n="tab_learn">Learn</span>
             </button>
             <button onclick="switchTab('code')" id="tab-code" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-code mr-1"></i>Code
+                <i class="fas fa-code mr-1"></i><span data-i18n="tab_code">Code</span>
             </button>
             <button onclick="switchTab('achievements')" id="tab-achievements" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-trophy mr-1"></i>Achievements
+                <i class="fas fa-trophy mr-1"></i><span data-i18n="tab_achievements">Achievements</span>
             </button>
             <button onclick="switchTab('profile')" id="tab-profile" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-user mr-1"></i>My Profile
+                <i class="fas fa-user mr-1"></i><span data-i18n="tab_profile">My Profile</span>
             </button>
             <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-ranking-star mr-1"></i>Leaderboard
+                <i class="fas fa-ranking-star mr-1"></i><span data-i18n="tab_leaderboard">Leaderboard</span>
             </button>
             <button onclick="switchTab('videos')" id="tab-videos" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
-                <i class="fas fa-video mr-1"></i>Video Training
+                <i class="fas fa-video mr-1"></i><span data-i18n="tab_videos">Video Training</span>
             </button>
+            <select id="langSelect" onchange="setLanguage(this.value)" class="ml-auto px-3 py-2 rounded-full font-bold text-sm bg-white border-2 border-indigo-200 text-indigo-600 cursor-pointer" title="Language / اللغة">
+                <option value="en">🇬🇧 English</option>
+                <option value="ar">🇸🇦 العربية</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+            </select>
         </div>
 
         <!-- Learn Tab -->
@@ -1738,7 +1827,7 @@ const htmlContent = `<!DOCTYPE html>
                         <span id="robotPanelText" class="hidden sm:inline">Hide Robot</span>
                     </button>
                     <button onclick="runCode()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full font-bold transition-all transform hover:scale-105 flex items-center gap-2 text-base">
-                        <i class="fas fa-play"></i> Run
+                        <i class="fas fa-play"></i> <span data-i18n="btn_run">Run</span>
                     </button>
                     <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Reset robot position">
                         <i class="fas fa-undo"></i>
@@ -1773,7 +1862,7 @@ const htmlContent = `<!DOCTYPE html>
             <div class="flex bg-white rounded-b-2xl card-shadow overflow-hidden" style="height: calc(100vh - 153px); min-height: 560px;">
                 <!-- Block Palette - Left Side -->
                 <div id="blockPalette" class="w-32 bg-gradient-to-b from-gray-50 to-gray-100 p-2 overflow-y-auto border-r-2 border-gray-200 flex-shrink-0">
-                    <div class="text-xs font-bold text-gray-500 mb-1 uppercase">🚶 Move</div>
+                    <div class="text-xs font-bold text-gray-500 mb-1 uppercase" data-i18n="cat_move">🚶 Move</div>
                     <div class="block-item bg-blue-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-blue-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('move_forward')">
                         🚶 Forward
                     </div>
@@ -1793,7 +1882,7 @@ const htmlContent = `<!DOCTYPE html>
                         👻 Hide
                     </div>
                     
-                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🎨 Draw</div>
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase" data-i18n="cat_draw">🎨 Draw</div>
                     <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('pen_control')">
                         🖍️ Pen
                     </div>
@@ -1803,8 +1892,22 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-pink-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-pink-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('set_pen_size')">
                         🖌️ Size
                     </div>
+
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase" data-i18n="cat_fun">🎉 Fun</div>
+                    <div class="block-item bg-fuchsia-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-fuchsia-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('stemo_say')">
+                        💬 Say
+                    </div>
+                    <div class="block-item bg-fuchsia-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-fuchsia-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('stemo_emotion')">
+                        😊 Emotion
+                    </div>
+                    <div class="block-item bg-fuchsia-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-fuchsia-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('stemo_dance')">
+                        🕺 Dance
+                    </div>
+                    <div class="block-item bg-fuchsia-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-fuchsia-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('play_fun_sound')">
+                        🔊 Sound
+                    </div>
                     
-                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">🔁 Loop</div>
+                    <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase" data-i18n="cat_loop">🔁 Loop</div>
                     <div class="block-item bg-green-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-green-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('repeat_times')">
                         🔁 Repeat
                     </div>
@@ -1917,6 +2020,13 @@ const htmlContent = `<!DOCTYPE html>
                         <div class="flex gap-1">
                             <button onclick="toggleSound()" id="soundToggleBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Toggle sound effects">
                                 🔊
+                            </button>
+                            <button onclick="openStemoColor()" id="stemoColorBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Customize STEMO's color">
+                                🎨
+                            </button>
+                            <input type="color" id="stemoColorInput" value="#3b82f6" onchange="setStemoColor(this.value)" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
+                            <button onclick="setStemoColor('#3b82f6')" id="stemoColorResetBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Reset STEMO's color">
+                                ♻️
                             </button>
                             <button onclick="setPlacementMode('metal')" id="modeMetalBtn" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded-full text-xs font-bold transition-all" title="Place Metal">
                                 🔩
@@ -2268,6 +2378,10 @@ const htmlContent = `<!DOCTYPE html>
             <div class="text-8xl mb-4">🎉</div>
             <h2 class="text-3xl font-bold text-gray-800 mb-2">Amazing!</h2>
             <p class="text-gray-600 mb-4" id="successMessage">You completed the challenge!</p>
+            <div id="starRating" class="mb-4 hidden">
+                <div id="starRow" class="text-5xl tracking-widest mb-1">⭐⭐⭐</div>
+                <div class="text-gray-500 text-sm font-bold" id="starLabel">Perfect — 3 stars!</div>
+            </div>
             <div id="xpBanner" class="bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6">
                 <div class="text-white font-bold text-lg" id="xpBannerLabel">You earned</div>
                 <div class="text-4xl font-bold text-white" id="xpEarned">+50 XP</div>
@@ -2320,8 +2434,29 @@ const htmlContent = `<!DOCTYPE html>
             carrying: null,
             waterLevel: 10,
             spraying: false,
-            lastTemp: 25
+            lastTemp: 25,
+            emotion: 'normal',
+            sayText: '',
+            dancing: false
         };
+
+        // STEMO customization — persisted body color chosen by the kid
+        var stemoBodyColor = safeStorageGetEarly('stemoBodyColor') || '#3b82f6';
+        function safeStorageGetEarly(k) {
+            try { return window.localStorage && localStorage.getItem(k); } catch (e) { return null; }
+        }
+        // Lighten a hex color by a percent (0-1) — used for STEMO's head shade
+        function lightenColor(hex, percent) {
+            try {
+                var h = hex.replace('#', '');
+                if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+                var r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+                r = Math.round(r + (255 - r) * percent);
+                g = Math.round(g + (255 - g) * percent);
+                b = Math.round(b + (255 - b) * percent);
+                return 'rgb(' + r + ',' + g + ',' + b + ')';
+            } catch (e) { return hex; }
+        }
 
         // ============================================
         // SOUND SYSTEM — Web Audio synthesized effects
@@ -2442,6 +2577,21 @@ const htmlContent = `<!DOCTYPE html>
                                        setTimeout(function(){ tone(659, 0.10, 'triangle', 0.13); }, 100);
                                        setTimeout(function(){ tone(784, 0.10, 'triangle', 0.13); }, 200);
                                        setTimeout(function(){ tone(1047, 0.18, 'triangle', 0.14); }, 300); break;
+                    case 'beep':       tone(880, 0.06, 'square', 0.07); break;
+                    case 'pop':        tone(420, 0.07, 'sine', 0.14, 180); break;
+                    case 'cheer':      tone(659, 0.10, 'triangle', 0.13);
+                                       setTimeout(function(){ tone(784, 0.10, 'triangle', 0.13); }, 90);
+                                       setTimeout(function(){ tone(988, 0.10, 'triangle', 0.13); }, 180);
+                                       setTimeout(function(){ tone(1319, 0.20, 'triangle', 0.14); }, 270); break;
+                    case 'fanfare':    tone(523, 0.12, 'sawtooth', 0.10);
+                                       setTimeout(function(){ tone(523, 0.10, 'sawtooth', 0.10); }, 130);
+                                       setTimeout(function(){ tone(784, 0.10, 'sawtooth', 0.11); }, 250);
+                                       setTimeout(function(){ tone(1047, 0.24, 'sawtooth', 0.12); }, 360); break;
+                    case 'magic':      tone(784, 0.08, 'sine', 0.10, 1568);
+                                       setTimeout(function(){ tone(1047, 0.08, 'sine', 0.10, 2093); }, 80);
+                                       setTimeout(function(){ tone(1319, 0.14, 'sine', 0.11, 2637); }, 160); break;
+                    case 'meow':       tone(620, 0.18, 'sawtooth', 0.10, 420);
+                                       setTimeout(function(){ tone(420, 0.16, 'sawtooth', 0.09, 300); }, 160); break;
                 }
             } catch (e) { /* never let sound break gameplay */ }
         }
@@ -3168,7 +3318,8 @@ const htmlContent = `<!DOCTYPE html>
                     const levels = [
                         { name: 'Basic 🐣', key: 'basic' },
                         { name: 'Intermediate 🚀', key: 'intermediate' },
-                        { name: 'Advanced 🏆', key: 'advanced' }
+                        { name: 'Advanced 🏆', key: 'advanced' },
+                        { name: 'Art Studio 🎨', key: 'creative' }
                     ];
 
                     levels.forEach(function(level) {
@@ -3205,6 +3356,8 @@ const htmlContent = `<!DOCTYPE html>
                                            (lesson.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 
                                            (lesson.difficulty === 'hard' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'));
                             
+                            var lessonStars = isCompleted ? getStars(lesson.id) : 0;
+                            var starsBadge = lessonStars > 0 ? '<span class="text-sm" title="' + lessonStars + ' of 3 stars">' + starString(lessonStars) + '</span>' : '';
                             var isAssigned = (lesson.id === assignedLessonId);
                             var assignedBadge = isAssigned ? '<span class="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-bold">📌 Assigned</span>' : '';
                             var assignedBorder = isAssigned ? ' ring-4 ring-orange-400 ring-offset-2' : '';
@@ -3221,6 +3374,7 @@ const htmlContent = `<!DOCTYPE html>
                                     '<div class="flex items-center gap-2 flex-wrap">' +
                                     '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
                                     (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
+                                    starsBadge +
                                     assignedBadge +
                                     '</div></div></div>';
                         });
@@ -3626,6 +3780,62 @@ const htmlContent = `<!DOCTYPE html>
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(330);
+            }
+        };
+
+        Blockly.Blocks['stemo_say'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💬 Say")
+                    .appendField(new Blockly.FieldTextInput("Hello!"), "TEXT");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(300);
+            }
+        };
+
+        Blockly.Blocks['stemo_emotion'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("😊 Feel")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["😀 Happy", "happy"],
+                        ["😢 Sad", "sad"],
+                        ["😎 Cool", "cool"],
+                        ["🤩 Excited", "excited"],
+                        ["😐 Normal", "normal"]
+                    ]), "EMOTION");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(300);
+            }
+        };
+
+        Blockly.Blocks['stemo_dance'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🕺 Dance");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(300);
+            }
+        };
+
+        Blockly.Blocks['play_fun_sound'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔊 Play")
+                    .appendField(new Blockly.FieldDropdown([
+                        ["🎉 Cheer", "cheer"],
+                        ["🎺 Fanfare", "fanfare"],
+                        ["✨ Magic", "magic"],
+                        ["🐱 Meow", "meow"],
+                        ["🤖 Beep", "beep"],
+                        ["💥 Pop", "pop"]
+                    ]), "SOUND");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(300);
             }
         };
 
@@ -4176,6 +4386,9 @@ const htmlContent = `<!DOCTYPE html>
             robot.magnetOn = false;
             robot.carrying = null;
             robot.trails = [];
+            robot.emotion = 'normal';
+            robot.sayText = '';
+            robot.dancing = false;
             drawRobot();
             
             // Parse and execute blocks
@@ -4226,6 +4439,14 @@ const htmlContent = `<!DOCTYPE html>
                 } else if (type === 'set_pen_size') {
                     var size = parseInt(block.getFieldValue('SIZE'));
                     commands.push({ action: 'size', value: size });
+                } else if (type === 'stemo_say') {
+                    commands.push({ action: 'say', value: block.getFieldValue('TEXT') });
+                } else if (type === 'stemo_emotion') {
+                    commands.push({ action: 'emotion', value: block.getFieldValue('EMOTION') });
+                } else if (type === 'stemo_dance') {
+                    commands.push({ action: 'dance' });
+                } else if (type === 'play_fun_sound') {
+                    commands.push({ action: 'fun_sound', value: block.getFieldValue('SOUND') });
                 } else if (type === 'magnet_on') {
                     commands.push({ action: 'magnet', value: true });
                 } else if (type === 'magnet_off') {
@@ -4701,6 +4922,19 @@ const htmlContent = `<!DOCTYPE html>
                 robot.penColor = cmd.value;
             } else if (cmd.action === 'size') {
                 robot.penSize = cmd.value;
+            } else if (cmd.action === 'say') {
+                robot.sayText = cmd.value || '';
+                playSound('beep');
+                drawRobot();
+            } else if (cmd.action === 'emotion') {
+                robot.emotion = cmd.value || 'normal';
+                drawRobot();
+            } else if (cmd.action === 'dance') {
+                robot.emotion = 'happy';
+                playSound('cheer');
+                startDanceAnimation(1400);
+            } else if (cmd.action === 'fun_sound') {
+                playSound(cmd.value);
             } else if (cmd.action === 'visibility') {
                 robot.visible = cmd.value;
             } else if (cmd.action === 'magnet') {
@@ -6123,8 +6357,12 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.translate(robot.x, robot.y);
                 ctx.rotate((robot.angle + 90) * Math.PI / 180);
                 
-                // Body - change color if magnet is on  (scaled ~70% of original)
-                ctx.fillStyle = robot.magnetOn ? '#ef4444' : '#3b82f6';
+                // Body - change color if magnet is on; otherwise use kid's chosen color
+                // Dance wiggle — gentle rock so STEMO looks alive when celebrating
+                if (robot.dancing) {
+                    ctx.rotate(Math.sin(Date.now() / 120) * 0.25);
+                }
+                ctx.fillStyle = robot.magnetOn ? '#ef4444' : stemoBodyColor;
                 ctx.beginPath();
                 ctx.roundRect(-14, -18, 28, 36, 6);
                 ctx.fill();
@@ -6165,7 +6403,7 @@ const htmlContent = `<!DOCTYPE html>
                 }
             
                 // Head
-                ctx.fillStyle = robot.magnetOn ? '#f87171' : '#60a5fa';
+                ctx.fillStyle = robot.magnetOn ? '#f87171' : lightenColor(stemoBodyColor, 0.3);
                 ctx.beginPath();
                 ctx.arc(0, -11, 11, 0, Math.PI * 2);
                 ctx.fill();
@@ -6177,13 +6415,48 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.arc(4, -13, 3.5, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Pupils - heart eyes when carrying something
+                // Pupils & mouth — react to emotion / carrying state
+                var emo = robot.emotion || 'normal';
                 if (robot.carrying) {
                     ctx.fillStyle = '#ef4444';
                     ctx.font = '6px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText('❤', -4, -11);
                     ctx.fillText('❤', 4, -11);
+                } else if (emo === 'happy' || emo === 'excited') {
+                    // Curved happy eyes (^ ^) + big smile
+                    ctx.strokeStyle = '#1e3a5f';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(-4, -12.5, 2.2, Math.PI * 1.1, Math.PI * 1.9);
+                    ctx.arc(4, -12.5, 2.2, Math.PI * 1.1, Math.PI * 1.9);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(0, -8, 4, 0.1 * Math.PI, 0.9 * Math.PI);
+                    ctx.stroke();
+                } else if (emo === 'sad') {
+                    ctx.fillStyle = '#1e3a5f';
+                    ctx.beginPath();
+                    ctx.arc(-3.5, -12.5, 1.5, 0, Math.PI * 2);
+                    ctx.arc(4.5, -12.5, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Frown
+                    ctx.strokeStyle = '#1e3a5f';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, -5, 4, 1.1 * Math.PI, 1.9 * Math.PI);
+                    ctx.stroke();
+                } else if (emo === 'cool') {
+                    // Sunglasses
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(-7, -14, 6, 4);
+                    ctx.fillRect(1, -14, 6, 4);
+                    ctx.fillRect(-1, -13, 2, 1.5);
+                    ctx.strokeStyle = '#1e3a5f';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, -8, 3.5, 0.15 * Math.PI, 0.85 * Math.PI);
+                    ctx.stroke();
                 } else {
                     ctx.fillStyle = '#1e3a5f';
                     ctx.beginPath();
@@ -6269,6 +6542,39 @@ const htmlContent = `<!DOCTYPE html>
                 }
                 
                 ctx.restore();
+
+                // Speech bubble — drawn in screen space (not rotated) above STEMO
+                if (robot.sayText) {
+                    ctx.save();
+                    ctx.font = 'bold 13px Nunito, Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    var txt = robot.sayText.length > 30 ? robot.sayText.substring(0, 29) + '…' : robot.sayText;
+                    var tw = ctx.measureText(txt).width;
+                    var bw = tw + 22, bh = 26;
+                    var bx = robot.x, by = robot.y - 48;
+                    // Keep bubble inside the canvas
+                    bx = Math.max(bw/2 + 4, Math.min(canvas.width - bw/2 - 4, bx));
+                    by = Math.max(bh/2 + 4, by);
+                    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+                    ctx.strokeStyle = stemoBodyColor;
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.roundRect(bx - bw/2, by - bh/2, bw, bh, 9);
+                    ctx.fill();
+                    ctx.stroke();
+                    // Tail
+                    ctx.beginPath();
+                    ctx.moveTo(robot.x - 5, by + bh/2 - 1);
+                    ctx.lineTo(robot.x, by + bh/2 + 8);
+                    ctx.lineTo(robot.x + 5, by + bh/2 - 1);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(255,255,255,0.97)';
+                    ctx.fill();
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillText(txt, bx, by);
+                    ctx.restore();
+                }
             }
             
         }
@@ -6287,10 +6593,130 @@ const htmlContent = `<!DOCTYPE html>
                 carrying: null,
                 waterLevel: 10,
                 spraying: false,
-                lastTemp: 25
+                lastTemp: 25,
+                emotion: 'normal',
+                sayText: '',
+                dancing: false
             };
             drawRobot();
             addChatMessage('stemo', "🤖 Ready! Use Pen Down to start drawing!");
+        }
+
+        // Animate STEMO's dance wiggle for a short duration, then settle
+        var danceRAF = null;
+        function startDanceAnimation(durationMs) {
+            robot.dancing = true;
+            var start = Date.now();
+            if (danceRAF) cancelAnimationFrame(danceRAF);
+            function step() {
+                if (Date.now() - start < durationMs) {
+                    drawRobot();
+                    danceRAF = requestAnimationFrame(step);
+                } else {
+                    robot.dancing = false;
+                    danceRAF = null;
+                    drawRobot();
+                }
+            }
+            step();
+        }
+
+        // ============================================
+        // STAR RATINGS — 1-3 stars per lesson by efficiency (block count vs par)
+        // ============================================
+        function getStarsMap() {
+            try { return JSON.parse(safeStorageGet('stemoStars') || '{}'); } catch (e) { return {}; }
+        }
+        function getStars(lessonId) {
+            return getStarsMap()[lessonId] || 0;
+        }
+        function setStars(lessonId, n) {
+            var map = getStarsMap();
+            if (n > (map[lessonId] || 0)) {
+                map[lessonId] = n;
+                safeStorageSet('stemoStars', JSON.stringify(map));
+            }
+        }
+        // Compute stars from how many blocks were used vs the lesson's "par"
+        function computeStars(lesson) {
+            var used = 0;
+            try { used = workspace ? workspace.getAllBlocks(false).length : 0; } catch (e) { used = 0; }
+            var par = (lesson && lesson.par) ? lesson.par : 0;
+            if (!par || used <= 0) return 3; // no par defined → reward completion fully
+            if (used <= par) return 3;
+            if (used <= Math.ceil(par * 1.6)) return 2;
+            return 1;
+        }
+        function starString(n) {
+            return '⭐⭐⭐'.substring(0, n) + '☆☆☆'.substring(0, 3 - n);
+        }
+
+        // ============================================
+        // MULTI-LANGUAGE (i18n) — English, Arabic, Spanish, French
+        // ============================================
+        var I18N = {
+            en: {
+                tab_learn: 'Learn', tab_code: 'Code', tab_achievements: 'Achievements',
+                tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training',
+                btn_run: 'Run',
+                cat_move: '🚶 Move', cat_draw: '🎨 Draw', cat_fun: '🎉 Fun', cat_loop: '🔁 Loop'
+            },
+            ar: {
+                tab_learn: 'تعلّم', tab_code: 'برمجة', tab_achievements: 'الإنجازات',
+                tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو',
+                btn_run: 'تشغيل',
+                cat_move: '🚶 حركة', cat_draw: '🎨 رسم', cat_fun: '🎉 مرح', cat_loop: '🔁 تكرار'
+            },
+            es: {
+                tab_learn: 'Aprender', tab_code: 'Código', tab_achievements: 'Logros',
+                tab_profile: 'Mi Perfil', tab_leaderboard: 'Clasificación', tab_videos: 'Videos',
+                btn_run: 'Ejecutar',
+                cat_move: '🚶 Mover', cat_draw: '🎨 Dibujar', cat_fun: '🎉 Diversión', cat_loop: '🔁 Repetir'
+            },
+            fr: {
+                tab_learn: 'Apprendre', tab_code: 'Code', tab_achievements: 'Succès',
+                tab_profile: 'Mon Profil', tab_leaderboard: 'Classement', tab_videos: 'Vidéos',
+                btn_run: 'Lancer',
+                cat_move: '🚶 Bouger', cat_draw: '🎨 Dessiner', cat_fun: '🎉 Amusant', cat_loop: '🔁 Répéter'
+            }
+        };
+        var currentLang = safeStorageGet('stemoLang') || 'en';
+        function applyLanguage(lang) {
+            var dict = I18N[lang] || I18N.en;
+            var nodes = document.querySelectorAll('[data-i18n]');
+            for (var i = 0; i < nodes.length; i++) {
+                var key = nodes[i].getAttribute('data-i18n');
+                if (dict[key] !== undefined) nodes[i].textContent = dict[key];
+                else if (I18N.en[key] !== undefined) nodes[i].textContent = I18N.en[key];
+            }
+            document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            document.documentElement.setAttribute('lang', lang);
+            var sel = document.getElementById('langSelect');
+            if (sel) sel.value = lang;
+        }
+        function setLanguage(lang) {
+            currentLang = lang;
+            safeStorageSet('stemoLang', lang);
+            applyLanguage(lang);
+            playSound('click');
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            applyLanguage(currentLang);
+        });
+
+        // STEMO body color customization (persisted)
+        function openStemoColor() {
+            var inp = document.getElementById('stemoColorInput');
+            if (inp) { inp.value = stemoBodyColor; inp.click(); }
+        }
+        function setStemoColor(color) {
+            stemoBodyColor = color || '#3b82f6';
+            safeStorageSet('stemoBodyColor', stemoBodyColor);
+            var inp = document.getElementById('stemoColorInput');
+            if (inp) inp.value = stemoBodyColor;
+            drawRobot();
+            playSound('pop');
+            addChatMessage('stemo', "🤖 New look! Thanks for the makeover! 🎨");
         }
 
         function togglePenColor() {
@@ -6430,12 +6856,15 @@ const htmlContent = `<!DOCTYPE html>
                 stemo.level = newLevel;
             }
             
+            var stars = computeStars(lesson);
+            setStars(lesson.id, stars);
+
             saveProgress();
             updateUI();
             loadLessons();
             loadBadges();
             
-            showSuccessModal(lesson.xpReward, false);
+            showSuccessModal(lesson.xpReward, false, stars);
         }
 
         // Completes a lesson via challenge mode: awards base XP (if not yet earned) + 2× challenge bonus
@@ -6461,17 +6890,31 @@ const htmlContent = `<!DOCTYPE html>
                 stemo.level = newLevel;
             }
 
+            setStars(lesson.id, 3);
+
             saveProgress();
             updateUI();
             loadLessons();
             loadBadges();
 
-            showSuccessModal(totalXp, true);
+            showSuccessModal(totalXp, true, 3);
         }
 
-        function showSuccessModal(xp, isChallenge) {
+        function showSuccessModal(xp, isChallenge, stars) {
             var modal = document.getElementById('successModal');
             var content = document.getElementById('successModalContent');
+            // Star rating display
+            var starWrap = document.getElementById('starRating');
+            if (starWrap) {
+                if (stars && stars > 0) {
+                    document.getElementById('starRow').textContent = starString(stars);
+                    var labels = { 1: 'Nice — 1 star! Try using fewer blocks ✨', 2: 'Great — 2 stars! Almost perfect 🌟', 3: 'Perfect — 3 stars! 🏆' };
+                    document.getElementById('starLabel').textContent = labels[stars] || '';
+                    starWrap.classList.remove('hidden');
+                } else {
+                    starWrap.classList.add('hidden');
+                }
+            }
             var nextBtn = document.getElementById('nextLessonBtn');
 
             // XP banner: show points for first completion, "Already completed" for replays
