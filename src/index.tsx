@@ -9427,6 +9427,7 @@ const teacherDashboard = `<!DOCTYPE html>
         <button onclick="showTab('curriculum')" id="tab-curriculum" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">📖 Curriculum</button>
         <button onclick="showTab('pending')" id="tab-pending" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">⏳ Pending <span id="pendingBadge" class="bg-orange-500 text-white rounded-full px-2 ml-1 text-xs hidden">0</span></button>
         <button onclick="showTab('leaderboard')" id="tab-leaderboard" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏆 Leaderboard</button>
+        <button onclick="showTab('videos')" id="tab-videos" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🎬 Video Training</button>
     </div>
     <!-- My Classes Tab -->
     <div id="section-classes">
@@ -9458,6 +9459,29 @@ const teacherDashboard = `<!DOCTYPE html>
             </div>
             <div id="teacherPodiumRow" class="flex justify-center gap-6 mb-8"></div>
             <div id="teacherLeaderboardList" class="space-y-2"><p class="text-gray-400 text-center py-8">Loading...</p></div>
+        </div>
+    </div>
+    <!-- Video Training Tab -->
+    <div id="section-videos" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-xl font-bold"><i class="fas fa-video text-red-500 mr-2"></i>Video Training</h2>
+                <button onclick="loadTeacherVideos()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold transition-all">🔄 Refresh</button>
+            </div>
+            <p class="text-gray-500 mb-5 text-sm">Browse lesson videos to prepare your class — same library your students see.</p>
+            <!-- Video player -->
+            <div id="teacherVideoPlayer" class="hidden mb-6">
+                <div class="bg-black rounded-2xl overflow-hidden" style="aspect-ratio:16/9;max-width:720px;margin:0 auto;">
+                    <iframe id="teacherVideoFrame" width="100%" height="100%" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:block;"></iframe>
+                </div>
+                <div class="text-center mt-3">
+                    <button onclick="document.getElementById('teacherVideoPlayer').classList.add('hidden');document.getElementById('teacherVideoFrame').src=''" class="text-gray-500 hover:text-gray-700 text-sm font-bold">✕ Close Player</button>
+                </div>
+            </div>
+            <!-- Video list -->
+            <div id="teacherVideoList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-video text-4xl mb-3 block opacity-40"></i>Click a video to watch</div>
+            </div>
         </div>
     </div>
 </div>
@@ -9509,15 +9533,58 @@ function escHtml(str) {
 let pwResetStudentId = null;
 
 function showTab(tab) {
-    ['classes','curriculum','pending','leaderboard'].forEach(t => {
+    ['classes','curriculum','pending','leaderboard','videos'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
         const btn = document.getElementById('tab-'+t);
         if(btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500',leaderboard:'bg-yellow-500'};
+    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500',leaderboard:'bg-yellow-500',videos:'bg-red-500'};
     document.getElementById('tab-'+tab).className = \`tab-btn \${active[tab]||'bg-indigo-600'} text-white px-5 py-2 rounded-full font-bold text-sm\`;
     if (tab === 'leaderboard') loadTeacherLeaderboard();
+    if (tab === 'videos') loadTeacherVideos();
+}
+
+function teacherYtEmbedUrl(url) {
+    try { var u=new URL(url); var vid=u.hostname==='youtu.be'?u.pathname.slice(1):(u.searchParams.get('v')||''); return vid?'https://www.youtube.com/embed/'+vid:url; } catch(e){return url;}
+}
+function teacherYtThumb(url) {
+    try { var u=new URL(url); var vid=u.hostname==='youtu.be'?u.pathname.slice(1):(u.searchParams.get('v')||''); return vid?'https://img.youtube.com/vi/'+vid+'/mqdefault.jpg':''; } catch(e){return '';}
+}
+function playTeacherVideo(embedUrl) {
+    document.getElementById('teacherVideoFrame').src = embedUrl + '?autoplay=1';
+    document.getElementById('teacherVideoPlayer').classList.remove('hidden');
+    document.getElementById('teacherVideoPlayer').scrollIntoView({behavior:'smooth'});
+}
+async function loadTeacherVideos() {
+    const list = document.getElementById('teacherVideoList');
+    list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-spinner fa-spin text-3xl mb-2 block"></i>Loading videos...</div>';
+    try {
+        const videos = await fetch('/api/videos').then(r => r.json());
+        if (!Array.isArray(videos) || !videos.length) {
+            list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-video text-5xl mb-3 block opacity-40"></i><p class="font-semibold">No videos yet.</p><p class="text-sm mt-1">Add videos via the Admin dashboard.</p></div>';
+            return;
+        }
+        list.innerHTML = videos.map(v => {
+            const thumb = teacherYtThumb(v.youtube_url);
+            const embed = teacherYtEmbedUrl(v.youtube_url);
+            const thumbHtml = thumb
+                ? \`<img src="\${thumb}" class="w-full object-cover rounded-xl mb-3" style="aspect-ratio:16/9;" onerror="this.remove()">\`
+                : \`<div class="w-full bg-gradient-to-br from-red-400 to-red-600 rounded-xl mb-3 flex items-center justify-center text-white text-4xl" style="aspect-ratio:16/9;"><i class="fas fa-play-circle"></i></div>\`;
+            return \`<div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-all cursor-pointer group" onclick="playTeacherVideo('\${embed}')">
+                \${thumbHtml}
+                <div class="flex items-start gap-2">
+                    <div class="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform"><i class="fas fa-play text-xs"></i></div>
+                    <div>
+                        <p class="font-bold text-gray-800 text-sm leading-tight">\${escHtml(v.lesson_name)}</p>
+                        <p class="text-gray-400 text-xs mt-1">Click to watch</p>
+                    </div>
+                </div>
+            </div>\`;
+        }).join('');
+    } catch(e) {
+        list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load videos. Please try again.</div>';
+    }
 }
 
 async function loadTeacherLeaderboard() {
