@@ -1,4 +1,5 @@
 - [Nested template literals in index.tsx](nested-template-literals.md) — client-side JS inside server-side HTML template strings must use escaped backticks (\`) or build fails.
-- [Challenge XP system](challenge-xp-system.md) — free build awards base XP; challenge mode awards 2× bonus via `lesson-X-challenge` IDs in completed_lessons; both validated server-side.
+- [Challenge XP system](challenge-xp-system.md) — base XP on free build, 2× bonus via `lesson-X-challenge` IDs; TWO server whitelists (`allLessons` + `challenges` array) must both list it or XP is stripped.
+- [Curriculum ordering](curriculum-ordering.md) — display/unlock follow array order (not nextLesson); IDs immutable (D1-keyed); reorder/add must mirror curriculum + CHALLENGE_LESSON_META + teacher CURRICULUM.
 - [Drawing challenge timing](drawing-challenge-timing.md) — use `robotExecuting` flag to suppress objective checks mid-execution for drawing lessons (4–7); action lessons (8–14) check during execution.
 - [Curriculum/progress validation sync](curriculum-progress-validation.md) — new curriculum sections must be added to allLessons whitelist in progress-save routes or completions get silently stripped.

@@ -1209,27 +1209,6 @@ const curriculum = {
             ],
             hint: 'Plan your route BEFORE coding: which fire is closest? Go there first. Then which is next closest? This "nearest neighbour" strategy is used in real delivery route planning! Each spray must land within 2 steps of a fire to work.',
             homework: 'Can you put out all 3 fires using exactly 3 sprays (one per fire, perfectly positioned)? Map out the board on paper first, then write the code. This level of planning is called algorithmic thinking!',
-            nextLesson: 'lesson-14'
-        },
-        {
-            id: 'lesson-14',
-            title: 'Master Coder',
-            description: 'The ultimate autonomous mission — graduate as a Master Coder! 🎓',
-            difficulty: 'extreme',
-            xpReward: 1000,
-            icon: '🏆',
-            introduction: "🎓 CONGRATULATIONS — you have reached the final lesson of the STEMO Academy! Over these 14 lessons you have learned: sequencing (step-by-step instructions), loops (Repeat), geometry (shape angles), sensors (ultrasonic + thermal), decision making (If/Else), electromagnets, and efficient resource use. These are the EXACT skills that real robotics engineers use every day. Your final mission is the ultimate test: set up a board with walls, metals AND fires all mixed together, then write ONE autonomous program that handles everything — navigate around walls, collect all metals, and extinguish all fires — without any help from you. You are the engineer. STEMO is your robot. Let's graduate!",
-            tasks: [
-                { id: 't1', text: 'Set the scene: place 2 walls, 2 metal pieces (🔩), and 2 fires (🔥) randomly on the board', completed: false },
-                { id: 't2', text: 'Phase 1 — Scan: add Scan Ahead in all 4 directions at the start so I know where the obstacles are', completed: false },
-                { id: 't3', text: 'Phase 2 — Collect: navigate to both metal pieces, pick them up (Magnet ON), and drop them at Home (Magnet OFF)', completed: false },
-                { id: 't4', text: 'Phase 3 — Extinguish: navigate to both fires and spray water on each one (check water level first!)', completed: false },
-                { id: 't5', text: 'Phase 4 — Return: add a Home block at the very end — mission complete, robot returns to base! 🏠', completed: false },
-                { id: 't6', text: 'Combine all 4 phases into ONE program and Run it start to finish — the board should be cleared! 🏆🎉', completed: false },
-                { id: 't7', text: 'BONUS: count your total blocks used. Can you reduce it by 20% using loops and smarter routing? The best engineers optimise! ✨', completed: false }
-            ],
-            hint: 'Break the mission into phases (Scan → Collect → Extinguish → Return) and build each phase separately first, then connect them. Use loops wherever actions repeat. Check water level before every spray. This top-down design approach is how real software is built!',
-            homework: 'You are now a Master Coder! 🎓 Your challenge: design a completely NEW mission scenario and write the autonomous program for it. Ideas: delivery robot (pick up packages, avoid fires, drop at destination), rescue robot (find stranded people behind walls), or artist robot (draw a shape while collecting metals). Share your creation!',
             nextLesson: 'lesson-15'
         },
         {
@@ -1325,6 +1304,27 @@ const curriculum = {
             ],
             hint: 'Define functions first (at the top or side), then call them below. The name in "Define Function" must exactly match the name in "Call Function" — spelling counts! drawSquare ≠ DrawSquare.',
             homework: 'Design your own geometric artwork: create at least 3 functions (e.g. drawTriangle, drawStar, drawSpiral). Combine them with different rotation angles to create a unique pattern. Save it and share with the class!',
+            nextLesson: 'lesson-14'
+        },
+        {
+            id: 'lesson-14',
+            title: 'Master Coder',
+            description: 'The ultimate autonomous mission — graduate as a Master Coder! 🎓',
+            difficulty: 'extreme',
+            xpReward: 1000,
+            icon: '🏆',
+            introduction: "🎓 CONGRATULATIONS — you have reached the FINAL lesson of the STEMO Academy! Across your whole journey you have learned: sequencing, loops, geometry, sensors (ultrasonic + thermal), decision-making (If/Else), electromagnets, efficient resource use, variables, saved positions, lists, and functions. These are the EXACT skills that real robotics engineers use every day. Your final mission is the ultimate test: set up a board with walls, metals AND fires all mixed together, then write ONE autonomous program that handles everything — navigate around walls, collect all metals, and extinguish all fires — without any help from you. You are the engineer. STEMO is your robot. Let's graduate!",
+            tasks: [
+                { id: 't1', text: 'Set the scene: place 2 walls, 2 metal pieces (🔩), and 2 fires (🔥) randomly on the board', completed: false },
+                { id: 't2', text: 'Phase 1 — Scan: add Scan Ahead in all 4 directions at the start so I know where the obstacles are', completed: false },
+                { id: 't3', text: 'Phase 2 — Collect: navigate to both metal pieces, pick them up (Magnet ON), and drop them at Home (Magnet OFF)', completed: false },
+                { id: 't4', text: 'Phase 3 — Extinguish: navigate to both fires and spray water on each one (check water level first!)', completed: false },
+                { id: 't5', text: 'Phase 4 — Return: add a Home block at the very end — mission complete, robot returns to base! 🏠', completed: false },
+                { id: 't6', text: 'Combine all 4 phases into ONE program and Run it start to finish — the board should be cleared! 🏆🎉', completed: false },
+                { id: 't7', text: 'BONUS: count your total blocks used. Can you reduce it by 20% using loops and smarter routing? The best engineers optimise! ✨', completed: false }
+            ],
+            hint: 'Break the mission into phases (Scan → Collect → Extinguish → Return) and build each phase separately first, then connect them. Use loops wherever actions repeat. Check water level before every spray. This top-down design approach is how real software is built!',
+            homework: 'You are now a Master Coder! 🎓 Your challenge: design a completely NEW mission scenario and write the autonomous program for it. Ideas: delivery robot (pick up packages, avoid fires, drop at destination), rescue robot (find stranded people behind walls), or artist robot (draw a shape while collecting metals). Share your creation!',
             nextLesson: null
         }
     ],
@@ -1424,7 +1424,16 @@ const curriculum = {
         { id: 'lesson-11-challenge', xpReward: 700  },
         { id: 'lesson-12-challenge', xpReward: 800  },
         { id: 'lesson-13-challenge', xpReward: 1000 },
-        { id: 'lesson-14-challenge', xpReward: 2000 }
+        { id: 'lesson-14-challenge', xpReward: 2000 },
+        { id: 'lesson-15-challenge', xpReward: 800  },
+        { id: 'lesson-16-challenge', xpReward: 900  },
+        { id: 'lesson-17-challenge', xpReward: 1000 },
+        { id: 'lesson-18-challenge', xpReward: 1200 },
+        { id: 'lesson-19-challenge', xpReward: 1400 },
+        { id: 'lesson-art-1-challenge', xpReward: 300 },
+        { id: 'lesson-art-2-challenge', xpReward: 300 },
+        { id: 'lesson-art-3-challenge', xpReward: 400 },
+        { id: 'lesson-art-4-challenge', xpReward: 500 }
     ]
 }
 
@@ -2679,7 +2688,7 @@ const htmlContent = `<!DOCTYPE html>
         // Drawing lessons whose objectives should only be evaluated after execution finishes
         var DRAWING_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7'];
 
-        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18','lesson-19'];
+        var MISSION_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7','lesson-8','lesson-9','lesson-10','lesson-11','lesson-12','lesson-13','lesson-14','lesson-15','lesson-16','lesson-17','lesson-18','lesson-19','lesson-art-1','lesson-art-2','lesson-art-3','lesson-art-4'];
 
         // Ghost trails drawn on canvas as the "target pattern" for drawing challenges
         var targetTrails = [];
@@ -2713,7 +2722,7 @@ const htmlContent = `<!DOCTYPE html>
                     { id: 'size', label: '🖌️ Use a Color or Size block', check: function() {
                         if (!workspace) return false;
                         return workspace.getAllBlocks().some(function(b) {
-                            return b.type === 'pen_color' || b.type === 'pen_size';
+                            return b.type === 'set_color' || b.type === 'set_pen_size';
                         });
                     }},
                     { id: 'shape', label: '⬜ Draw 4+ line segments', check: function() {
@@ -3166,6 +3175,131 @@ const htmlContent = `<!DOCTYPE html>
                     }},
                     { id: 'pattern', label: '🌟 Draw the star pattern (match the ghost guide)', check: function() {
                         return robot.trails.length >= 32;
+                    }}
+                ]
+            },
+            'lesson-art-1': {
+                title: 'Spin a Rainbow Spiral! 🌀',
+                description: 'Match the faded spiral on the canvas. Use a Color block + a Repeat loop (try Repeat 30 → Forward 1, Right 25). Add an Emotion or Dance block to celebrate!',
+                setup: function() {
+                    targetTrails = [];
+                    var cols = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'];
+                    var px = null, py = null, idx = 0;
+                    for (var a = 0; a <= 1080; a += 12) {
+                        var r = (a / 1080) * 180;
+                        var rad = a * Math.PI / 180;
+                        var nx = 275 + Math.cos(rad) * r;
+                        var ny = 275 + Math.sin(rad) * r;
+                        if (px !== null) { targetTrails.push({ x1: px, y1: py, x2: nx, y2: ny, color: cols[idx % cols.length] }); idx++; }
+                        px = nx; py = ny;
+                    }
+                },
+                objectives: [
+                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }},
+                    { id: 'color', label: '🎨 Use a Color block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'set_color'; });
+                    }},
+                    { id: 'spiral', label: '🌀 Draw 15+ line segments', check: function() {
+                        return robot.trails.length >= 15;
+                    }}
+                ]
+            },
+            'lesson-art-2': {
+                title: 'Paint a Rainbow! 🌈',
+                description: 'Match the faded rainbow arcs. Use 3+ different Color blocks and a Repeat loop to bend each band (try Repeat 18 → Forward 1, Right 10).',
+                setup: function() {
+                    targetTrails = [];
+                    var cols = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'];
+                    for (var c = 0; c < cols.length; c++) {
+                        var r = 60 + c * 16;
+                        var prevx = null, prevy = null;
+                        for (var a = 200; a <= 340; a += 8) {
+                            var rad = a * Math.PI / 180;
+                            var x = 275 + Math.cos(rad) * r;
+                            var y = 360 + Math.sin(rad) * r;
+                            if (prevx !== null) targetTrails.push({ x1: prevx, y1: prevy, x2: x, y2: y, color: cols[c] });
+                            prevx = x; prevy = y;
+                        }
+                    }
+                },
+                objectives: [
+                    { id: 'colors', label: '🎨 Use 3+ different colours', check: function() {
+                        var seen = {};
+                        robot.trails.forEach(function(t) { seen[t.color] = true; });
+                        return Object.keys(seen).length >= 3;
+                    }},
+                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                    }},
+                    { id: 'bands', label: '🌈 Draw 18+ line segments', check: function() {
+                        return robot.trails.length >= 18;
+                    }}
+                ]
+            },
+            'lesson-art-3': {
+                title: 'Sign Your Name! ✍️',
+                description: 'Guide STEMO like a pen to draw the first letter of your name. Use Pen Down to draw and Pen Up to jump between strokes. Finish with an Emotion, Say or Sound block!',
+                setup: function() {
+                    targetTrails = [
+                        { x1: 230, y1: 360, x2: 275, y2: 200, color: '#94a3b8' },
+                        { x1: 275, y1: 200, x2: 320, y2: 360, color: '#94a3b8' },
+                        { x1: 248, y1: 290, x2: 302, y2: 290, color: '#94a3b8' }
+                    ];
+                },
+                objectives: [
+                    { id: 'penup', label: '✏️ Use Pen Up to lift between strokes', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) {
+                            return b.type === 'pen_control' && b.getFieldValue('STATE') === 'UP';
+                        });
+                    }},
+                    { id: 'strokes', label: '✍️ Draw 3+ line segments', check: function() {
+                        return robot.trails.length >= 3;
+                    }},
+                    { id: 'flair', label: '😎 Add an Emotion, Say or Sound block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) {
+                            return b.type === 'stemo_emotion' || b.type === 'stemo_say' || b.type === 'play_fun_sound';
+                        });
+                    }}
+                ]
+            },
+            'lesson-art-4': {
+                title: 'Create a Magic Mandala! ❄️',
+                description: 'Match the faded mandala. Put a Repeat loop INSIDE another Repeat loop: the inner one draws a shape, the outer one spins it around (try outer Repeat 12 → inner Repeat 4 → Forward 3, Right 90 → then Right 30).',
+                setup: function() {
+                    targetTrails = [];
+                    var sx = 275, sy = 275, sa = 0;
+                    function sm(steps, color) {
+                        var d = steps * 20;
+                        var nx = sx + Math.cos(sa * Math.PI / 180) * d;
+                        var ny = sy + Math.sin(sa * Math.PI / 180) * d;
+                        targetTrails.push({ x1: sx, y1: sy, x2: nx, y2: ny, color: color });
+                        sx = nx; sy = ny;
+                    }
+                    function st(deg) { sa += deg; }
+                    for (var i = 0; i < 12; i++) {
+                        for (var j = 0; j < 4; j++) { sm(3, '#a855f7'); st(90); }
+                        st(30);
+                    }
+                },
+                objectives: [
+                    { id: 'nested', label: '🔁 Use 2 Repeat blocks (a loop inside a loop)', check: function() {
+                        if (!workspace) return false;
+                        var n = workspace.getAllBlocks().filter(function(b) { return b.type === 'repeat_times'; }).length;
+                        return n >= 2;
+                    }},
+                    { id: 'color', label: '🎨 Use a Color block', check: function() {
+                        if (!workspace) return false;
+                        return workspace.getAllBlocks().some(function(b) { return b.type === 'set_color'; });
+                    }},
+                    { id: 'mandala', label: '❄️ Draw 16+ line segments', check: function() {
+                        return robot.trails.length >= 16;
                     }}
                 ]
             }
@@ -8448,13 +8582,17 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
             'lesson-11': { id: 'lesson-11', title: 'Smart Explorer',    description: 'Use If/Else logic to find the correct path.',         hint: 'Check which direction is clear before moving. If wall is close, go another way!',           icon: '🧠', xpReward: 350, nextLesson: 'lesson-12' },
             'lesson-12': { id: 'lesson-12', title: 'Fire Watch',        description: 'Detect heat sources with your temperature sensor.',   hint: 'Scan in each direction — when temperature rises, you are near a fire!',                     icon: '🔥', xpReward: 400, nextLesson: 'lesson-13' },
-            'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water when close to a fire. Watch your water level — refill at home base!',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-14' },
-            'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: 'lesson-15' },
+            'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water when close to a fire. Watch your water level — refill at home base!',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-15' },
+            'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: null },
             'lesson-15': { id: 'lesson-15', title: 'Variable Vault',    description: 'Store values in variables and use them to control STEMO.',  hint: 'Set speed=4, count=4, angle=90. Then: Pen Down → Repeat count → Move speed steps, Turn angle degrees. One number controls everything!', icon: '🔢', xpReward: 400, nextLesson: 'lesson-16' },
             'lesson-16': { id: 'lesson-16', title: 'Position Memory',   description: 'Save your coordinates and navigate back home like GPS.',     hint: 'First block: Save Position A (records start). Navigate to target. Last block: Go to Position A (returns home via shortest path)!',            icon: '📍', xpReward: 450, nextLesson: 'lesson-17' },
             'lesson-17': { id: 'lesson-17', title: 'Waypoint Trail',    description: 'Follow a pre-loaded list of locations to collect metals.',   hint: 'The list is already loaded! Add Magnet ON, then Replay Path — STEMO visits every waypoint in order and picks up metals along the way.',       icon: '🗺️', xpReward: 500, nextLesson: 'lesson-18' },
             'lesson-18': { id: 'lesson-18', title: 'List Hunt',         description: 'Loop through a list of fire targets — AI iteration in action!', hint: 'Use For Each Waypoint → Spray Water. STEMO navigates to each fire location and sprays automatically. This is how AI processes data lists!', icon: '🎯', xpReward: 600, nextLesson: 'lesson-19' },
-            'lesson-19': { id: 'lesson-19', title: 'Function Factory', description: 'Write a function once, call it forever — the superpower of every programmer.', hint: 'Define "drawSquare": Pen Down + Repeat 4× (Move 3, Turn Right 90°). Define "bigSquare": Repeat 4× (Call drawSquare + Turn Right 90°). Then: Call bigSquare → Turn Right 45° → Call bigSquare. Star pattern complete!', icon: '🔧', xpReward: 700, nextLesson: null }
+            'lesson-19': { id: 'lesson-19', title: 'Function Factory', description: 'Write a function once, call it forever — the superpower of every programmer.', hint: 'Define "drawSquare": Pen Down + Repeat 4× (Move 3, Turn Right 90°). Define "bigSquare": Repeat 4× (Call drawSquare + Turn Right 90°). Then: Call bigSquare → Turn Right 45° → Call bigSquare. Star pattern complete!', icon: '🔧', xpReward: 700, nextLesson: 'lesson-14' },
+            'lesson-art-1': { id: 'lesson-art-1', title: 'Rainbow Spiral', description: 'Draw a hypnotic spiral that grows as it spins', hint: 'A spiral = Repeat many times → Forward a little + Turn a little. Change the turn angle for tighter or wider spirals!', icon: '🌀', xpReward: 150, nextLesson: 'lesson-art-2' },
+            'lesson-art-2': { id: 'lesson-art-2', title: 'Rainbow Maker', description: 'Paint a bright rainbow with every colour of the spectrum', hint: 'Each colour band is the same arc (Repeat → Forward + Turn), just a different Color block before it.', icon: '🌈', xpReward: 150, nextLesson: 'lesson-art-3' },
+            'lesson-art-3': { id: 'lesson-art-3', title: 'Write Your Name', description: 'Turn STEMO into a pen and sign your masterpiece', hint: 'Pen Down to draw a stroke, Pen Up to jump to the next stroke. Letters with straight lines (L, T, E, H, I, A) are easiest.', icon: '✍️', xpReward: 200, nextLesson: 'lesson-art-4' },
+            'lesson-art-4': { id: 'lesson-art-4', title: 'Magic Mandala', description: 'Create a symmetrical mandala using loops inside loops', hint: 'Loop inside a loop! Outer Repeat = copies around the circle. Inner Repeat = the shape. Extra turn (360 ÷ copies) spins each one.', icon: '❄️', xpReward: 250, nextLesson: null }
         };
 
         // Load Project from .stemo file
@@ -9516,12 +9654,16 @@ const CURRICULUM = [
     {id:'lesson-11',title:'Smart Explorer',icon:'🧠',desc:'Make decisions with If/Else logic',diff:'hard',xp:350,group:'🔴 Advanced'},
     {id:'lesson-12',title:'Fire Watch',icon:'🔥',desc:'Detect heat with temperature sensors',diff:'hard',xp:400,group:'🔴 Advanced'},
     {id:'lesson-13',title:'Firefighter Hero',icon:'🚒',desc:'Extinguish fires with water',diff:'extreme',xp:500,group:'🔴 Advanced'},
-    {id:'lesson-14',title:'Master Coder',icon:'🏆',desc:'The final autonomous challenge',diff:'extreme',xp:1000,group:'🔴 Advanced'},
     {id:'lesson-15',title:'Variable Vault',icon:'🔢',desc:'Control STEMO with named variables',diff:'hard',xp:400,group:'🟣 Expert'},
     {id:'lesson-16',title:'Position Memory',icon:'📍',desc:'Save & return to GPS coordinates',diff:'hard',xp:450,group:'🟣 Expert'},
     {id:'lesson-17',title:'Waypoint Trail',icon:'🗺️',desc:'Replay a list of locations automatically',diff:'extreme',xp:500,group:'🟣 Expert'},
     {id:'lesson-18',title:'List Hunt',icon:'🎯',desc:'Iterate a list and act at each item',diff:'extreme',xp:600,group:'🟣 Expert'},
-    {id:'lesson-19',title:'Function Factory',icon:'🔧',desc:'Write functions, call them to draw a star pattern',diff:'extreme',xp:700,group:'🟣 Expert'}
+    {id:'lesson-19',title:'Function Factory',icon:'🔧',desc:'Write functions, call them to draw a star pattern',diff:'extreme',xp:700,group:'🟣 Expert'},
+    {id:'lesson-14',title:'Master Coder',icon:'🏆',desc:'The final autonomous graduation mission',diff:'extreme',xp:1000,group:'🏆 Final'},
+    {id:'lesson-art-1',title:'Rainbow Spiral',icon:'🌀',desc:'Draw a hypnotic colour spiral',diff:'easy',xp:150,group:'🎨 Art Studio'},
+    {id:'lesson-art-2',title:'Rainbow Maker',icon:'🌈',desc:'Paint a bright rainbow',diff:'easy',xp:150,group:'🎨 Art Studio'},
+    {id:'lesson-art-3',title:'Write Your Name',icon:'✍️',desc:'Guide STEMO like a pen to sign your art',diff:'medium',xp:200,group:'🎨 Art Studio'},
+    {id:'lesson-art-4',title:'Magic Mandala',icon:'❄️',desc:'Loops inside loops make a mandala',diff:'medium',xp:250,group:'🎨 Art Studio'}
 ];
 
 let allClasses = [];
