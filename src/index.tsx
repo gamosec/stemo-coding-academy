@@ -650,18 +650,50 @@ app.post('/api/progress', authMiddleware, async (c) => {
 
     // ── Load current stored progress (prevents rollback attacks) ───────────
     const stored = await c.env.DB.prepare(
-        'SELECT completed_lessons, earned_badges, streak FROM student_progress WHERE student_id = ?'
+        'SELECT completed_lessons, earned_badges, streak, updated_at FROM student_progress WHERE student_id = ?'
     ).bind(me.id).first() as any
     const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
     const storedBadges: string[]  = JSON.parse(stored?.earned_badges   || '[]')
 
     // ── Sanitize completed_lessons ─────────────────────────────────────────
-    // Only valid lesson IDs; merge with stored so completions can never shrink
+    // Merge with stored (completions can never shrink). NEW completions are
+    // gated: max 3 per save, and each must be UNLOCKED (previous lesson in the
+    // main path completed; creative lessons always unlocked; a -challenge ID
+    // requires its base lesson in the set). Prevents claiming many lessons in
+    // one forged request.
     const incomingLessons = Array.isArray(body.completed_lessons) ? body.completed_lessons : []
-    const safeLessons = [...new Set([
-        ...storedLessons.filter((id: string) => validLessonIds.has(id)),
-        ...incomingLessons.filter((id: any) => typeof id === 'string' && validLessonIds.has(id))
-    ])]
+    const currentSet = new Set(storedLessons.filter((id: string) => validLessonIds.has(id)))
+    const mainPath: string[] = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced].map((l: any) => l.id)
+    const creativeIds = new Set(curriculum.creative.map((l: any) => l.id))
+    // Teacher-assigned lessons are playable even ahead of normal progression
+    const assignedRows = await c.env.DB.prepare(`
+        SELECT al.lesson_id FROM assigned_lessons al
+        JOIN class_students cs ON cs.class_id = al.class_id
+        WHERE cs.student_id = ?
+    `).bind(me.id).all() as any
+    const assignedIds = new Set((assignedRows?.results || []).map((r: any) => r.lesson_id))
+    const isUnlocked = (id: string): boolean => {
+        if (creativeIds.has(id)) return true
+        if (assignedIds.has(id)) return true
+        const idx = mainPath.indexOf(id)
+        if (idx !== -1) return idx === 0 || currentSet.has(mainPath[idx - 1])
+        if (id.endsWith('-challenge')) return currentSet.has(id.slice(0, -'-challenge'.length))
+        return false
+    }
+    const newIds: string[] = [...new Set(incomingLessons.filter((id: any) =>
+        typeof id === 'string' && validLessonIds.has(id) && !currentSet.has(id)))] as string[]
+    // Base lessons before their challenges so a same-save lesson+challenge pair works
+    newIds.sort((a, b) => (a.endsWith('-challenge') ? 1 : 0) - (b.endsWith('-challenge') ? 1 : 0))
+    // Cooldown: if the last save was < 20s ago, accept at most 1 new completion
+    // (slows down scripted rapid-fire requests without blocking real students)
+    const lastSaveMs = stored?.updated_at ? Date.parse(String(stored.updated_at).replace(' ', 'T') + 'Z') : 0
+    const maxNew = (lastSaveMs && Date.now() - lastSaveMs < 20000) ? 1 : 3
+    let added = 0
+    for (const id of newIds) {
+        if (added >= maxNew) break
+        if (isUnlocked(id)) { currentSet.add(id); added++ }
+    }
+    const safeLessons = [...currentSet]
 
     // ── Compute XP server-side from completed lessons ──────────────────────
     // Client-supplied XP is completely ignored — prevents any XP injection
@@ -670,16 +702,33 @@ app.post('/api/progress', authMiddleware, async (c) => {
     // ── Compute level server-side ──────────────────────────────────────────
     const level = Math.floor(xp / 500) + 1
 
-    // ── Sanitize earned_badges ─────────────────────────────────────────────
-    const incomingBadges = Array.isArray(body.earned_badges) ? body.earned_badges : []
+    // ── Compute streak server-side ─────────────────────────────────────────
+    // Derived from the date of the last save (UTC): same day keeps it,
+    // consecutive day +1, a gap resets to 1. Client streak value is ignored.
+    const storedStreak = Number(stored?.streak || 0)
+    const today = new Date().toISOString().slice(0, 10)
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const lastDate = stored?.updated_at ? String(stored.updated_at).slice(0, 10) : null
+    let safeStreak: number
+    if (!lastDate) safeStreak = 1
+    else if (lastDate === today) safeStreak = Math.max(1, Math.min(365, storedStreak))
+    else if (lastDate === yesterday) safeStreak = Math.min(365, storedStreak + 1)
+    else safeStreak = 1
+
+    // ── Compute earned_badges server-side ──────────────────────────────────
+    // Client badge claims are ignored; badges are recomputed from the
+    // server-authoritative XP / level / lesson count / streak (stored badges kept)
+    const isBadgeEarnedServer = (b: any): boolean => {
+        if (b.type === 'lessons') return safeLessons.length >= b.threshold
+        if (b.type === 'streak')  return safeStreak >= b.threshold
+        if (b.type === 'level')   return level >= b.threshold
+        return xp >= b.threshold // xp (default)
+    }
+    const earnedNow = (badges as any[]).filter(isBadgeEarnedServer).map((b: any) => b.id)
     const safeBadges = [...new Set([
         ...storedBadges.filter((id: string) => validBadgeIds.has(id)),
-        ...incomingBadges.filter((id: any) => typeof id === 'string' && validBadgeIds.has(id))
+        ...earnedNow
     ])]
-
-    // ── Sanitize streak ────────────────────────────────────────────────────
-    const rawStreak = Number(body.streak)
-    const safeStreak = Number.isFinite(rawStreak) ? Math.min(365, Math.max(0, Math.floor(rawStreak))) : (stored?.streak || 0)
 
     await c.env.DB.prepare(`
         INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
@@ -689,7 +738,7 @@ app.post('/api/progress', authMiddleware, async (c) => {
         streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
     `).bind(me.id, xp, level, JSON.stringify(safeLessons), JSON.stringify(safeBadges), safeStreak).run()
 
-    return c.json({ success: true, xp, level })
+    return c.json({ success: true, xp, level, streak: safeStreak, earned_badges: safeBadges })
 })
 
 // Admin: sanitize a student's stored progress to match server-computed values
@@ -3417,7 +3466,7 @@ const htmlContent = `<!DOCTYPE html>
             localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
             localStorage.setItem('stemo_streak', stemo.streak);
             try {
-                await fetch('/api/progress', {
+                const res = await fetch('/api/progress', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -3428,6 +3477,26 @@ const htmlContent = `<!DOCTYPE html>
                         streak: stemo.streak
                     })
                 });
+                // Sync with server-authoritative values (server recomputes XP/level/streak/badges)
+                const saved = await res.json();
+                if (saved && saved.success && typeof saved.xp === 'number') {
+                    var changed = saved.xp !== stemo.xp || saved.level !== stemo.level;
+                    stemo.xp = saved.xp;
+                    stemo.level = saved.level;
+                    if (typeof saved.streak === 'number') {
+                        if (saved.streak !== stemo.streak) changed = true;
+                        stemo.streak = saved.streak;
+                    }
+                    if (Array.isArray(saved.earned_badges)) {
+                        if (saved.earned_badges.length !== stemo.badges.length) changed = true;
+                        stemo.badges = saved.earned_badges;
+                    }
+                    localStorage.setItem('stemo_xp', stemo.xp);
+                    localStorage.setItem('stemo_level', stemo.level);
+                    localStorage.setItem('stemo_streak', stemo.streak);
+                    localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
+                    if (changed) updateUI();
+                }
             } catch(e) { console.log('Progress saved locally only'); }
         }
 
