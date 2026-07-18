@@ -1765,10 +1765,10 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="relative z-10 flex items-center gap-8">
                     <div class="text-8xl robot-glow bounce-animation">🤖</div>
                     <div>
-                        <h2 class="text-3xl font-bold mb-2">Welcome to STEMO Academy!</h2>
-                        <p class="text-lg text-purple-100 mb-4">Learn to code by programming your robot friend. Ready for an adventure?</p>
+                        <h2 class="text-3xl font-bold mb-2" data-i18n="welcome_title">Welcome to STEMO Academy!</h2>
+                        <p class="text-lg text-purple-100 mb-4" data-i18n="welcome_sub">Learn to code by programming your robot friend. Ready for an adventure?</p>
                         <button onclick="startFirstLesson()" class="bg-white text-indigo-600 px-6 py-3 rounded-full font-bold hover:bg-yellow-300 hover:text-indigo-700 transition-all transform hover:scale-105 shadow-lg">
-                            <i class="fas fa-play mr-2"></i>Start Learning!
+                            <i class="fas fa-play mr-2"></i><span data-i18n="btn_start_learning">Start Learning!</span>
                         </button>
                     </div>
                 </div>
@@ -1779,16 +1779,16 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="flex items-center gap-4 flex-wrap">
                     <span class="text-4xl" id="assignedLessonBannerIcon">📖</span>
                     <div class="flex-1">
-                        <div class="text-xs font-bold text-amber-100 uppercase tracking-wide mb-1">📌 Your teacher assigned this lesson</div>
+                        <div class="text-xs font-bold text-amber-100 uppercase tracking-wide mb-1" data-i18n="assigned_label">📌 Your teacher assigned this lesson</div>
                         <div class="text-xl font-bold" id="assignedLessonBannerTitle">-</div>
                         <div class="text-amber-100 text-sm" id="assignedLessonBannerDesc"></div>
                     </div>
-                    <button id="assignedLessonBannerBtn" onclick="" class="bg-white text-orange-600 px-5 py-2 rounded-full font-bold text-sm hover:bg-yellow-300 transition-all shadow">🚀 Start Now</button>
+                    <button id="assignedLessonBannerBtn" onclick="" class="bg-white text-orange-600 px-5 py-2 rounded-full font-bold text-sm hover:bg-yellow-300 transition-all shadow" data-i18n="btn_start_now">🚀 Start Now</button>
                 </div>
             </div>
 
             <h3 class="text-2xl font-bold text-gray-800 mb-4">
-                <i class="fas fa-book-open text-indigo-500 mr-2"></i>Curriculum Path
+                <i class="fas fa-book-open text-indigo-500 mr-2"></i><span data-i18n="curriculum_path">Curriculum Path</span>
             </h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lessonsGrid"></div>
             
@@ -1825,7 +1825,7 @@ const htmlContent = `<!DOCTYPE html>
                         <!-- Tasks -->
                         <div>
                             <h3 class="text-lg font-bold text-gray-800 mb-4">
-                                <i class="fas fa-tasks text-indigo-500 mr-2"></i>Your Tasks:
+                                <i class="fas fa-tasks text-indigo-500 mr-2"></i><span data-i18n="your_tasks">Your Tasks:</span>
                             </h3>
                             <div id="lessonTasks" class="space-y-3">
                                 <!-- Tasks will be inserted here -->
@@ -1835,7 +1835,7 @@ const htmlContent = `<!DOCTYPE html>
                         <!-- Homework/Challenge -->
                         <div>
                             <h3 class="text-lg font-bold text-orange-600 mb-4">
-                                <i class="fas fa-book-reader mr-2"></i>Homework Challenge:
+                                <i class="fas fa-book-reader mr-2"></i><span data-i18n="homework_title">Homework Challenge:</span>
                             </h3>
                             <div class="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4">
                                 <p class="text-orange-800 italic" id="lessonHomeworkText">Challenge text goes here...</p>
@@ -1848,7 +1848,7 @@ const htmlContent = `<!DOCTYPE html>
                         <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="text-xl">💡</span>
-                                <span class="font-bold text-amber-800">Hint</span>
+                                <span class="font-bold text-amber-800" data-i18n="hint_title">Hint</span>
                             </div>
                             <p class="text-amber-700 text-sm" id="lessonHintText">Hint text...</p>
                         </div>
@@ -1857,10 +1857,10 @@ const htmlContent = `<!DOCTYPE html>
                     <!-- Action Buttons -->
                     <div class="p-6 bg-gray-50 flex gap-4">
                         <button onclick="hideLessonDetail()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-full font-bold transition-all">
-                            <i class="fas fa-arrow-left mr-2"></i>Back to Lessons
+                            <i class="fas fa-arrow-left mr-2"></i><span data-i18n="btn_back_lessons">Back to Lessons</span>
                         </button>
                         <button onclick="startLessonFromDetail()" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90 text-white py-3 rounded-full font-bold transition-all">
-                            <i class="fas fa-play mr-2"></i>Start Coding!
+                            <i class="fas fa-play mr-2"></i><span data-i18n="btn_start_coding">Start Coding!</span>
                         </button>
                     </div>
                 </div>
@@ -1892,12 +1892,12 @@ const htmlContent = `<!DOCTYPE html>
                     </button>
                     <div class="flex items-center gap-0.5 bg-gray-100 rounded-full px-1 py-0.5" title="Where STEMO starts">
                         <button onclick="setStartPoint('center')" id="startCenterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from center (home)">🏠</button>
-                        <button onclick="setStartPoint('left')" id="startLeftBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from the left edge (more room to write)">⬅️ Left</button>
+                        <button onclick="setStartPoint('left')" id="startLeftBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from the left edge (more room to write)" data-i18n="btn_left_start">⬅️ Left</button>
                     </div>
-                    <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)">
+                    <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)" data-i18n="btn_undo">
                         ↩️ Undo
                     </button>
-                    <button id="groupSelectBtn" onclick="toggleGroupSelect()" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Select multiple blocks then delete them as a group">
+                    <button id="groupSelectBtn" onclick="toggleGroupSelect()" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Select multiple blocks then delete them as a group" data-i18n="btn_select_group">
                         🔲 Select Group
                     </button>
                     <button id="deleteGroupBtn" onclick="deleteGroupSelected()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Delete all selected blocks" style="display:none">
@@ -3590,11 +3590,11 @@ const htmlContent = `<!DOCTYPE html>
                                     '<span class="text-3xl">' + icon + '</span>' +
                                     '<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">+' + lesson.xpReward + ' XP</span>' +
                                     '</div>' +
-                                    '<h4 class="font-bold text-lg text-gray-800 mb-1">' + lesson.title + '</h4>' +
-                                    '<p class="text-gray-500 text-sm mb-3">' + lesson.description + '</p>' +
+                                    '<h4 class="font-bold text-lg text-gray-800 mb-1">' + trL(lesson, 'title') + '</h4>' +
+                                    '<p class="text-gray-500 text-sm mb-3">' + trL(lesson, 'description') + '</p>' +
                                     '<div class="flex items-center gap-2 flex-wrap">' +
-                                    '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + lesson.difficulty + '</span>' +
-                                    (isCompleted ? '<span class="text-xs text-green-600 font-bold">Completed!</span>' : '') +
+                                    '<span class="text-xs px-2 py-1 rounded-full ' + diffClass + '">' + trDiff(lesson.difficulty) + '</span>' +
+                                    (isCompleted ? '<span class="text-xs text-green-600 font-bold">' + ((I18N[currentLang] || I18N.en).completed_label || 'Completed!') + '</span>' : '') +
                                     starsBadge +
                                     assignedBadge +
                                     '</div></div></div>';
@@ -3621,12 +3621,12 @@ const htmlContent = `<!DOCTYPE html>
             
             // Fill in lesson details
             document.getElementById('lessonIcon').textContent = lesson.icon || '📚';
-            document.getElementById('lessonDetailTitle').textContent = lesson.title;
-            document.getElementById('lessonDetailDesc').textContent = lesson.description;
+            document.getElementById('lessonDetailTitle').textContent = trL(lesson, 'title');
+            document.getElementById('lessonDetailDesc').textContent = trL(lesson, 'description');
             document.getElementById('lessonXP').textContent = '+' + lesson.xpReward + ' XP';
-            document.getElementById('lessonIntro').textContent = lesson.introduction || lesson.hint;
-            document.getElementById('lessonHintText').textContent = lesson.hint;
-            document.getElementById('lessonHomeworkText').textContent = lesson.homework || "Try something creative with the blocks you just learned!";
+            document.getElementById('lessonIntro').textContent = trL(lesson, 'introduction') || trL(lesson, 'hint');
+            document.getElementById('lessonHintText').textContent = trL(lesson, 'hint');
+            document.getElementById('lessonHomeworkText').textContent = trL(lesson, 'homework') || (currentLang === 'ar' ? 'جرّب شيئاً إبداعياً باستخدام اللبنات التي تعلمتها للتو!' : "Try something creative with the blocks you just learned!");
             
             // Render tasks
             var tasksContainer = document.getElementById('lessonTasks');
@@ -3636,7 +3636,7 @@ const htmlContent = `<!DOCTYPE html>
                 lesson.tasks.forEach(function(task, index) {
                     tasksHtml += '<div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">' +
                         '<div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div>' +
-                        '<span class="text-gray-700">' + task.text + '</span>' +
+                        '<span class="text-gray-700">' + trTask(lesson, index, task.text) + '</span>' +
                         '</div>';
                 });
             }
@@ -3657,9 +3657,9 @@ const htmlContent = `<!DOCTYPE html>
             if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
                 var challenge = LESSON_CHALLENGES[currentLesson.id];
                 document.getElementById('modePickerIcon').textContent = currentLesson.icon || '🤖';
-                document.getElementById('modePickerTitle').textContent = currentLesson.title;
-                document.getElementById('modePickerDesc').textContent = currentLesson.description;
-                document.getElementById('modePickerXP').textContent = '+' + currentLesson.xpReward + ' XP · Challenge';
+                document.getElementById('modePickerTitle').textContent = trL(currentLesson, 'title');
+                document.getElementById('modePickerDesc').textContent = trL(currentLesson, 'description');
+                document.getElementById('modePickerXP').textContent = '+' + currentLesson.xpReward + ' XP · ' + (currentLang === 'ar' ? 'تحدٍّ' : 'Challenge');
                 document.getElementById('modePickerModal').classList.remove('hidden');
                 return;
             }
@@ -3725,9 +3725,9 @@ const htmlContent = `<!DOCTYPE html>
             challengeCompleted = false;
 
             // Set up the code view header
-            document.getElementById('currentLessonTitle').textContent = currentLesson.title;
-            document.getElementById('currentLessonDesc').textContent = currentLesson.description;
-            document.getElementById('hintText').textContent = currentLesson.hint;
+            document.getElementById('currentLessonTitle').textContent = trL(currentLesson, 'title');
+            document.getElementById('currentLessonDesc').textContent = trL(currentLesson, 'description');
+            document.getElementById('hintText').textContent = trL(currentLesson, 'hint');
             document.getElementById('hintPanel').classList.remove('hidden');
             
             // Hide lesson detail and switch to code tab
@@ -3750,14 +3750,15 @@ const htmlContent = `<!DOCTYPE html>
                 if (challenge) {
                     // Set up mission objectives state
                     missionObjectives = challenge.objectives.map(function(obj) {
-                        return { id: obj.id, label: obj.label, done: false, check: obj.check };
+                        return { id: obj.id, label: trObj(currentLesson.id, obj.id, obj.label), done: false, check: obj.check };
                     });
                     // Prime the toast content
-                    document.getElementById('missionTitle').textContent = challenge.title;
+                    document.getElementById('missionTitle').textContent = trChTitle(currentLesson.id, challenge.title);
                     var descEl = document.getElementById('missionDesc');
-                    if (descEl && challenge.description) { descEl.textContent = challenge.description; descEl.style.display = 'block'; }
+                    var chDesc = trChDesc(currentLesson.id, challenge.description);
+                    if (descEl && chDesc) { descEl.textContent = chDesc; descEl.style.display = 'block'; }
                     updateMissionHUD();
-                    addChatMessage('stemo', '🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪');
+                    addChatMessage('stemo', currentLang === 'ar' ? ('🏆 تم تحميل التحدي! ' + chDesc + ' حظاً موفقاً! 💪') : ('🏆 Challenge loaded! ' + challenge.description + ' Good luck! 💪'));
                     // Defer world population to ensure canvas is ready after tab switch
                     var lessonId = currentLesson.id;
                     setTimeout(function() {
@@ -3798,7 +3799,7 @@ const htmlContent = `<!DOCTYPE html>
             var remaining = missionObjectives.filter(function(o) { return !o.done; }).length;
             var badgeEl = document.getElementById('missionBadgeText');
             if (badgeEl) {
-                badgeEl.textContent = remaining === 0 ? '✅ Done!' : remaining + ' left';
+                badgeEl.textContent = remaining === 0 ? (currentLang === 'ar' ? '✅ تم!' : '✅ Done!') : (currentLang === 'ar' ? ('متبقٍ ' + remaining) : (remaining + ' left'));
             }
             var badge = document.getElementById('missionBadge');
             if (badge) {
@@ -3882,10 +3883,10 @@ const htmlContent = `<!DOCTYPE html>
                         html += '<div class="rounded-2xl card-shadow p-4 text-center border-2 transition-all ' +
                                 (isEarned ? 'bg-white border-indigo-200 shadow-indigo-100' : 'bg-gray-50 border-transparent opacity-50 grayscale') + '">' +
                             '<div class="text-4xl mb-2">' + badge.icon + '</div>' +
-                            '<h4 class="font-bold text-xs text-gray-800">' + badge.name + '</h4>' +
-                            '<p class="text-xs text-gray-400 mt-1">' + badge.description + '</p>' +
+                            '<h4 class="font-bold text-xs text-gray-800">' + trBadge(badge, 'name') + '</h4>' +
+                            '<p class="text-xs text-gray-400 mt-1">' + trBadge(badge, 'description') + '</p>' +
                             '<div class="text-xs font-semibold mt-2 ' + (isEarned ? 'text-indigo-600' : 'text-gray-400') + '">' + typeLabel + '</div>' +
-                            (isEarned ? '<div class="text-xs text-green-500 font-bold mt-1">✓ Earned</div>' : '') +
+                            (isEarned ? '<div class="text-xs text-green-500 font-bold mt-1">' + (currentLang === 'ar' ? '✓ مُكتسبة' : '✓ Earned') + '</div>' : '') +
                             '</div>';
                     });
 
@@ -3902,14 +3903,14 @@ const htmlContent = `<!DOCTYPE html>
             if (!container) return;
             var earned = (allBadges || []).filter(function(b) { return isBadgeEarned(b); });
             if (earned.length === 0) {
-                container.innerHTML = '<p class="text-gray-400 text-sm italic">No badges yet — complete lessons to earn your first badge! 🎯</p>';
+                container.innerHTML = '<p class="text-gray-400 text-sm italic">' + (currentLang === 'ar' ? 'لا شارات بعد — أكمل الدروس لتكسب شارتك الأولى! 🎯' : 'No badges yet — complete lessons to earn your first badge! 🎯') + '</p>';
                 return;
             }
             container.innerHTML = earned.map(function(b) {
                 return '<div class="flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-2xl px-3 py-2">' +
                     '<span class="text-2xl">' + b.icon + '</span>' +
-                    '<div><div class="text-xs font-bold text-indigo-800">' + b.name + '</div>' +
-                    '<div class="text-xs text-gray-400">' + b.description + '</div></div></div>';
+                    '<div><div class="text-xs font-bold text-indigo-800">' + trBadge(b, 'name') + '</div>' +
+                    '<div class="text-xs text-gray-400">' + trBadge(b, 'description') + '</div></div></div>';
             }).join('');
         }
 
@@ -4476,6 +4477,36 @@ const htmlContent = `<!DOCTYPE html>
         
         function initBlockly() {
             // Initialize workspace WITHOUT toolbox - we use our custom palette
+            // Wrap every block definition so labels/dropdowns render in the current language
+            (function() {
+                function arabizeBlock(block) {
+                    if (currentLang !== 'ar') return;
+                    block.inputList.forEach(function(input) {
+                        input.fieldRow.forEach(function(f) {
+                            try {
+                                if (f instanceof Blockly.FieldDropdown) {
+                                    if (Array.isArray(f.menuGenerator_)) {
+                                        f.menuGenerator_ = f.menuGenerator_.map(function(opt) {
+                                            return [BLOCK_AR[opt[0]] || opt[0], opt[1]];
+                                        });
+                                        if (f.forceRerender) f.forceRerender();
+                                    }
+                                } else if (f instanceof Blockly.FieldLabel) {
+                                    var t = BLOCK_AR[f.getValue()];
+                                    if (t) f.setValue(t);
+                                }
+                            } catch(e) {}
+                        });
+                    });
+                }
+                Object.keys(Blockly.Blocks).forEach(function(id) {
+                    var def = Blockly.Blocks[id];
+                    if (!def || typeof def.init !== 'function' || def.__i18n) return;
+                    var orig = def.init;
+                    def.init = function() { orig.call(this); arabizeBlock(this); };
+                    def.__i18n = true;
+                });
+            })();
             workspace = Blockly.inject('blocklyDiv', {
                 scrollbars: true,
                 trashcan: false,
@@ -6900,13 +6931,35 @@ const htmlContent = `<!DOCTYPE html>
                 tab_learn: 'Learn', tab_code: 'Code', tab_achievements: 'Achievements',
                 tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training',
                 btn_run: 'Run',
-                cat_move: '🚶 Move', cat_draw: '🎨 Draw', cat_fun: '🎉 Fun', cat_loop: '🔁 Loop'
+                cat_move: '🚶 Move', cat_draw: '🎨 Draw', cat_fun: '🎉 Fun', cat_loop: '🔁 Loop',
+                welcome_title: 'Welcome to STEMO Academy!',
+                welcome_sub: 'Learn to code by programming your robot friend. Ready for an adventure?',
+                btn_start_learning: 'Start Learning!',
+                curriculum_path: 'Curriculum Path',
+                your_tasks: 'Your Tasks:', homework_title: 'Homework Challenge:', hint_title: 'Hint',
+                btn_back_lessons: 'Back to Lessons', btn_start_coding: 'Start Coding!',
+                assigned_label: '📌 Your teacher assigned this lesson', btn_start_now: '🚀 Start Now',
+                code_subtitle: 'Click blocks to add • Right-click a block to delete it or a whole group',
+                btn_undo: '↩️ Undo', btn_select_group: '🔲 Select Group', btn_left_start: '⬅️ Left Start',
+                hide_robot: 'Hide Robot', show_robot: 'Show Robot',
+                completed_label: 'Completed!', locked_hint: 'Locked'
             },
             ar: {
                 tab_learn: 'تعلّم', tab_code: 'برمجة', tab_achievements: 'الإنجازات',
                 tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو',
                 btn_run: 'تشغيل',
-                cat_move: '🚶 حركة', cat_draw: '🎨 رسم', cat_fun: '🎉 مرح', cat_loop: '🔁 تكرار'
+                cat_move: '🚶 حركة', cat_draw: '🎨 رسم', cat_fun: '🎉 مرح', cat_loop: '🔁 تكرار',
+                welcome_title: 'أهلاً بك في أكاديمية ستيمو!',
+                welcome_sub: 'تعلّم البرمجة عن طريق برمجة صديقك الروبوت. هل أنت مستعد للمغامرة؟',
+                btn_start_learning: 'ابدأ التعلّم!',
+                curriculum_path: 'مسار الدروس',
+                your_tasks: 'مهامك:', homework_title: 'تحدّي الواجب المنزلي:', hint_title: 'تلميح',
+                btn_back_lessons: 'العودة إلى الدروس', btn_start_coding: 'ابدأ البرمجة!',
+                assigned_label: '📌 معلّمك حدّد لك هذا الدرس', btn_start_now: '🚀 ابدأ الآن',
+                code_subtitle: 'اضغط على اللبنات لإضافتها • اضغط بالزر الأيمن على لبنة لحذفها أو حذف مجموعة كاملة',
+                btn_undo: '↩️ تراجع', btn_select_group: '🔲 تحديد مجموعة', btn_left_start: '⬅️ بداية يسار',
+                hide_robot: 'إخفاء الروبوت', show_robot: 'إظهار الروبوت',
+                completed_label: 'مكتمل!', locked_hint: 'مقفل'
             },
             es: {
                 tab_learn: 'Aprender', tab_code: 'Código', tab_achievements: 'Logros',
@@ -6922,6 +6975,621 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
         var currentLang = safeStorageGet('stemoLang') || 'en';
+
+        // Arabic labels for the block palette (left panel) and category headers.
+        // Keyed by the original English text of each element.
+        var PALETTE_AR = {
+            '🚶 Forward': '🚶 للأمام', '🔙 Back': '🔙 للخلف', '↩️ Left': '↩️ يسار', '↪️ Right': '↪️ يمين',
+            '🏠 Home': '🏠 المنزل', '⬅️ Left Start': '⬅️ بداية يسار', '👻 Hide': '👻 إخفاء',
+            '🖍️ Pen': '🖍️ القلم', '🎨 Color': '🎨 اللون', '🖌️ Size': '🖌️ الحجم',
+            '💬 Say': '💬 قُل', '😊 Emotion': '😊 المشاعر', '🕺 Dance': '🕺 رقص', '🔊 Sound': '🔊 صوت',
+            '🔁 Repeat': '🔁 كرّر', '🧲 Magnet ON': '🧲 مغناطيس يعمل', '🧲 Magnet OFF': '🧲 مغناطيس متوقف',
+            '📡 Scan': '📡 مسح', '🚗 Auto Move': '🚗 حركة تلقائية', '🎯 Go Target': '🎯 اذهب للهدف',
+            '🧭 Smart Navigate': '🧭 ملاحة ذكية', '🧱 If Wall': '🧱 إذا جدار', '🧠 Smart Turn': '🧠 دوران ذكي',
+            '🌡️ Check Temp': '🌡️ فحص الحرارة', '🔥 If Hot': '🔥 إذا حرارة', '💧 Spray Water': '💧 رشّ الماء',
+            '🚒 Firefighter': '🚒 وضع الإطفاء', '📦 Set Var': '📦 عيّن متغيّر', '➕ Change Var': '➕ غيّر متغيّر',
+            '🚀 Move [Var]': '🚀 تحرك [متغيّر]', '🔄 Turn [Var]': '🔄 دُر [متغيّر]', '🔁 Repeat [Var]': '🔁 كرّر [متغيّر]',
+            '📍 Show Coords': '📍 أظهر موقعي', '📡 Send to Command Center': '📡 أرسل لمركز القيادة',
+            '💾 Save Position': '💾 احفظ الموقع', '🔙 Go to Position': '🔙 اذهب للموقع المحفوظ',
+            '📌 Add Waypoint': '📌 أضف نقطة مسار', '▶️ Replay Path': '▶️ أعد تشغيل المسار',
+            '🔂 For Each Waypoint': '🔂 لكل نقطة مسار', '🗑️ Clear List': '🗑️ امسح القائمة',
+            '🔧 Define Function': '🔧 عرّف دالة', '▶ Call Function': '▶ استدعِ دالة',
+            '🧲 Robot': '🧲 الروبوت', '📡 Sensor': '📡 الحساسات', '🔥 Fire': '🔥 الحريق',
+            '🔢 Variables': '🔢 المتغيّرات', '📍 Position & Lists': '📍 المواقع والقوائم', '🔧 Functions': '🔧 الدوال'
+        };
+
+        // Arabic labels for Blockly block text and dropdown options (keyed by English)
+        var BLOCK_AR = {
+            '🚶 Move': '🚶 تحرك', '🔙 Back': '🔙 ارجع', 'steps': 'خطوات', '°': '°', 'px': 'بكسل',
+            '↩️ Left': '↩️ دُر يساراً', '↪️ Right': '↪️ دُر يميناً',
+            '🖍️ Pen': '🖍️ القلم', '🎨 Color': '🎨 اللون', '🖌️ Size': '🖌️ الحجم',
+            '💬 Say': '💬 قُل', '😊 Feel': '😊 اشعر', '🕺 Dance': '🕺 ارقص', '🔊 Play': '🔊 شغّل',
+            '🏠 Go Home': '🏠 اذهب للمنزل', '⬅️ Go to Left Start': '⬅️ اذهب لبداية اليسار',
+            '👻 Hide': '👻 إخفاء', '🧲 Magnet ON': '🧲 شغّل المغناطيس', '🧲 Magnet OFF': '🧲 أطفئ المغناطيس',
+            '🔁 Repeat': '🔁 كرّر', 'times': 'مرات', 'do': 'نفّذ', 'then': 'إذن', 'else': 'وإلا',
+            '📡 Scan Ahead': '📡 امسح للأمام', '🚗 Auto Move': '🚗 حركة تلقائية',
+            '🎯 Go To Target': '🎯 اذهب إلى الهدف', '🧭 Smart Navigate': '🧭 ملاحة ذكية',
+            '🧱 If Wall Within': '🧱 إذا جدار خلال', '🧠 Smart Turn': '🧠 دوران ذكي',
+            '🌡️ Check Temp': '🌡️ افحص الحرارة', '🔥 If Fire Within': '🔥 إذا حريق خلال',
+            '💧 Spray Water': '💧 رشّ الماء', '🚒 Firefighter Mode': '🚒 وضع الإطفاء',
+            '📦 Set': '📦 عيّن', '➕ Change': '➕ غيّر', 'to': 'إلى', 'by': 'بمقدار',
+            '🚀 Move': '🚀 تحرك', '🔄 Turn': '🔄 دُر', 'degrees right': 'درجة لليمين',
+            '📍 Show My Position': '📍 أظهر موقعي', '📡 Send to Command Center:': '📡 أرسل لمركز القيادة:',
+            '💾 Save Position as': '💾 احفظ الموقع باسم', '🔙 Go to Position': '🔙 اذهب للموقع',
+            '📌 Add Waypoint to List': '📌 أضف نقطة مسار للقائمة', '▶️ Replay Path': '▶️ أعد تشغيل المسار',
+            '🔂 For Each Waypoint:': '🔂 لكل نقطة مسار:', '🗑️ Clear Waypoint List': '🗑️ امسح قائمة المسار',
+            '🔧 Define Function:': '🔧 عرّف دالة:', '▶ Call Function:': '▶ استدعِ دالة:',
+            'Down ✏️': 'أسفل ✏️', 'Up ✋': 'أعلى ✋', 'Hide 🙈': 'إخفاء 🙈', 'Show 👀': 'إظهار 👀',
+            '😀 Happy': '😀 سعيد', '😢 Sad': '😢 حزين', '😎 Cool': '😎 رائع', '🤩 Excited': '🤩 متحمس', '😐 Normal': '😐 عادي',
+            '🎉 Cheer': '🎉 هتاف', '🎺 Fanfare': '🎺 أبواق', '✨ Magic': '✨ سحر', '🐱 Meow': '🐱 مواء', '🤖 Beep': '🤖 صفير', '💥 Pop': '💥 فرقعة'
+        };
+        function blockText(en) {
+            if (currentLang === 'ar' && BLOCK_AR[en]) return BLOCK_AR[en];
+            return en;
+        }
+
+        // ===== Arabic content dictionaries (lessons, badges, challenges) =====
+        // AR_L: lesson id -> { t, d, i, hint, hw, tasks: [..] }
+        var AR_L = {
+            'lesson-1': {
+                t: 'تعرّف على ستيمو!',
+                d: 'اكتشف ما هي البرمجة وأعطِ أول أمر لك',
+                i: 'مرحبا! أنا ستيمو — صديقك الروبوت في البرمجة! 🤖 برنامج الحاسوب هو ببساطة قائمة من التعليمات التي تخبر الروبوت (أو الحاسوب) بما يجب فعله بالضبط، خطوة بخطوة. تخيله مثل وصفة طبخ: إذا قالت الوصفة اضف بيضتين، فإن الطاهي يفعل ذلك بالضبط — لا أكثر ولا أقل! على الجهة اليسرى سترى مكعبات ملونة — كل مكعب هو تعليمة واحدة. وعلى اليمين عالمي الذي أتحرك فيه. توضع المكعبات في منطقة البرنامج في الوسط. عندما تضغط زر التشغيل الأخضر، أقرأ مكعباتك من الأعلى إلى الأسفل وأنفذ كل تعليمة. لنكتب أول برنامج لك على الإطلاق!',
+                hint: 'تُضاف المكعبات بالنقر عليها في اللوحة اليسرى. الرقم داخل المكعب هو عدد الخطوات التي أخطوها. مكعبات أكثر = خطوات أكثر!',
+                hw: 'حاول أن تجعلني أتحرك 10 خطوات بالضبط! يمكنك استخدام مكعب واحد بقيمة 10، أو مكعبين كل واحد بقيمة 5 — كلاهما يعمل! أيهما تفضل؟',
+                tasks: [
+                    'انظر إلى اللوحة اليسرى — ابحث عن مكعب للأمام الأزرق. انقر عليه مرة واحدة لإضافته إلى برنامجك!',
+                    'هل ترى الرقم داخل مكعب للأمام؟ انقر عليه وغيّره إلى 3 خطوات',
+                    'انقر زر التشغيل ▶ الأخضر الكبير وشاهدني أتحرك!',
+                    'الآن أضف مكعب للأمام ثانيًا — يجب أن أتحرك أبعد هذه المرة',
+                    'انقر زر المسح 🗑️ لمسح كل المكعبات والبدء من جديد',
+                    'ابنِ برنامجك الخاص بأربعة مكعبات للأمام بالضبط. كم أبتعد؟ 🎉'
+                ]
+            },
+            'lesson-2': {
+                t: 'سيّد الحركة',
+                d: 'تعلّم كل الاتجاهات الأربعة وتنقّل باحتراف',
+                i: 'عمل رائع في برنامجك الأول! 🎉 الآن لنستكشف كل الطرق التي أستطيع التحرك بها. أستطيع الذهاب للأمام ⬆️، وللخلف ⬇️، والدوران يسارًا ⬅️، والدوران يمينًا ➡️. يُقاس الدوران بالدرجات — فكّر في وجه الساعة: 90° هي ربع دورة (مثل الانعطاف عند زاوية)، و180° هي نصف دورة (مواجهة الاتجاه المعاكس)، و360° هي دورة كاملة! الروبوتات الحقيقية مثل المكانس الكهربائية تستخدم هذه الدورات نفسها لتنظيف بيتك كله دون أن تفوّت أي بقعة. أستطيع أيضًا القفز عائدًا إلى البيت 🏠 فورًا. لنتقن كل الحركات!',
+                hint: 'فكّر في البوصلة: للأمام = شمال، يمين = شرق، للخلف = جنوب، يسار = غرب. دورة 90° هي دائمًا زاوية مثالية — تمامًا مثل زوايا غرفة مربعة!',
+                hw: 'هل تستطيع أن تجعلني أمشي على شكل حرف Z؟ تحتاج إلى: للأمام ← حركة قطرية (دوران يمين، للأمام، دوران يسار) ← للأمام. جرّبها!',
+                tasks: [
+                    'أضف للأمام 4 — أتحرك 4 خطوات لأعلى',
+                    'أضف يمين 90 — أدور لأواجه اليمين (ربع دورة)',
+                    'أضف للأمام 3 — أتحرك 3 خطوات لليمين. شغّله! أمشي على شكل حرف L! ↱',
+                    'امسح وجرّب: للأمام 3 ← يسار 90 ← للأمام 3 ← يسار 90 ← للأمام 3. أي شكل أصنع؟',
+                    'أضف للخلف 2 في النهاية — شاهدني أرجع للوراء!',
+                    'أضف البيت كآخر مكعب على الإطلاق — أنتقل فورًا عائدًا إلى البداية! 🏠'
+                ]
+            },
+            'lesson-3': {
+                t: 'ابدأ الرسم!',
+                d: 'ارفع القلم وأنزله لرسم الخطوط والأنماط',
+                i: 'والآن الجزء الممتع حقًا — الرسم! 🖍️ تخيّل أنني أحمل قلمًا ملوّنًا على الأرض. عندما يكون القلم مرفوعًا (🖊️ لأعلى)، أتحرك دون أن أترك أثرًا — مثل رفع قلمك عن الورقة. وعندما يكون القلم منخفضًا (✏️ يلمس الأرض)، كل خطوة أخطوها تترك أثرًا! هكذا تمامًا يعمل روبوت الراسمة — الآلات التي ترسم اللافتات الضخمة والخرائط! القاعدة الأساسية: أضف دائمًا انزال القلم قبل التحرك، وإلا لن يظهر شيء. لنرسم!',
+                hint: 'تذكّر الترتيب: انزال القلم أولًا، ثم التحرك. رفع القلم = لا أثر. انزال القلم = أثر. فكّر بها مثل ختم على الورق!',
+                hw: 'ارسم الأحرف الأولى من اسمك! فكّر في أي الخطوط تحتاج انزال القلم وأي الفراغات تحتاج رفع القلم. مثلًا حرف L = للأمام 4، يمين 90، للأمام 2.',
+                tasks: [
+                    'أضف مكعب انزال القلم ✏️ — قلمي الآن يلمس الأرض',
+                    'أضف للأمام 5 وانقر تشغيل — لقد رسمت خطًا! 📏',
+                    'الآن أضف رفع القلم 🖊️ ← للأمام 3 ← انزال القلم ✏️ ← للأمام 3. شغّله — أترى الفجوة في الخط؟ إنه خط متقطّع!',
+                    'امسح وارسم شكل حرف L: انزال القلم ← للأمام 5 ← يمين 90 ← للأمام 5',
+                    'تحدٍ: ارسم درجًا! (تلميح: كرّر انزال القلم ← للأمام 2 ← يمين 90 ← للأمام 2 ← يسار 90)'
+                ]
+            },
+            'lesson-4': {
+                t: 'فنان الألوان',
+                d: 'ارسم بالألوان وتحكّم في سماكة الخط',
+                i: 'لنجعل رسوماتنا جميلة وملوّنة! 🎨 يستطيع قلمي أن يرسم بأي لون تختاره. كما يمكنك التحكم في سماكة أو رفع الخط باستخدام مكعب الحجم. الحجم 1 هو خط رفيع جدًا؛ والحجم 20 هو قلم سميك! برامج التصميم الحقيقية (مثل شعارات ألعابك المفضلة) تستخدم هذه الأفكار نفسها — اللون والحجم والموضع. تلميح احترافي: اضبط اللون والحجم دائمًا قبل إنزال القلم، لتكون أول ضربة مثالية تمامًا!',
+                hint: 'ضع مكعبات اللون والحجم قبل انزال القلم للحصول على أنظف نتيجة. يمكنك أيضًا تغيير اللون أثناء الرسم — أضف مكعب لون جديدًا بين مكعبات للأمام!',
+                hw: 'أنشئ طريقًا ملوّنًا! ارسم 6 خطوط متتالية، كل واحد بلون مختلف (أحمر، برتقالي، أصفر، أخضر، أزرق، بنفسجي). استخدم رفع القلم بين الخطوط لترك فجوات صغيرة!',
+                tasks: [
+                    'أضف مكعب لون واختر الأحمر — ثم انزال القلم ← للأمام 5 ← تشغيل. خط أحمر! 🔴',
+                    'أضف مكعب حجم 10 قبل انزال القلم — شغّل مجددًا. الخط الآن سميك!',
+                    'غيّر مكعب اللون إلى الأزرق والحجم إلى 3. شغّل — خط أزرق رفيع! 🔵',
+                    'الآن ابنِ هذا: لون أحمر ← انزال القلم ← للأمام 3 ← لون أزرق ← للأمام 3 ← لون أخضر ← للأمام 3. خط بثلاثة ألوان! 🎨',
+                    'جرّب رسم مربع أحمر سميك: لون أحمر ← حجم 8 ← انزال القلم ← للأمام 4 ← يمين 90 (×4)'
+                ]
+            },
+            'lesson-5': {
+                t: 'قوة الحلقات!',
+                d: 'استخدم التكرار لتستبدل المكعبات المكررة المملة',
+                i: 'ماذا لو احتجت أن تتحرك للأمام 100 مرة؟ يمكنك إضافة 100 مكعب للأمام... لكن ذلك سيستغرق وقتًا طويلًا! 😅 المبرمجون يكرهون تكرار أنفسهم — لذلك اخترعوا الحلقة. تقول الحلقة نفّذ هذه المجموعة من التعليمات N مرة. في الحياة الواقعية، تنفّذ حلقة الغسالة: املأ الماء ← دوّر ← صرّف الماء — وتكرر هذه الدورة حتى تنظف الملابس! مكعب التكرار في البرمجة يفعل الشيء نفسه. معلومة ممتعة: بدون الحلقات، ألعاب هاتفك ستحتاج ملايين الأسطر من الكود. مع الحلقات، النتيجة نفسها تحتاج أسطرًا قليلة! لنرَ السحر:',
+                hint: 'قاعدة المربع: تكرار 4 ← للأمام N ← يمين 90. الرقم في للأمام يحدد الحجم. للأمام أكبر = مربع أكبر!',
+                hw: 'هل تستطيع رسم درج باستخدام حلقة؟ جرّب: تكرار 5 مرات ← للأمام 2 ← يمين 90 ← للأمام 2 ← يسار 90. كيف يبدو؟',
+                tasks: [
+                    'أولًا، بدون حلقة: أضف للأمام 4 أربع مرات منفصلة + أربعة مكعبات يمين 90 (8 مكعبات إجمالًا). شغّل — لقد رسمت مربعًا! 🟦',
+                    'الآن امسح واستخدم حلقة: أضف تكرار 4 ← بداخله أضف للأمام 4 ويمين 90. شغّل — المربع نفسه بثلاثة مكعبات فقط! ✨',
+                    'غيّر رقم التكرار إلى 8 واليمين إلى 45°. شغّل — أرسم مثمّنًا منتظمًا! ⬡',
+                    'أضف انزال القلم قبل التكرار حتى ترى الشكل مرسومًا',
+                    'تحدٍ: اصنع مستطيلًا طويلًا — كرّر مرتين: للأمام 6، يمين 90، للأمام 3، يمين 90'
+                ]
+            },
+            'lesson-6': {
+                t: 'فنان الأشكال',
+                d: 'استخدم الرياضيات لرسم أي مضلّع تتخيله',
+                i: 'إليك صيغة رياضية سحرية يستخدمها المعماريون ومصممو الألعاب والمهندسون: زاوية الدوران = 360 ÷ عدد الأضلاع. المثلث له 3 أضلاع ← 360÷3 = 120°. المربع له 4 أضلاع ← 360÷4 = 90°. المسدس له 6 أضلاع ← 360÷6 = 60°. الدائرة لها عدد لا نهائي من الأضلاع الصغيرة! هذه الصيغة تعمل مع أي شكل. قرص العسل في خلية النحل مصنوع من مسدسات مثالية — يستخدم النحل هذا الشكل لأنه لا يهدر أي مساحة ويستهلك أقل قدر من الشمع. لنستخدم الرياضيات نفسها التي يستخدمها النحل:',
+                hint: 'الصيغة: زاوية الدوران = 360 ÷ عدد الأضلاع. دائمًا! مثلث=120، مربع=90، خماسي=72، مسدس=60، مثمّن=45، دائرة≈1 (بخطوات كثيرة).',
+                hw: 'هل تستطيع رسم بيت؟ البيت = مربع (4 أضلاع، 90°) للجدران + مثلث (3 أضلاع، 120°) للسقف. بعد المربع، ضع القلم بعناية قبل رسم المثلث فوقه!',
+                tasks: [
+                    'مثلث (3 أضلاع): انزال القلم ← تكرار 3 ← للأمام 5، يمين 120°. شغّل! 🔺',
+                    'خماسي (5 أضلاع): 360÷5 = 72°. تكرار 5 ← للأمام 5، يمين 72°. شغّل! ⬠',
+                    'مسدس (6 أضلاع): 360÷6 = 60°. تكرار 6 ← للأمام 4، يمين 60°. شغّل! ⬡ (مثل قرص العسل!)',
+                    'مثمّن (8 أضلاع، مثل إشارة التوقف!): 360÷8 = 45°. تكرار 8 ← للأمام 3، يمين 45°. شغّل! 🛑',
+                    'الآن جرّب شكلك الخاص — اختر أي عدد من الأضلاع (جرّب 12 أو 20) واحسب زاوية الدوران!'
+                ]
+            },
+            'lesson-7': {
+                t: 'قوة النجوم!',
+                d: 'ارسم نجومًا جميلة بثماني رؤوس باستخدام خدعة زاوية سرية',
+                i: 'النجوم مميزة لأن خطوطها تتقاطع فوق بعضها! النجمة الثمانية هي واحدة من أجمل الأنماط الهندسية في العالم — تجدها في الفن الإسلامي والعمارة حول المساجد والمباني. الزاوية السرية للنجمة الثمانية هي 135°. لماذا؟ الدائرة فيها 360°. اقسم على 8 رؤوس = 45°. ثم اضرب في 3 (لتخطي رأسين وصنع خطوط متقاطعة) = 135°! بمجرد تكرار 8 + للأمام + يمين 135°، يرسم ستيمو نجمة ثمانية مثالية في كل مرة. لنصنع بعض النجوم!',
+                hint: 'النجمة الثمانية: تكرار 8 ← للأمام N، يمين 135°. الرقم السحري هو 135! الصيغة: 3 × (360 ÷ 8) = 135°.',
+                hw: 'ارسم ثلاث نجوم ثمانية بأحجام وألوان مختلفة. استخدم رفع القلم للتنقل بينها. هل تستطيع أن تجعلها تبدو كسماء ليلية؟',
+                tasks: [
+                    'ارسم نجمة ثمانية: انزال القلم ← تكرار 8 ← للأمام 6، يمين 135°. شغّل! ✨',
+                    'اجعلها أكبر: غيّر للأمام إلى 10. النجمة تكبر لكنها تبقى مثالية!',
+                    'أضف لونًا ذهبيًا (أصفر) وحجم 4 قبل انزال القلم — نجمة ذهبية جريئة! 🌟',
+                    'غيّر اللون إلى الأخضر وارسم نجمة أخرى في مكان مختلف — استخدم رفع القلم للتنقل! 💚',
+                    'جرّب نجمة ثمانية بحجم 2 (خطوط رفيعة) وحجم 8 (خطوط سميكة) — أيهما أجمل؟ 🎨'
+                ]
+            },
+            'lesson-8': {
+                t: 'سحر المغناطيس',
+                d: 'التقط الأجسام المعدنية وحرّكها بمغناطيس كهربائي',
+                i: 'لديّ مغناطيس كهربائي قوي مدمج في مقدمتي! 🧲 المغناطيس الكهربائي يعمل فقط عندما يمرّ التيار الكهربائي خلاله — شغّله وتلتصق الأجسام المعدنية بي، وأطفئه فتسقط. الروبوتات الحقيقية في ساحات الخردة ومراكز إعادة التدوير تستخدم هذه التقنية بالضبط لفرز المعدن عن البلاستيك والورق تلقائيًا. الروبوتات ذاتية القيادة في مستودعات أمازون تستخدم المغناطيس لتحريك الرفوف! مغناطيسي قوي بما يكفي لحمل قطع البراغي 🔩 التي تضعها على اللوح. القاعدة: يجب أن أكون قريبًا جدًا من القطعة المعدنية لتلتصق. لنحرّك بعض المعدن!',
+                hint: 'أبقِ المغناطيس مشغّلًا أثناء التنقل بين القطع المعدنية — تحملها كلها! أطفئ المغناطيس فقط عندما تريد الإسقاط. تأكد أنك قريب (1-2 خطوة) قبل تشغيل المغناطيس.',
+                hw: 'صمّم محطة فرز معادن! ضع 4 قطع معدنية متناثرة على اللوح. اكتب برنامجًا لجمعها كلها وإحضار كل قطعة إلى الزاوية العلوية اليمنى. استخدم الحلقات لجعل برنامجك أقصر!',
+                tasks: [
+                    'انقر زر 🔩 فوق اللوح لوضع قطعة معدنية قريبة مني',
+                    'ابنِ: للأمام (للاقتراب) ← تشغيل المغناطيس ← تشغيل. هل يلتصق البرغي؟ 🧲',
+                    'الآن أضف: للأمام 3 ← إطفاء المغناطيس. تسقط القطعة المعدنية في الموقع الجديد!',
+                    'ضع قطعتين معدنيتين. اكتب برنامجًا لالتقاط الأولى، وحملها إلى الثانية، ثم إسقاطهما معًا',
+                    'تحدٍ: ضع 3 قطع معدنية في صف. اجمعها كلها في رحلة واحدة — يبقى المغناطيس مشغّلًا أثناء تنقلك بينها! هل تستطيع فعلها؟'
+                ]
+            },
+            'lesson-9': {
+                t: 'الرؤية بالموجات فوق الصوتية',
+                d: 'شاهد العوائق باستخدام الموجات الصوتية مثل الخفاش',
+                i: 'أستطيع الرؤية بلا عيون! 🦇 يعمل مستشعري فوق الصوتي تمامًا مثل تحديد الموقع بالصدى عند الخفافيش: أرسل موجة صوتية عالية النبرة (أعلى من أن يسمعها البشر)، وأقيس الوقت الذي تستغرقه لترتد. كلما استغرقت وقتًا أطول، كان العائق أبعد! تسمى هذه التقنية سونار (الملاحة وتحديد المدى بالصوت). تستخدمها الغواصات لرسم قاع المحيط. وتستخدمها السيارات في مستشعرات الركن التي تصدر صافرة عند الاقتراب من الجدار. أشهر مستشعر للهواة يسمى HC-SR04 وهو موجود في ملايين روبوتات الطلاب حول العالم! لنمسح عالمنا:',
+                hint: 'يظهر شعاع المسح الأمامي باللون الأصفر — كلما كان الشعاع أقصر، كان الجدار أقرب. إذا وصل الشعاع إلى حافة اللوح دون جدار، تكون القراءة واضح. امسح دائمًا قبل التحرك إلى منطقة مجهولة!',
+                hw: 'ابنِ نظام توقف أمان: أضف مكعب مسح أمامي. إذا كانت المسافة 2 أو أقل، توقّف (أضف مكعب البيت). إذا كانت أكثر من 2، تقدّم خطوة واحدة وامسح مجددًا (استخدم حلقة تكرار). هكذا تعمل السيارات ذاتية القيادة الحقيقية!',
+                tasks: [
+                    'انقر زر الجدار 🧱 لوضع جدار على بعد 4 خطوات أمامي',
+                    'أضف مكعب مسح أمامي 📡 وشغّل — شاهد الشعاع الأصفر يُظهر المسافة!',
+                    'الآن أضف: للأمام 2 ← مسح أمامي ← للأمام 1 ← مسح أمامي. راقب قراءة المسافة تتغير كلما اقتربت!',
+                    'ضع جدرانًا على اليسار واليمين أيضًا. أضف مسح أمامي في البداية، ثم يمين 90 ← مسح أمامي ← يسار 180 ← مسح أمامي لقياس كل الجهات!',
+                    'تحدٍ: باستخدام ما يخبرك به المستشعر، ابنِ برنامجًا ينقلني إلى خطوة واحدة بالضبط من الجدار دون أن ألمسه!'
+                ]
+            },
+            'lesson-10': {
+                t: 'ملّاح الفضاء',
+                d: 'وجّه الروبوت إلى الأهداف مثل مركبة المريخ الجوّالة',
+                i: 'مركبات ناسا الجوّالة على المريخ (كيوريوسيتي وبيرسيفيرانس) تقود نفسها إلى المواقع المستهدفة باستخدام المنطق نفسه الذي أنت على وشك تعلّمه! 🚀 تحسب الاتجاه إلى الهدف، وتدور حتى تواجهه، ثم تتقدم للأمام. مكعب اذهب إلى الهدف يفعل كل هذا تلقائيًا باستخدام مستشعراتي المدمجة. الجزء الرائع: حتى لو كنت أواجه الاتجاه الخاطئ، أدور حتى أشير مباشرة نحو الهدف قبل التحرك. تُستخدم هذه التقنية في ملاحة GPS وتوصيل الطائرات المسيّرة والسيارات ذاتية القيادة. في كل مرة تهبط فيها طائرة توصيل عند بابك، تكون قد استخدمت هذه الطريقة بالضبط!',
+                hint: 'مكعب اذهب إلى الهدف يدوّرني تلقائيًا لأواجه الهدف ثم أتحرك للأمام. إذا وُجدت جدران، اجمعه مع المسح الأمامي لكشفها وتجنّبها أولًا!',
+                hw: 'أنشئ مهمة توصيل! ضع هدفين: الهدف A (نقطة الالتقاط) وتخيّل الهدف B (نقطة التسليم). تنقّل إلى A (شغّل المغناطيس)، ثم تنقّل إلى B (أطفئ المغناطيس). تمامًا مثل روبوت توصيل بطائرة مسيّرة!',
+                tasks: [
+                    'انقر زر الهدف 🎯 وضع هدفًا في أي مكان على اللوح',
+                    'أضف مكعب اذهب إلى الهدف 🎯 وشغّل — شاهدني أحسب وأتنقّل!',
+                    'ضع هدفًا ثانيًا (يختفي الأول، ضع واحدًا جديدًا بعيدًا). أضف مكعب اذهب إلى الهدف آخر — أتنقّل مرتين متتاليتين!',
+                    'الآن أضف جدارًا 🧱 بيني وبين الهدف. هل تتجنّبه ملاحتي، أم أحتاج مساعدتك؟',
+                    'متقدم: ضع الهدف في زاوية. أضف مسح أمامي قبل الذهاب — إذا كان هناك جدار قريب، دُر أولًا ثم تنقّل!'
+                ]
+            },
+            'lesson-11': {
+                t: 'المستكشف الذكي',
+                d: 'اتخذ القرارات بإذا/وإلا — قلب الذكاء الاصطناعي',
+                i: 'أنت الآن تدخل عالم الذكاء الاصطناعي! 🤖 كل نظام ذكي — من حواسيب الشطرنج إلى السيارات ذاتية القيادة — مبني على فكرة بسيطة واحدة: إذا (كان الشرط صحيحًا) عندها افعل هذا، وإلا افعل ذاك. إشارة المرور تستخدم هذا: إذا ضغط أحد المشاة الزر عندها اجعلها حمراء للسيارات، وإلا ابقَها خضراء. فتح هاتفك بالوجه يستخدم هذا: إذا تطابق الوجه عندها افتح، وإلا ابقَ مقفلًا. الشرط دائمًا إما صحيح أو خاطئ — لا يوجد ربما في الكود! في هذا الدرس، نمنحني القدرة على التفاعل مع بيئتي دون أن تتحكم بكل حركة. هذا سلوك ذاتي!',
+                hint: 'إذا/وإلا تفحص دائمًا شرطًا (صحيح/خاطئ). عندها = ماذا تفعل إذا كان صحيحًا. وإلا = ماذا تفعل إذا كان خاطئًا. يمكنك ربط عدة مكعبات إذا — تفحص شرطًا ثم آخر! الذكاء الاصطناعي الحقيقي ما هو إلا ملايين من هذه القرارات البسيطة.',
+                hw: 'ابنِ روبوت حارس ذكي! استخدم حلقة مع إذا/وإلا: إذا اكتُشفت نار ضمن 3 ← رُش الماء، وإلا إذا جدار ضمن 2 ← دُر يمينًا، وإلا ← تقدّم خطوة. هذه دورية إطفاء حرائق ذاتية بسيطة!',
+                tasks: [
+                    'ضع جدارًا 3 خطوات أمامي. أضف: إذا جدار ضمن 2 ← عندها: يمين 90 ← وإلا: للأمام 1. شغّل — أتفادى الجدار! 🛡️',
+                    'ضع إذا/وإلا داخل حلقة كرّر 8 مرات — الآن أستكشف، وأدور تلقائيًا كلما رأيت جدارًا!',
+                    'أضف جدرانًا أكثر وزِد التكرار إلى 15. شاهدني أتنقّل في متاهة صغيرة!',
+                    'الآن أضف شرطًا ثانيًا: إذا جدار ضمن 2 ← يمين 90، ولكن أيضًا: إذا في البيت ← توقّف. (أضف فحص البيت)',
+                    'تحدٍ: ابنِ برنامجًا أدور فيه يسارًا إذا كان هناك جدار على اليمين، وأدور يمينًا إذا كان هناك جدار على اليسار. استخدم مكعبَي إذا!'
+                ]
+            },
+            'lesson-12': {
+                t: 'مراقبة الحرائق',
+                d: 'اكتشف مصادر الحرارة بمستشعر كاميرا حرارية',
+                i: 'أحمل كاميرا حرارية بالأشعة تحت الحمراء — التقنية نفسها المستخدمة في طائرات إطفاء الحرائق ونظارات الرؤية الليلية العسكرية! 🌡️ الكاميرا العادية ترى الضوء. أما الكاميرا الحرارية فترى الحرارة — كل جسم يصدر قدرًا ضئيلًا من الحرارة، والحرائق تصدر الكثير. يقيس مستشعري درجة الحرارة أثناء تحركي. عندما ترتفع قراءة الحرارة فجأة، يعني ذلك أن النار قريبة! روبوتات إطفاء الحرائق الحقيقية تُنشَر بالفعل في المستودعات والغابات والمناطق العسكرية للعثور على الحرائق قبل دخول البشر إلى المناطق الخطرة. لندرّب مهارات كشف الحرارة لديّ:',
+                hint: 'ترتفع درجة الحرارة كلما اقتربت من النار. افحص الحرارة ← اقترب ← افحص الحرارة مجددًا. إذا كانت القراءة الثانية أعلى، فأنت متجه نحو النار! اجمعه مع مكعبات إذا للتفاعل تلقائيًا.',
+                hw: 'ابنِ مهمة رسم خريطة الحرائق: ضع 3 حرائق. اكتب برنامجًا يمسح اللوح بنمط متعرّج، فاحصًا درجة الحرارة عند كل موضع. عند اكتشاف نار، اطبع موقعها (رقم الخطوة في الحلقة). طائرات حرائق الغابات تفعل هذا بالضبط!',
+                tasks: [
+                    'انقر زر النار 🔥 لوضع نار واحدة على اللوح',
+                    'أضف مكعب افحص درجة الحرارة 🌡️ وشغّل — شاهد قراءة الحرارة تظهر!',
+                    'اقترب أكثر: للأمام 2 ← افحص الحرارة ← للأمام 2 ← افحص الحرارة. لاحظ أن الحرارة ترتفع كلما اقتربت! 🌡️📈',
+                    'أضف: إذا نار ضمن 3 خطوات ← عندها: اعرض رسالة 🚨 اكتُشفت نار! أطلب المساعدة!',
+                    'ضع نارين في مكانين مختلفين. استخدم حلقة تكرار مع افحص الحرارة + الحركة للعثور على كلتا النارين تلقائيًا!'
+                ]
+            },
+            'lesson-13': {
+                t: 'بطل الإطفاء',
+                d: 'أطفئ الحرائق بكفاءة — كل قطرة ماء مهمة!',
+                i: 'الآن حان وقت العمل! 🦸 أحمل خزان ماء صغيرًا بكمية محدودة — تمامًا مثل طائرة إطفاء جوية حقيقية لا تحمل إلا قدرًا معينًا من الماء قبل أن تحتاج للتعبئة. كل رشّة تستهلك وحدة واحدة بالضبط. أبدأ بـ 5 وحدات. هذا يعني أنك لا تستطيع الرش عشوائيًا — يجب أن تحدد الموقع بدقة وترش فقط عندما تكون قريبًا بما يكفي. هذا مفهوم هندسي يسمى الكفاءة: تحقيق أقصى نتيجة (إطفاء كل الحرائق) بأقل مورد (أقل ماء). مهندسو الفضاء يهتمون بهذا بشدة — مهمة إلى المريخ تهدر الوقود تعني أن المركبة لن تصل إلى أهدافها. لنفكّر باستراتيجية!',
+                hint: 'خطّط لمسارك قبل البرمجة: أي نار أقرب؟ اذهب إليها أولًا. ثم أيها التالية الأقرب؟ تُستخدم استراتيجية أقرب جار هذه في تخطيط مسارات التوصيل الحقيقية! كل رشة يجب أن تصل ضمن خطوتين من النار لتعمل.',
+                hw: 'هل تستطيع إطفاء الحرائق الثلاث باستخدام 3 رشات بالضبط (رشة لكل نار، بموقع مثالي)؟ ارسم اللوح على الورق أولًا، ثم اكتب الكود. هذا المستوى من التخطيط يسمى التفكير الخوارزمي!',
+                tasks: [
+                    'ضع نارًا واحدة. تحرّك إلى ضمن خطوتين منها وأضف رُش الماء 💧. شغّل — أُطفئت النار بوحدة واحدة! 🎯',
+                    'ضع نارين متباعدتين. خطّط لأقصر مسار لزيارتهما. استخدم للأمام + دورانات للوصول إلى كل واحدة قبل الرش',
+                    'الآن ضع ثلاث نيران. لديك 5 رشات فقط — هل تستطيع إطفاء الثلاث مع توفير بعض الماء؟',
+                    'أضف مكعب افحص مستوى الماء — يُظهر كم بقي لديك من ماء. أضفه قبل وبعد كل رشة!',
+                    'متقدم: استخدم مكعب إذا — إذا مستوى الماء أكبر من 0 عندها رُش، وإلا اذهب إلى البيت. هذا يمنع هدر الرشات!',
+                    'تحدي السرعة: ضع 4 نيران. أطفئها كلها في أقل من 10 مكعبات (للأمام + رُش فقط — بلا حركات مهدرة)! ⏱️'
+                ]
+            },
+            'lesson-15': {
+                t: 'خزنة المتغيّرات',
+                d: 'خزّن الأرقام في متغيّرات واستخدمها للتحكّم في ستيمو — غيّر رقمًا واحدًا يتغيّر كل شيء!',
+                i: 'البرامج الحقيقية تستخدم المتغيّرات — صناديق مسمّاة تخزّن قيمًا يمكنك إعادة استخدامها. بدل كتابة للأمام 4، للأمام 4، للأمام 4، للأمام 4 أربع مرات، تكتب: اضبط السرعة=4، ثم تحرّك بمقدار السرعة خطوات — وإذا غيّرت السرعة إلى 6، تتحدّث كل حركة فورًا! هكذا تعمل كل البرامج: من محرّكات فيزياء ألعاب الفيديو (السرعة، الجاذبية، قوة القفز كلها متغيّرات) إلى حاسبات مسارات ناسا (السرعة، الزاوية، قوة الدفع). المتغيّرات تجعل كودك مرنًا وقويًا وقابلًا لإعادة الاستخدام.',
+                hint: 'المتغيّرات مثل جِرار مسمّاة — تضع رقمًا فيها مرة، ثم تستخدم الاسم في أي مكان. أنزل القلم قبل التحرك، وإلا لن يُرسم الأثر. للمربع: كرّر بمقدار العدد ← تحرّك بمقدار السرعة خطوات ← دُر بمقدار الزاوية درجات يمينًا.',
+                hw: 'ابنِ حلزون التكبير: اضبط السرعة=1. كرّر 20 مرة: تحرّك بمقدار السرعة خطوات ← دُر 90 يمينًا ← غيّر السرعة بمقدار 1. المتغيّر يكبر كل حلقة — يتّجه ستيمو حلزونيًا للخارج! يسمى هذا متغيّر التجميع.',
+                tasks: [
+                    'اسحب 📦 اضبط متغيّرًا ← اضبط السرعة إلى 4. أضف 🚀 تحرّك [السرعة] خطوات. شغّل — يتحرك ستيمو 4 خطوات للأمام!',
+                    'غيّر السرعة إلى 7 وأعد التشغيل — لا مكعبات أخرى لتغييرها! تستخدم الحركة القيمة الجديدة تلقائيًا.',
+                    'أضف 📦 اضبط متغيّرًا العدد=4، الزاوية=90. ابنِ: انزال القلم ← كرّر [العدد] مرة ← تحرّك [السرعة] خطوات + دُر [الزاوية] درجات. ارسم مربعًا!',
+                    'غيّر السرعة إلى 8 — أعد التشغيل. مربعك الآن أكبر، بلا أي تغييرات أخرى. تلك هي قوة المتغيّرات!',
+                    'مهمة: اضبط العدد=8، الزاوية=45. ارسم نجمة ثمانية باستخدام المتغيّرات. غيّر السرعة من 3 إلى 6. شاهد النجمة تكبر!'
+                ]
+            },
+            'lesson-16': {
+                t: 'ذاكرة الموقع',
+                d: 'احفظ إحداثيات X وY وتنقّل عائدًا — تمامًا مثل تقنية نقطة البيت في GPS!',
+                i: 'كل طائرة مسيّرة لها نقطة بيت — إحداثية GPS للمكان الذي أقلعت منه، تُحفظ تلقائيًا. عندما تنخفض البطارية، تتنقّل عائدة إلى تلك النقطة بالضبط وتهبط. ستيمو لديه الميزة نفسها! يمكنك حفظ حتى 4 مواقع مسمّاة (A، B، C، D)، ثم تستكشف بحرية، ثم تأمر ستيمو بالعودة إلى أي موقع محفوظ باستخدام باحث المسار BFS الكامل — لا يضيع أبدًا. طائرات البحث والإنقاذ الحقيقية تستخدم هذا لإسقاط عُدد الإنقاذ والعودة إلى القاعدة للتزوّد.',
+                hint: 'يجب أن يأتي احفظ الموقع A قبل أي حركة، وإلا سيخزّن A الموقع الخاطئ! أظهر موقعي يعرض الإحداثيات كخطوات من المركز (0,0). استخدم اذهب إلى الموقع للعودة — يستخدم باحث المسار BFS لتجنّب كل الجدران.',
+                hw: 'ابنِ مسار دورية: احفظ A (البداية)، تحرّك شرقًا 5، احفظ B، تحرّك جنوبًا 5، احفظ C. ثم كرّر: اذهب إلى A ← اذهب إلى B ← اذهب إلى C ← اذهب إلى A. هكذا تقوم روبوتات الأمن بدورياتها في المباني!',
+                tasks: [
+                    'أضف مكعب 📍 أظهر موقعي وشغّل. شاهد إحداثيات بداية ستيمو (0، 0 = المركز) مطبوعة في المحادثة!',
+                    'أضف 💾 احفظ الموقع A كأول مكعب لك — هذا يسجّل نقطة البداية. حرّك ستيمو 5 خطوات للأمام. ثم 🔙 اذهب إلى الموقع A — شاهده يعود إلى البيت!',
+                    'احفظ الموقع A (البداية)، تحرّك إلى مكان معقّد (دورانات + حركات)، ثم اذهب إلى الموقع A. يجد BFS أقصر طريق للعودة!',
+                    'جرّب حفظ موقعين: احفظ A في البداية، تحرّك شرقًا، احفظ B في المكان الحالي. ثم اذهب إلى الموقع A، ثم اذهب إلى الموقع B — يتنقّل ستيمو بينهما!',
+                    'تحدي المهمة: احفظ الموقع A. تنقّل بذكاء إلى الهدف. ثم اذهب إلى الموقع A للعودة إلى البيت. يجب تحقيق الهدفين معًا!'
+                ]
+            },
+            'lesson-17': {
+                t: 'مسار نقاط الطريق',
+                d: 'قائمة من المواقع محمّلة مسبقًا — أعد تشغيل المسار لجمع كل المعادن!',
+                i: 'طائرات التوصيل تخزّن نقاط الطريق — قائمة من إحداثيات GPS لكل محطة في مسارها. تتنقّل من نقطة إلى نقطة تلقائيًا، تلتقط أو تُسقط الحمولة عند كل محطة. يمكن أن تحتوي القائمة على 3 عناصر أو 300 — الكود نفسه يتعامل مع الاثنين! هذا الدرس يحمّل قائمة نقاط الطريق مسبقًا بثلاثة مواقع معادن. مهمتك: شغّل المغناطيس وأمر ستيمو بإعادة تشغيل القائمة. مكعب واحد يجمع كل شيء!',
+                hint: 'قائمة نقاط الطريق محمّلة مسبقًا عند بدء التحدي — فقط أضف تشغيل المغناطيس قبل أعد تشغيل المسار. تتم زيارة كل نقطة طريق باستخدام باحث المسار BFS حتى لا يعلق ستيمو. تُلتقط المعادن تلقائيًا عندما يصل ستيمو ضمن المدى والمغناطيس مشغّل.',
+                hw: 'أنشئ روبوت تسجيل: ضع 4 معادن بنفسك، ثم اكتب برنامجًا يزور كل واحد ويسجّل موقعه باستخدام أضف نقطة طريق. امسح اللوح، أعد الضبط، ثم أعد تشغيل المسار — يقود مسارك المسجّل ستيمو إلى المواقع الأربعة مجددًا!',
+                tasks: [
+                    'شغّل ▶️ أعد تشغيل المسار بمفرده — يزور ستيمو المواقع الثلاثة المحمّلة مسبقًا بالترتيب. بلا مغناطيس بعد، فقط راقب المسار!',
+                    'أضف تشغيل المغناطيس قبل أعد تشغيل المسار. شغّل — يتبع ستيمو المسار نفسه لكنه الآن يلتقط المعادن على طول الطريق!',
+                    'أضف 📍 أظهر موقعي داخل الاستكشاف: حرّك ستيمو، أضف نقطة طريق، تحرّك مجددًا، أضف نقطة طريق — قائمتك المخصصة!',
+                    'امسح القائمة (🗑️ امسح نقاط الطريق)، حرّك ستيمو يدويًا إلى مكانين مضيفًا نقاط طريق، ثم أعد تشغيل المسار لتتبّع مسارك المخصص.',
+                    'مهمة: تشغيل المغناطيس ← أعد تشغيل المسار ← إطفاء المغناطيس. اجمع كل المعادن الثلاثة في برنامج واحد!'
+                ]
+            },
+            'lesson-18': {
+                t: 'صيد القوائم',
+                d: 'كرّر عبر قائمة من أهداف الحرائق ونفّذ عند كل واحد — جوهر معالجة بيانات الذكاء الاصطناعي!',
+                i: 'أنظمة الذكاء الاصطناعي تعمل بتخزين البيانات في قوائم والدوران خلالها لاتخاذ القرارات. نظام كشف الحرائق يخزّن إحداثيات الحرائق المكتشفة في قائمة، ثم يكرّر خلالها: لكل موقع نار ← تنقّل إليه ← رُش الماء. النمط نفسه يعالج نتائج الفحوص الطبية، ويتحكم في روبوتات المستودعات، ويقود طائرات التوصيل. هذا الدرس يعلّم أهم مفهوم في علوم الحاسوب: التكرار — تكرار عمل لكل عنصر في قائمة. مكعب واحد. ثلاث نيران. لنبدأ!',
+                hint: 'قائمة نقاط الطريق محمّلة مسبقًا بمواقع الحرائق الثلاثة كلها. لكل نقطة طريق ← رُش الماء هو الحل بأكمله — مكعب مركّب واحد يتولّى التنقّل + الفعل لكل عنصر في القائمة. إذا نفد ماؤك (يبدأ بـ 5)، اضغط إعادة الضبط وحاول مجددًا.',
+                hw: 'صمّم برنامج القوائم الأمثل: ضع عناصر من اختيارك (معادن، نيران، أهداف). ابنِ قائمة نقاط طريق يدويًا باستخدام أضف نقطة طريق. ثم اكتب برنامج لكل يتعامل مع كل عنصر بشكل مناسب. اعرض برنامجك على الصف!',
+                tasks: [
+                    'اسحب مكعب 🔂 لكل نقطة طريق. داخل قسم نفّذ، أضف 💧 رُش الماء. شغّل — يتنقّل ستيمو إلى النار 1، يرش، النار 2، يرش، النار 3، يرش. تمّ كل شيء!',
+                    'أضف 📍 أظهر موقعي داخل لكل — يعلن ستيمو موقعه عند كل نار. يسمى هذا التسجيل، والأنظمة الحقيقية تفعله لتصحيح الأخطاء!',
+                    'عدّل: أضف 🌡️ افحص الحرارة داخل لكل قبل رُش الماء — شاهد ارتفاع الحرارة عند كل نار قبل الإطفاء مباشرة!',
+                    'امسح نقاط الطريق (🗑️). ضع نارين يدويًا. حرّك ستيمو قرب كل واحدة وأضف نقاط طريق يدويًا. ثم شغّل لكل ← رُش الماء. قائمة حرائقك الخاصة!',
+                    'تحدي الخبراء: امسح الكل. أضف 3 معادن ونارين. استخدم إعادتَي تشغيل مسار منفصلتين (أعد التحميل بنقاط طريق مختلفة بينهما) لجمع المعادن أولًا ثم إطفاء الحرائق.'
+                ]
+            },
+            'lesson-19': {
+                t: 'مصنع الدوال',
+                d: 'علّم ستيمو الحِيَل مرة واحدة — استدعِها إلى الأبد! الدوال هي القوة الخارقة السرية لكل مبرمج.',
+                i: 'كل مبرمج محترف يستخدم الدوال — مكعبات كود مسمّاة قابلة لإعادة الاستخدام. بدل نسخ ولصق المكعبات العشرة نفسها مرارًا وتكرارًا، تكتبها مرة واحدة، وتسمّيها، وتستدعي الاسم. مهندسو ناسا يستخدمون الدوال للتحكم في مركبات المريخ الجوّالة. مطوّرو الألعاب يستخدمون الدوال لكل حركة شخصية. في هذا الدرس ستنشئ دالتين — drawSquare وbigSquare — وتجمعهما لإنتاج نمط نجمة هندسي مذهل بمكعبات قليلة. هذه هندسة برمجيات حقيقية!',
+                hint: 'عرّف الدوال أولًا (في الأعلى أو الجانب)، ثم استدعِها بالأسفل. يجب أن يطابق الاسم في عرّف دالة الاسم في استدعِ دالة بالضبط — الإملاء مهم! drawSquare ليست DrawSquare.',
+                hw: 'صمّم عملك الفني الهندسي الخاص: أنشئ 3 دوال على الأقل (مثل drawTriangle، drawStar، drawSpiral). اجمعها بزوايا دوران مختلفة لإنشاء نمط فريد. احفظه وشاركه مع الصف!',
+                tasks: [
+                    'اسحب مكعب 🔧 عرّف دالة. سمّه drawSquare. بداخله، أضف: انزال القلم ← كرّر 4 مرات (تحرّك 3 خطوات، دُر يمينًا 90°). اضغط تشغيل — يظهر مربع!',
+                    'اسحب مكعب 🔧 عرّف دالة آخر. سمّه bigSquare. بداخله، أضف: كرّر 4 مرات ← (▶ استدعِ دالة: drawSquare، دُر يمينًا 90°). اضغط تشغيل — أربعة مربعات متداخلة!',
+                    'تحت كلا التعريفين أضف: ▶ استدعِ دالة: bigSquare ← دُر يمينًا 45° ← ▶ استدعِ دالة: bigSquare. اضغط تشغيل — تظهر النجمة!',
+                    'غيّر حجم الخطوة داخل drawSquare من 3 إلى 5. اضغط تشغيل — تكبر النجمة كلها. تلك قوة الدوال: غيّر رقمًا واحدًا يتحدّث كل شيء!',
+                    'أنشئ دالة ثالثة اسمها starBurst. بداخلها: استدعِ bigSquare ← دُر يمينًا 30° ← استدعِ bigSquare ← دُر يمينًا 30° ← استدعِ bigSquare. أي شكل تحصل عليه؟'
+                ]
+            },
+            'lesson-14': {
+                t: 'المبرمج الخبير',
+                d: 'المهمة الذاتية النهائية — تخرّج كمبرمج خبير! 🎓',
+                i: '🎓 تهانينا — وصلت إلى الدرس الأخير في أكاديمية ستيمو! عبر رحلتك كلها تعلّمت: التسلسل، الحلقات، الهندسة، المستشعرات (فوق الصوتي + الحراري)، اتخاذ القرار (إذا/وإلا)، المغناطيس الكهربائي، الاستخدام الفعّال للموارد، المتغيّرات، المواقع المحفوظة، القوائم، والدوال. هذه هي المهارات نفسها بالضبط التي يستخدمها مهندسو الروبوتات الحقيقيون كل يوم. مهمتك الأخيرة هي الاختبار النهائي: جهّز لوحًا فيه جدران ومعادن ونيران مختلطة معًا، ثم اكتب برنامجًا ذاتيًا واحدًا يتعامل مع كل شيء — يتنقّل حول الجدران، يجمع كل المعادن، ويطفئ كل الحرائق — دون أي مساعدة منك. أنت المهندس. ستيمو روبوتك. لنتخرّج!',
+                hint: 'قسّم المهمة إلى مراحل (مسح ← جمع ← إطفاء ← عودة) وابنِ كل مرحلة على حدة أولًا، ثم اربطها. استخدم الحلقات حيثما تتكرر الأفعال. افحص مستوى الماء قبل كل رشة. نهج التصميم من الأعلى للأسفل هذا هو طريقة بناء البرمجيات الحقيقية!',
+                hw: 'أنت الآن مبرمج خبير! 🎓 تحدّيك: صمّم سيناريو مهمة جديدًا تمامًا واكتب البرنامج الذاتي له. أفكار: روبوت توصيل (يلتقط الطرود، يتجنّب النيران، يُسقط في الوجهة)، روبوت إنقاذ (يجد أشخاصًا عالقين خلف جدران)، أو روبوت فنان (يرسم شكلًا أثناء جمع المعادن). شارك إبداعك!',
+                tasks: [
+                    'جهّز المشهد: ضع جدارين، وقطعتين معدنيتين (🔩)، ونارين (🔥) عشوائيًا على اللوح',
+                    'المرحلة 1 — المسح: أضف مسح أمامي في الاتجاهات الأربعة كلها في البداية لأعرف أين العوائق',
+                    'المرحلة 2 — الجمع: تنقّل إلى القطعتين المعدنيتين، التقطهما (تشغيل المغناطيس)، وأسقطهما في البيت (إطفاء المغناطيس)',
+                    'المرحلة 3 — الإطفاء: تنقّل إلى النارين ورُش الماء على كل واحدة (افحص مستوى الماء أولًا!)',
+                    'المرحلة 4 — العودة: أضف مكعب البيت في النهاية تمامًا — انتهت المهمة، يعود الروبوت إلى القاعدة! 🏠',
+                    'اجمع المراحل الأربع كلها في برنامج واحد وشغّله من البداية للنهاية — يجب أن يُنظّف اللوح! 🏆🎉',
+                    'مكافأة: عُدّ إجمالي مكعباتك المستخدمة. هل تستطيع تقليلها بنسبة 20% باستخدام الحلقات والتوجيه الأذكى؟ أفضل المهندسين يحسّنون! ✨'
+                ]
+            },
+            'lesson-art-1': {
+                t: 'حلزون قوس قزح',
+                d: 'ارسم حلزونًا ساحرًا يكبر بينما يدور',
+                i: 'مرحبًا بك في استوديو الفن! 🎨 هنا لا توجد إجابات خاطئة — فقط إبداعات جميلة. اليوم نرسم حلزونًا، الشكل نفسه الذي تراه في أصداف الحلزون والمجرّات وعبّاد الشمس! سرّ الحلزون بسيط: تحرّك قليلًا، دُر قليلًا، ثم تحرّك أكثر بقليل، دُر مجددًا — مرارًا وتكرارًا. مكعب التكرار يقوم بالدوران عنك. أضف مكعب لون وحتى مكعب مشاعر لتمنح ستيمو بعض الشخصية أثناء الرسم. مستعد أيها الفنان؟',
+                hint: 'الحلزون = كرّر مرات كثيرة ← للأمام قليلًا + دُر قليلًا. غيّر زاوية الدوران (جرّب 20، 25، 30) لتصنع حلزونات أضيق أو أوسع!',
+                hw: 'اصنع حلزونًا مزدوجًا: ارسم حلزونًا، ثم غيّر اللون وارسم آخر يدور بالاتجاه الآخر (استخدم يسار بدل يمين).',
+                tasks: [
+                    'أضف انزال القلم ✏️ ليترك ستيمو أثرًا',
+                    'أضف مكعب 🎨 لون واختر لونك المفضّل',
+                    'أضف 🔁 تكرار مضبوطًا على رقم كبير (جرّب 30). بداخله ضع: للأمام 1 ويمين 25',
+                    'اضغط ▶ تشغيل وشاهد حلزونك يظهر!',
+                    'أضف 😊 مشاعر ← متحمس ومكعب 🕺 رقص في النهاية للاحتفال!'
+                ]
+            },
+            'lesson-art-2': {
+                t: 'صانع قوس قزح',
+                d: 'ارسم قوس قزح مشرقًا بكل ألوان الطيف',
+                i: 'هل تعلم أن قوس قزح الحقيقي تكون ألوانه دائمًا بالترتيب نفسه — أحمر، برتقالي، أصفر، أخضر، أزرق، بنفسجي؟ ☀️🌧️ اليوم أنت المطر والشمس! سنرسم أقواسًا منحنية، واحدًا لكل لون، مكدّسة فوق بعضها. لصنع منحنى، نتحرك للأمام قليلًا وندور قليلًا، مرارًا وتكرارًا — تمامًا مثل الحلزون، لكن نصف دورة فقط. غيّر اللون لكل شريط وشاهد قوس قزح ينمو!',
+                hint: 'كل شريط لوني هو القوس نفسه (كرّر ← للأمام + دُر)، فقط بمكعب لون مختلف قبله. حرّك ستيمو للأمام بضع خطوات بين الأشرطة كي لا تتداخل.',
+                hw: 'أضف شمسًا ☀️ بجانب قوس قزحك: غيّر اللون إلى الأصفر وارسم دائرة صغيرة (كرّر 36 ← للأمام 1، يمين 10).',
+                tasks: [
+                    'أضف انزال القلم ✏️ ومكعب 🖌️ حجم مضبوطًا على 6 لأشرطة سميكة عصيرية',
+                    'أضف 🎨 لون ← أحمر. ثم 🔁 كرّر 18 ← (للأمام 1، يمين 10) لرسم قوس',
+                    'غيّر اللون إلى البرتقالي وارسم قوسًا آخر خارج الأول مباشرة',
+                    'استمر — أصفر، أخضر، أزرق، بنفسجي. قوس لكل لون!',
+                    'أنهِ بـ 💬 قُل ← صنعت قوس قزح! ليتباهى ستيمو بفنك'
+                ]
+            },
+            'lesson-art-3': {
+                t: 'اكتب اسمك',
+                d: 'حوّل ستيمو إلى قلم ووقّع تحفتك الفنية',
+                i: 'كل فنان عظيم يوقّع عمله! ✍️ اليوم ستوجّه ستيمو مثل قلم لكتابة الحرف الأول من اسمك. الأحرف مصنوعة من خطوط ودورانات — تمامًا المكعبات التي تعرفها بالفعل! استخدم رفع القلم للقفز (رفع القلم) بين الضربات، وانزال القلم للرسم. خذ وقتك، ضربة واحدة في كل مرة. هكذا تعمل روبوتات الراسمات وآلات التوقيع في العالم الحقيقي!',
+                hint: 'الأحرف ذات الخطوط المستقيمة (L، T، E، H، I، F، A) هي الأسهل. خطّط لكل ضربة: انزال القلم ← ارسم ← رفع القلم ← أعد التموضع ← انزال القلم ← ارسم الضربة التالية.',
+                hw: 'اكتب كل أحرف اسمك الأول! استخدم رفع القلم لترك فجوة بين كل حرف.',
+                tasks: [
+                    'اختر الحرف الأول من اسمك. تخيّل رسمه بخطوط مستقيمة',
+                    'أضف انزال القلم ✏️ ثم ابنِ الضربة الأولى بمكعبات للأمام ودُر',
+                    'استخدم رفع القلم 🖊️ للانتقال إلى الضربة التالية دون رسم، ثم انزال القلم مجددًا',
+                    'أنهِ كل ضربات حرفك واضغط ▶ تشغيل',
+                    'أضف 😎 مشاعر ← رائع و🔊 صوت ← أبواق للاحتفال بتوقيعك!'
+                ]
+            },
+            'lesson-art-4': {
+                t: 'ماندالا سحرية',
+                d: 'أنشئ ماندالا متناظرة باستخدام حلقات داخل حلقات',
+                i: 'الماندالا هي نمط جميل ومتناظر تمامًا — تجدها في الزهور وندف الثلج ❄️ والفن من حول العالم. الخدعة التي تجعلها سحرية هي حلقة داخل حلقة: الحلقة الداخلية ترسم شكلًا واحدًا (مثل مربع)، والحلقة الخارجية تدوّر ستيمو قليلًا وترسمه مجددًا، حول الدائرة كلها. بمكعبات قليلة يمكنك صنع نمط يبدو معقّدًا للغاية. لنصنع بعض السحر!',
+                hint: 'حلقة داخل حلقة! التكرار الخارجي = كم نسخة حول الدائرة (12). التكرار الداخلي = الشكل (مربع = 4 × للأمام+يمين 90). الدوران الإضافي (360 ÷ 12 = 30°) يدوّر كل نسخة.',
+                hw: 'غيّر الشكل الداخلي إلى مثلث (كرّر 3 ← للأمام 4، يمين 120) والدوران الخارجي ليطابقه. جرّب ألوانًا مختلفة لصنع منظار ملوّن!',
+                tasks: [
+                    'أضف انزال القلم ✏️ ومكعب 🎨 لون تحبّه',
+                    'أضف 🔁 تكرار 12 خارجيًا',
+                    'بداخله، أضف 🔁 تكرار 4 داخليًا ← (للأمام 3، يمين 90) لرسم مربع',
+                    'ما زلت داخل الحلقة الخارجية لكن بعد الداخلية، أضف يمين 30 لتدوير المربع حولها',
+                    'اضغط ▶ تشغيل — ماندالا مذهلة! أضف 🕺 رقص للاحتفال بفنك'
+                ]
+            }
+        };
+        // AR_CH: lesson id -> { title, desc, obj: { objectiveId: label } }
+        var AR_CH = {
+            'lesson-4': {
+                title: 'ارسم المربع الملوّن! 🟥🟦🟩🟪',
+                desc: 'ارسم مربعًا كل ضلع فيه بلون مختلف. استخدم مكعبات اللون + الحجم ودُر 90° بين كل ضلع!',
+                obj: {
+                    'colors': '🎨 استخدم لونين مختلفين أو أكثر',
+                    'size': '🖌️ استخدم مكعب لون أو حجم',
+                    'shape': '⬜ ارسم 4 مقاطع خطية أو أكثر'
+                }
+            },
+            'lesson-5': {
+                title: 'ابنِ الدرج! 🪜',
+                desc: 'ارسم درجًا يصعد ويميل يمينًا باستخدام حلقة تكرار. الكود: كرّر 4 ← للأمام 2، يمين 90، للأمام 2، يسار 90',
+                obj: {
+                    'loop': '🔁 استخدم مكعب تكرار',
+                    'segments': '🪜 ارسم 8 مقاطع (4 درجات)',
+                    'pen': '✏️ استخدم انزال القلم للرسم'
+                }
+            },
+            'lesson-6': {
+                title: 'ارسم نجمة الدوران! ⭐',
+                desc: 'انسخ نمط النجمة المعروض بخطوط شبحية على اللوح. استخدم 3 ألوان، وارسم أشكالًا رباعية الأضلاع بالحلقات، ودوّرها!',
+                obj: {
+                    'loop': '🔁 استخدم مكعب تكرار',
+                    'segments': '✏️ ارسم 12 مقطعًا خطيًا أو أكثر',
+                    'turns': '📐 استخدم دورانات يمين أو يسار'
+                }
+            },
+            'lesson-7': {
+                title: 'ارسم نجمة ثمانية! ✨',
+                desc: 'استخدم حلقة تكرار 8 وزاوية النجمة السرية (135°) لرسم نجمة ثمانية جميلة!',
+                obj: {
+                    'loop': '🔁 استخدم مكعب تكرار',
+                    'angle': '↪️ استخدم دورانًا كبيرًا (90° أو أكثر)',
+                    'segments': '✨ ارسم 8 خطوط نجمة'
+                }
+            },
+            'lesson-8': {
+                title: 'اجمع كل القطع المعدنية الثلاث!',
+                desc: 'فعّل مغناطيسك وتنقّل لالتقاط كل جسم معدني على اللوح.',
+                obj: {
+                    'metal-1': '🔩 الخطوة 1: التقط المعدن رقم 1',
+                    'metal-2': '🔩 الخطوة 2: التقط المعدن رقم 2',
+                    'metal-3': '🔩 الخطوة 3: التقط المعدن رقم 3',
+                    'go-home': '🏠 الخطوة 4: عُد إلى البيت وأطفئ المغناطيس'
+                }
+            },
+            'lesson-9': {
+                title: 'جداران، دورانان — صِل إلى الهدف!',
+                desc: 'يبدأ ستيمو مواجهًا لأعلى (شمالًا). استخدم حلقات تكرار مع إذا جدار ضمن خطوتين ← دُر يمينًا، وإلا تحرّك 1 للتنقّل: دُر يمينًا عند الجدار العلوي (تواجه الآن الشرق)، استمر حتى يطلق الجدار الأيمن دورانًا ثانيًا لليمين (تواجه الآن الجنوب)، ثم انزل مستقيمًا إلى الهدف!',
+                obj: {
+                    'reach': '🎯 تنقّل عبر الجدارين وصِل إلى الهدف!'
+                }
+            },
+            'lesson-10': {
+                title: 'صِل إلى نقطة الهدف!',
+                desc: 'العوائق في طريقك. برمِج ستيمو للتنقّل حولها والوصول إلى الهدف.',
+                obj: {
+                    'reach': '🎯 صِل إلى الهدف'
+                }
+            },
+            'lesson-11': {
+                title: 'اهرب من المتاهة — 3 طرق للفوز!',
+                desc: 'متاهة شبكية 3×3 بممرات واسعة ونهايات مسدودة. يمكنك حلّها بثلاث طرق: (1) يدوي: دُر يمينًا، كرّر 7 تحرّك، دُر يسارًا، كرّر 7 تحرّك. (2) إذا جدار: كرّر 25 ← إذا جدار ضمن 2 ← دُر يمينًا، وإلا تحرّك 1. (3) التنقّل الذكي: ضع المكعب ودع الذكاء الاصطناعي يجد أقصر مسار!',
+                obj: {
+                    'reach': '🎯 تنقّل عبر المتاهة وصِل إلى الهدف!'
+                }
+            },
+            'lesson-12': {
+                title: 'اكتشف كلتا النارين بمستشعرك!',
+                desc: 'الحرائق مخفية حول اللوح. امسح بمستشعر درجة الحرارة لتحديد موقع كلتيهما.',
+                obj: {
+                    'detect1': '🌡️ اعثر على النار 1',
+                    'detect2': '🌡️ اعثر على النار 2'
+                }
+            },
+            'lesson-13': {
+                title: 'أطفئ كل النيران الثلاث!',
+                desc: 'تنقّل حول الجدران ورُش الماء على كل نار قبل أن ينفد خزانك!',
+                obj: {
+                    'extinguish': '💧 أطفئ كل النيران'
+                }
+            },
+            'lesson-14': {
+                title: 'التحدي النهائي!',
+                desc: 'اجمع المعادن، وأطفئ النيران، وصِل إلى الهدف. استخدم كل ما تعلّمته!',
+                obj: {
+                    'metal': '🔩 اجمع معدنًا واحدًا أو أكثر',
+                    'fire': '💧 أطفئ النيران',
+                    'reach': '🎯 صِل إلى الهدف'
+                }
+            },
+            'lesson-15': {
+                title: 'خزنة المتغيّرات — غيّر رقمًا واحدًا يتغيّر كل شيء!',
+                desc: '1️⃣ انزال القلم  2️⃣ كرّر [متغيّر: العدد] مرة ← تحرّك [متغيّر: السرعة] خطوات + دُر [متغيّر: الزاوية] درجات  3️⃣ شغّل! المتغيّرات السرعة=4، العدد=4، الزاوية=90 مضبوطة لك مسبقًا.',
+                obj: {
+                    'moved': '📦 استخدم متغيّرًا لتحريك ستيمو (طول الأثر أكبر من 200 بكسل)',
+                    'closed': '🔁 ارسم شكلًا مغلقًا (عُد إلى ضمن 80 بكسل من البداية)'
+                }
+            },
+            'lesson-16': {
+                title: 'ذاكرة الموقع — احفظ مكانك وعُد إلى البيت!',
+                desc: 'استخدم احفظ الموقع A في البداية. تنقّل إلى الهدف. ثم اذهب إلى الموقع A للعودة. مثل ضبط نقطة بيت في GPS!',
+                obj: {
+                    'target': '🎯 صِل إلى الهدف',
+                    'home': '🏠 عُد إلى البداية (ضمن 60 بكسل)'
+                }
+            },
+            'lesson-17': {
+                title: 'مسار نقاط الطريق — سجّل مسارًا، أعد تشغيله تلقائيًا!',
+                desc: 'ثلاث قطع معدنية تنتظر. قائمة نقاط الطريق محمّلة مسبقًا بمواقعها. شغّل المغناطيس، ثم أعد تشغيل المسار لزيارة الثلاث وجمعها كلها!',
+                obj: {
+                    'metals': '🔩 اجمع كل القطع المعدنية الثلاث باستخدام أعد تشغيل المسار'
+                }
+            },
+            'lesson-18': {
+                title: 'صيد القوائم — كرّر عبر قائمة ونفّذ على كل عنصر!',
+                desc: '3 نيران محمّلة مسبقًا في قائمة نقاط الطريق. استخدم لكل نقطة طريق مع رُش الماء فقط داخل مكعب النفّذ — المكعب يتنقّل إلى كل نار تلقائيًا. لا تضف مكعبات اذهب إلى الموقع داخل الحلقة!',
+                obj: {
+                    'fires': '💧 أطفئ كل النيران الثلاث باستخدام لكل نقطة طريق'
+                }
+            },
+            'lesson-19': {
+                title: 'مصنع الدوال — اكتب مرة، استدعِ إلى الأبد!',
+                desc: 'طابق النجمة الباهتة على اللوح!  1️⃣ عرّف drawSquare: انزال القلم ← كرّر 4× (تحرّك 3 خطوات، دُر يمينًا 90°)  2️⃣ عرّف bigSquare: كرّر 4× (استدعِ drawSquare، دُر يمينًا 90°)  3️⃣ استدعِ bigSquare ← دُر يمينًا 45° ← استدعِ bigSquare',
+                obj: {
+                    'funcs': '🔧 عرّف دالتين على الأقل',
+                    'pattern': '🌟 ارسم نمط النجمة (طابق الدليل الشبحي)'
+                }
+            },
+            'lesson-art-1': {
+                title: 'أدِر حلزون قوس قزح! 🌀',
+                desc: 'طابق الحلزون الباهت على اللوح. استخدم مكعب لون + حلقة تكرار (جرّب كرّر 30 ← للأمام 1، يمين 25). أضف مكعب مشاعر أو رقص للاحتفال!',
+                obj: {
+                    'loop': '🔁 استخدم مكعب تكرار',
+                    'color': '🎨 استخدم مكعب لون',
+                    'spiral': '🌀 ارسم 15 مقطعًا خطيًا أو أكثر'
+                }
+            },
+            'lesson-art-2': {
+                title: 'ارسم قوس قزح! 🌈',
+                desc: 'طابق أقواس قوس قزح الباهتة. استخدم 3 مكعبات لون مختلفة أو أكثر وحلقة تكرار لثني كل شريط (جرّب كرّر 18 ← للأمام 1، يمين 10).',
+                obj: {
+                    'colors': '🎨 استخدم 3 ألوان مختلفة أو أكثر',
+                    'loop': '🔁 استخدم مكعب تكرار',
+                    'bands': '🌈 ارسم 18 مقطعًا خطيًا أو أكثر'
+                }
+            },
+            'lesson-art-3': {
+                title: 'وقّع باسمك! ✍️',
+                desc: 'وجّه ستيمو مثل قلم لرسم الحرف الأول من اسمك. استخدم انزال القلم للرسم ورفع القلم للقفز بين الضربات. أنهِ بمكعب مشاعر أو قُل أو صوت!',
+                obj: {
+                    'penup': '✏️ استخدم رفع القلم للرفع بين الضربات',
+                    'strokes': '✍️ ارسم 3 مقاطع خطية أو أكثر',
+                    'flair': '😎 أضف مكعب مشاعر أو قُل أو صوت'
+                }
+            },
+            'lesson-art-4': {
+                title: 'أنشئ ماندالا سحرية! ❄️',
+                desc: 'طابق الماندالا الباهتة. ضع حلقة تكرار داخل حلقة تكرار أخرى: الداخلية ترسم شكلًا، والخارجية تدوّره حولها (جرّب خارجية كرّر 12 ← داخلية كرّر 4 ← للأمام 3، يمين 90 ← ثم يمين 30).',
+                obj: {
+                    'nested': '🔁 استخدم مكعبَي تكرار (حلقة داخل حلقة)',
+                    'color': '🎨 استخدم مكعب لون',
+                    'mandala': '❄️ ارسم 16 مقطعًا خطيًا أو أكثر'
+                }
+            }
+        };
+        // AR_BADGES: badge id -> { n, d }
+        var AR_BADGES = {
+            'first-steps':   { n: 'الخطوات الأولى',        d: 'أكمل درسك الأول' },
+            'fast-starter':  { n: 'بداية سريعة',           d: 'اكسب 100 نقطة خبرة' },
+            'mover':         { n: 'محرّك الروبوت',         d: 'حرّك ستيمو 100 مرة' },
+            'bronze-coder':  { n: 'مبرمج برونزي',          d: 'اكسب 250 نقطة خبرة' },
+            'artist':        { n: 'فنان البرمجة',          d: 'ارسم 10 أشكال' },
+            'loop-master':   { n: 'سيّد الحلقات',          d: 'استخدم الحلقات 20 مرة' },
+            'star-coder':    { n: 'مبرمج النجوم',          d: 'اكسب 1000 نقطة خبرة' },
+            'robot-friend':  { n: 'أعز أصدقاء الروبوت',    d: 'تحدّث مع ستيمو 50 مرة' },
+            'silver-coder':  { n: 'مبرمج فضي',             d: 'اكسب 2000 نقطة خبرة' },
+            'gold-coder':    { n: 'مبرمج ذهبي',            d: 'اكسب 3500 نقطة خبرة' },
+            'diamond-coder': { n: 'مبرمج ماسي',            d: 'اكسب 5000 نقطة خبرة' },
+            'quick-learner': { n: 'متعلّم سريع',           d: 'أكمل 3 دروس' },
+            'halfway-hero':  { n: 'بطل منتصف الطريق',      d: 'أكمل 10 دروس' },
+            'completionist': { n: 'مُنجِز الكل',           d: 'أكمل كل الدروس الـ19' },
+            'on-fire':       { n: 'مشتعل',                 d: 'سلسلة برمجة 3 أيام' },
+            'unstoppable':   { n: 'لا يُوقَف',             d: 'سلسلة برمجة 7 أيام' },
+            'rising-star':   { n: 'نجم صاعد',              d: 'اوصل إلى المستوى 3' },
+            'coding-hero':   { n: 'بطل البرمجة',           d: 'اوصل إلى المستوى 5' },
+            'legend':        { n: 'أسطورة',               d: 'اوصل إلى المستوى 10' },
+            'grandmaster':   { n: 'المعلّم الأكبر',        d: 'اوصل إلى المستوى 13' }
+        };
+        var DIFF_AR = { easy: 'سهل', medium: 'متوسط', hard: 'صعب', extreme: 'خبير', creative: 'إبداعي' };
+        function trL(lesson, field) {
+            if (currentLang === 'ar' && lesson && AR_L[lesson.id]) {
+                var a = AR_L[lesson.id];
+                var map = { title: 't', description: 'd', introduction: 'i', hint: 'hint', homework: 'hw' };
+                var v = a[map[field] || field];
+                if (v) return v;
+            }
+            return lesson ? lesson[field] : '';
+        }
+        function trTask(lesson, index, text) {
+            if (currentLang === 'ar' && lesson && AR_L[lesson.id] && AR_L[lesson.id].tasks && AR_L[lesson.id].tasks[index]) {
+                return AR_L[lesson.id].tasks[index];
+            }
+            return text;
+        }
+        function trDiff(d) {
+            if (currentLang === 'ar' && DIFF_AR[d]) return DIFF_AR[d];
+            return d;
+        }
+        function trBadge(badge, field) {
+            if (currentLang === 'ar' && badge && AR_BADGES[badge.id]) {
+                var v = AR_BADGES[badge.id][field === 'name' ? 'n' : 'd'];
+                if (v) return v;
+            }
+            return badge ? badge[field] : '';
+        }
+        function trChTitle(lessonId, fallback) {
+            if (currentLang === 'ar' && AR_CH[lessonId] && AR_CH[lessonId].title) return AR_CH[lessonId].title;
+            return fallback;
+        }
+        function trChDesc(lessonId, fallback) {
+            if (currentLang === 'ar' && AR_CH[lessonId] && AR_CH[lessonId].desc) return AR_CH[lessonId].desc;
+            return fallback;
+        }
+        function trObj(lessonId, objId, fallback) {
+            if (currentLang === 'ar' && AR_CH[lessonId] && AR_CH[lessonId].obj && AR_CH[lessonId].obj[objId]) return AR_CH[lessonId].obj[objId];
+            return fallback;
+        }
+
         function applyLanguage(lang) {
             var dict = I18N[lang] || I18N.en;
             var nodes = document.querySelectorAll('[data-i18n]');
@@ -6930,15 +7598,42 @@ const htmlContent = `<!DOCTYPE html>
                 if (dict[key] !== undefined) nodes[i].textContent = dict[key];
                 else if (I18N.en[key] !== undefined) nodes[i].textContent = I18N.en[key];
             }
+            // Translate block palette items and category headers (Arabic <-> English)
+            var pal = document.getElementById('blockPalette');
+            if (pal) {
+                var els = pal.querySelectorAll('.block-item, div.uppercase');
+                for (var j = 0; j < els.length; j++) {
+                    var el = els[j];
+                    if (el.hasAttribute('data-i18n')) continue;
+                    if (!el.getAttribute('data-en')) el.setAttribute('data-en', el.textContent.trim());
+                    var en = el.getAttribute('data-en');
+                    el.textContent = (lang === 'ar' && PALETTE_AR[en]) ? PALETTE_AR[en] : en;
+                }
+            }
             document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
             document.documentElement.setAttribute('lang', lang);
             var sel = document.getElementById('langSelect');
             if (sel) sel.value = lang;
         }
+        function refreshWorkspaceBlocks() {
+            // Re-render existing Blockly blocks so their labels use the new language
+            try {
+                if (typeof workspace !== 'undefined' && workspace) {
+                    var xml = Blockly.Xml.workspaceToDom(workspace);
+                    workspace.clear();
+                    Blockly.Xml.domToWorkspace(xml, workspace);
+                }
+            } catch(e) { console.log('block refresh skipped', e); }
+        }
         function setLanguage(lang) {
             currentLang = lang;
             safeStorageSet('stemoLang', lang);
             applyLanguage(lang);
+            // Re-render dynamic content in the new language
+            try { loadLessons(); } catch(e) {}
+            try { loadBadges(); } catch(e) {}
+            try { if (typeof currentLesson !== 'undefined' && currentLesson && document.getElementById('lessonDetailPanel') && !document.getElementById('lessonDetailPanel').classList.contains('hidden')) { showLessonDetail(currentLesson); } } catch(e) {}
+            refreshWorkspaceBlocks();
             playSound('click');
         }
         document.addEventListener('DOMContentLoaded', function() {
@@ -7437,12 +8132,12 @@ const htmlContent = `<!DOCTYPE html>
                             if (!lessonData || !lessonData.id) return;
                             // Profile banner
                             document.getElementById('profileLessonIcon').textContent = lessonData.icon || '📖';
-                            document.getElementById('profileLessonTitle').textContent = lessonData.title;
+                            document.getElementById('profileLessonTitle').textContent = trL(lessonData, 'title');
                             document.getElementById('profileLessonBanner').classList.remove('hidden');
                             // Learn tab banner
                             document.getElementById('assignedLessonBannerIcon').textContent = lessonData.icon || '📖';
-                            document.getElementById('assignedLessonBannerTitle').textContent = lessonData.title;
-                            document.getElementById('assignedLessonBannerDesc').textContent = lessonData.description || '';
+                            document.getElementById('assignedLessonBannerTitle').textContent = trL(lessonData, 'title');
+                            document.getElementById('assignedLessonBannerDesc').textContent = trL(lessonData, 'description') || '';
                             document.getElementById('assignedLessonBannerBtn').setAttribute('onclick', "selectLesson('" + assignedLessonId + "')");
                             document.getElementById('assignedLessonBanner').classList.remove('hidden');
                             // Re-render lessons so the card gets highlighted
@@ -8689,10 +9384,10 @@ const htmlContent = `<!DOCTYPE html>
                         function _restoreLessonUI(lesson) {
                             if (!lesson) return;
                             currentLesson = lesson;
-                            document.getElementById('currentLessonTitle').textContent = lesson.title;
-                            document.getElementById('currentLessonDesc').textContent = lesson.description;
+                            document.getElementById('currentLessonTitle').textContent = trL(lesson, 'title');
+                            document.getElementById('currentLessonDesc').textContent = trL(lesson, 'description');
                             var hintEl = document.getElementById('hintText');
-                            if (hintEl) hintEl.textContent = lesson.hint || '';
+                            if (hintEl) hintEl.textContent = trL(lesson, 'hint') || '';
                             var hintPanel = document.getElementById('hintPanel');
                             if (hintPanel) hintPanel.classList.remove('hidden');
                             // Restore task tick marks
@@ -8726,19 +9421,20 @@ const htmlContent = `<!DOCTYPE html>
                             // Activate challenge mode and build objectives
                             challengeMode = true;
                             missionObjectives = ch.objectives.map(function(obj) {
-                                return { id: obj.id, label: obj.label, done: false, check: obj.check };
+                                return { id: obj.id, label: trObj(savedLessonId, obj.id, obj.label), done: false, check: obj.check };
                             });
 
-                            document.getElementById('missionTitle').textContent = ch.title;
+                            document.getElementById('missionTitle').textContent = trChTitle(savedLessonId, ch.title);
                             var descEl2 = document.getElementById('missionDesc');
-                            if (descEl2 && ch.description) { descEl2.textContent = ch.description; descEl2.style.display = 'block'; }
+                            var chDesc2 = trChDesc(savedLessonId, ch.description);
+                            if (descEl2 && chDesc2) { descEl2.textContent = chDesc2; descEl2.style.display = 'block'; }
                             updateMissionHUD();
                             showMissionToast();
                             document.getElementById('missionBadge').classList.remove('hidden');
                             document.getElementById('missionExitBtn').classList.remove('hidden');
 
                             drawRobot();
-                            addChatMessage('stemo', '📂 Challenge loaded! ' + ch.description + ' Good luck! 💪');
+                            addChatMessage('stemo', currentLang === 'ar' ? ('📂 تم تحميل التحدي! ' + chDesc2 + ' حظاً موفقاً! 💪') : ('📂 Challenge loaded! ' + ch.description + ' Good luck! 💪'));
 
                         } else {
                             // ── Restore a free-build (or lesson-only) file ────────────────

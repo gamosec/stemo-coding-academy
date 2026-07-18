@@ -126,6 +126,9 @@ npm run dev    # Vite dev server on port 5000 (D1/AI not available in dev)
 npm run build  # Build to dist/
 ```
 
+## Internationalization
+- Student academy fully supports English + Arabic (RTL): UI via I18N dict + data-i18n attrs, Blockly blocks via BLOCK_AR init wrapper, palette via PALETTE_AR/data-en, lesson/challenge/badge content via AR_L/AR_CH/AR_BADGES dicts with tr* helpers. es/fr have basic UI keys only.
+
 ## Important Notes
 - D1 and Workers AI bindings are only available in the deployed Cloudflare environment
 - Cookie parser uses `slice('stemo_token='.length)` (not `split('=')[1]`) to avoid truncating base64 tokens
