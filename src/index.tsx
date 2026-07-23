@@ -1672,6 +1672,41 @@ const htmlContent = `<!DOCTYPE html>
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
+
+        /* ============ TABLET / TOUCH SUPPORT ============ */
+        #robotCanvas { max-width: 100%; height: auto; }
+        .block-item { touch-action: manipulation; }
+        .block-item:active { transform: scale(0.95); }
+        @media (hover: none) {
+            .lesson-card:hover { transform: none; box-shadow: none; }
+            .block-item:hover { transform: none; }
+        }
+        @media (pointer: coarse) {
+            .block-item { padding-top: 10px; padding-bottom: 10px; font-size: 13px; }
+            #blockPalette::-webkit-scrollbar { display: none; }
+        }
+        /* Desktop keeps the full-height side-by-side layout */
+        @media (min-width: 1024px) {
+            #codeLayout { height: calc(100vh - 153px); min-height: 560px; }
+        }
+        /* Mid-size tablets (landscape): narrower robot panel */
+        @media (min-width: 1024px) and (max-width: 1279px) {
+            #robotPanel { width: 430px; }
+        }
+        /* Tablets portrait & small screens: stack the workspace vertically */
+        @media (max-width: 1023px) {
+            #codeLayout { flex-direction: column; }
+            #blockPalette {
+                display: flex; flex-direction: row; align-items: center;
+                width: 100%; overflow-x: auto; overflow-y: hidden;
+                white-space: nowrap; gap: 6px; padding: 8px;
+                border-right: 0; border-bottom: 2px solid #e5e7eb;
+            }
+            #blockPalette > div { flex-shrink: 0; margin-bottom: 0 !important; }
+            #blocklyDiv { flex: none; width: 100%; height: 46vh; min-height: 300px; }
+            #robotPanel { width: 100%; border-left: 0; border-top: 2px solid #e5e7eb; }
+            #robotCanvas { max-width: min(92vw, 550px); }
+        }
         
         .tab-active {
             background: #6366f1;
@@ -1878,7 +1913,7 @@ const htmlContent = `<!DOCTYPE html>
                         <p class="text-xs text-purple-200" id="currentLessonDesc">Click blocks to add • Right-click a block to delete it or a whole group</p>
                     </div>
                 </div>
-                <div class="flex gap-2 items-center">
+                <div class="flex flex-wrap gap-2 items-center justify-end">
                     <!-- Toggle Robot Panel Button -->
                     <button onclick="toggleRobotPanel()" id="toggleRobotBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
                         <span id="robotPanelIcon">🤖</span>
@@ -1921,7 +1956,7 @@ const htmlContent = `<!DOCTYPE html>
             </div>
             
             <!-- Main Content Area - Balanced Layout -->
-            <div class="flex bg-white rounded-b-2xl card-shadow overflow-hidden" style="height: calc(100vh - 153px); min-height: 560px;">
+            <div id="codeLayout" class="flex bg-white rounded-b-2xl card-shadow overflow-hidden">
                 <!-- Block Palette - Left Side -->
                 <div id="blockPalette" class="w-32 bg-gradient-to-b from-gray-50 to-gray-100 p-2 overflow-y-auto border-r-2 border-gray-200 flex-shrink-0">
                     <div class="text-xs font-bold text-gray-500 mb-1 uppercase" data-i18n="cat_move">🚶 Move</div>
@@ -2075,7 +2110,7 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="w-[590px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
+                <div id="robotPanel" class="lg:w-[590px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
                     <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <span class="text-xl">🤖</span>
@@ -9520,8 +9555,11 @@ const htmlContent = `<!DOCTYPE html>
             
             robotPanelVisible = !robotPanelVisible;
             
+            var stacked = window.innerWidth < 1024; // tablet/portrait layout stacks panels vertically
             if (robotPanelVisible) {
-                panel.style.width = '430px';
+                panel.style.display = '';
+                // Clear inline width so CSS breakpoints (590px desktop / 430px small-landscape / 100% stacked) control sizing
+                panel.style.width = '';
                 panel.classList.remove('overflow-hidden', 'border-l-0');
                 panel.classList.add('border-l-2');
                 icon.textContent = '🤖';
@@ -9529,7 +9567,7 @@ const htmlContent = `<!DOCTYPE html>
                 btn.classList.remove('bg-gray-500');
                 btn.classList.add('bg-cyan-500', 'hover:bg-cyan-600');
             } else {
-                panel.style.width = '0';
+                if (stacked) { panel.style.display = 'none'; } else { panel.style.width = '0'; }
                 panel.classList.remove('border-l-2');
                 panel.classList.add('overflow-hidden', 'border-l-0');
                 icon.textContent = '👁️';
@@ -9545,6 +9583,31 @@ const htmlContent = `<!DOCTYPE html>
                 }, 350);
             }
         }
+
+        // Keep Blockly + robot panel in sync on orientation change / window resize (tablet support)
+        var _stemoResizeTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(_stemoResizeTimer);
+            _stemoResizeTimer = setTimeout(function() {
+                if (workspace) Blockly.svgResize(workspace);
+                var panel = document.getElementById('robotPanel');
+                if (panel && robotPanelVisible) {
+                    // Clear stale inline sizing when crossing the stacked/side-by-side breakpoint
+                    panel.style.display = '';
+                    panel.style.width = '';
+                }
+                // Keep the 3D view in sync with its container after layout changes
+                var threeContainer = document.getElementById('threeCanvasContainer');
+                if (renderer && camera && threeContainer && !threeContainer.classList.contains('hidden')) {
+                    var w = threeContainer.clientWidth, h = threeContainer.clientHeight;
+                    if (w > 0 && h > 0) {
+                        renderer.setSize(w, h);
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                    }
+                }
+            }, 200);
+        });
     </script>
 </body>
 </html>`;
@@ -11062,6 +11125,8 @@ const landingPage = `<!DOCTYPE html>
         .hero-gradient { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 40%, #7c3aed 70%, #4338ca 100%); }
         .feature-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .feature-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(109,40,217,0.18); }
+        @media (hover: none) { .feature-card:hover { transform: none; box-shadow: none; } }
+        button, a { touch-action: manipulation; }
         .stat-card { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); }
         .section-divider { background: linear-gradient(90deg, transparent, #7c3aed, transparent); height: 2px; }
         .glow { box-shadow: 0 0 30px rgba(139,92,246,0.4); }
