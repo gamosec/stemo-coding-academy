@@ -543,18 +543,31 @@ app.get('/api/students/unenrolled', authMiddleware, async (c) => {
     return c.json(results)
 })
 
-// Get approved students NOT yet in a specific class
+// Get students available to enrol into a specific class.
+// Admin: all approved students not already in THIS class (supports transfer UI).
+// Teacher: only students not assigned to ANY class (strict — no poaching from other teachers).
 app.get('/api/classes/:id/available-students', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const classId = c.req.param('id')
-    const { results } = await c.env.DB.prepare(`
-        SELECT id, full_name, username FROM users
-        WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
-        AND id NOT IN (SELECT student_id FROM class_students WHERE class_id = ?)
-        ORDER BY full_name
-    `).bind(classId).all()
-    return c.json(results)
+    if (me.role === 'admin') {
+        const { results } = await c.env.DB.prepare(`
+            SELECT id, full_name, username FROM users
+            WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
+            AND id NOT IN (SELECT student_id FROM class_students WHERE class_id = ?)
+            ORDER BY full_name
+        `).bind(classId).all()
+        return c.json(results)
+    } else {
+        // Teacher: only truly unassigned students (not in any class at all)
+        const { results } = await c.env.DB.prepare(`
+            SELECT id, full_name, username FROM users
+            WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
+            AND id NOT IN (SELECT DISTINCT student_id FROM class_students)
+            ORDER BY full_name
+        `).all()
+        return c.json(results)
+    }
 })
 
 // Get all students with their current class assignment (admin only — for search/transfer UI)
@@ -10221,9 +10234,11 @@ function buildClassHTML(cls, students) {
                     placeholder="🔍 Search students to add or transfer..."
                     class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
                     oninput="renderStudentSearch(\${cls.id}, this.value)"
-                    onblur="setTimeout(()=>{ var r=document.getElementById('stuResults_\${cls.id}'); if(r) r.classList.add('hidden'); }, 200)"
+                    onblur="setTimeout(()=>{ var r=document.getElementById('stuResults_\${cls.id}'); if(r&&!r._hovered) r.classList.add('hidden'); }, 220)"
                     onfocus="renderStudentSearch(\${cls.id}, this.value)">
-                <div id="stuResults_\${cls.id}" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto border rounded-lg shadow-xl bg-white divide-y text-sm z-20"></div>
+                <div id="stuResults_\${cls.id}"
+                    class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto border rounded-lg shadow-xl bg-white divide-y text-sm z-20"
+                    onmouseenter="this._hovered=true" onmouseleave="this._hovered=false"></div>
             </div>
         </div>\` : '<p class="text-gray-400 text-xs border-t pt-2 mt-1">No approved students in the system yet.</p>'}
     </div>\`;
