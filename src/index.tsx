@@ -226,7 +226,7 @@ app.post('/api/auth/register', async (c) => {
                 await c.env.DB.prepare('INSERT OR IGNORE INTO class_students (class_id, student_id) VALUES (?, ?)').bind(class_id, newStudentId).run()
             }
             if (parent_username) {
-                const parent = await c.env.DB.prepare("SELECT id FROM users WHERE username = ? AND role = 'parent' AND status = 'approved'").bind(parent_username).first() as any
+                const parent = await c.env.DB.prepare("SELECT id FROM users WHERE username = ? AND role = 'parent' AND (status = 'approved' OR status IS NULL)").bind(parent_username).first() as any
                 if (parent) {
                     await c.env.DB.prepare('INSERT OR IGNORE INTO parent_students (parent_id, student_id) VALUES (?, ?)').bind(parent.id, newStudentId).run()
                 }
@@ -313,7 +313,7 @@ app.post('/api/admin/users', authMiddleware, async (c) => {
     if (hasHtmlChars(full_name)) return c.json({ error: 'Name contains invalid characters' }, 400)
     const hash = await hashPassword(password)
     try {
-        const result = await c.env.DB.prepare('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)').bind(username, hash, role, full_name).run()
+        const result = await c.env.DB.prepare('INSERT INTO users (username, password_hash, role, full_name, status) VALUES (?, ?, ?, ?, ?)').bind(username, hash, role, full_name, 'approved').run()
         const newUser = await c.env.DB.prepare('SELECT id, username, role, full_name FROM users WHERE id = ?').bind(result.meta.last_row_id).first()
         // Init progress for students
         if (role === 'student') {
@@ -524,7 +524,7 @@ app.get('/api/students/unenrolled', authMiddleware, async (c) => {
     let args: any[]
     if (me.role === 'teacher') {
         query = `SELECT id, full_name, username FROM users
-            WHERE role = 'student' AND status = 'approved'
+            WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
             AND id NOT IN (
                 SELECT cs.student_id FROM class_students cs
                 JOIN classes c ON cs.class_id = c.id
@@ -533,7 +533,7 @@ app.get('/api/students/unenrolled', authMiddleware, async (c) => {
         args = [me.id]
     } else {
         query = `SELECT id, full_name, username FROM users
-            WHERE role = 'student' AND status = 'approved'
+            WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
             AND id NOT IN (SELECT DISTINCT student_id FROM class_students)
             ORDER BY full_name`
         args = []
@@ -550,7 +550,7 @@ app.get('/api/classes/:id/available-students', authMiddleware, async (c) => {
     const classId = c.req.param('id')
     const { results } = await c.env.DB.prepare(`
         SELECT id, full_name, username FROM users
-        WHERE role = 'student' AND status = 'approved'
+        WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
         AND id NOT IN (SELECT student_id FROM class_students WHERE class_id = ?)
         ORDER BY full_name
     `).bind(classId).all()
@@ -561,7 +561,7 @@ app.get('/api/classes/:id/available-students', authMiddleware, async (c) => {
 app.get('/api/teachers', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    const { results } = await c.env.DB.prepare("SELECT id, full_name, username FROM users WHERE role = 'teacher' AND status = 'approved' ORDER BY full_name").all()
+    const { results } = await c.env.DB.prepare("SELECT id, full_name, username FROM users WHERE role = 'teacher' AND (status = 'approved' OR status IS NULL) ORDER BY full_name").all()
     return c.json(results)
 })
 
@@ -875,7 +875,7 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
         LEFT JOIN class_students cs ON cs.student_id = u.id
         LEFT JOIN classes c ON cs.class_id = c.id
         LEFT JOIN schools s ON c.school_id = s.id
-        WHERE u.role = 'student' AND u.status = 'approved'
+        WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
         ORDER BY COALESCE(sp.xp, 0) DESC
         LIMIT 50
     `).all()
@@ -901,7 +901,7 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
             LEFT JOIN student_progress sp ON sp.student_id = u.id
             LEFT JOIN classes c ON c.id = cs.class_id
             LEFT JOIN schools s ON s.id = c.school_id
-            WHERE cs2.student_id = ? AND u.role = 'student' AND u.status = 'approved'
+            WHERE cs2.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
             GROUP BY u.id
             ORDER BY COALESCE(sp.xp, 0) DESC
             LIMIT 50
@@ -931,7 +931,7 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
             JOIN users u ON u.id = cs.student_id
             LEFT JOIN student_progress sp ON sp.student_id = u.id
             LEFT JOIN schools s ON s.id = c.school_id
-            WHERE mycs.student_id = ? AND u.role = 'student' AND u.status = 'approved'
+            WHERE mycs.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
             GROUP BY u.id
             ORDER BY COALESCE(sp.xp, 0) DESC
             LIMIT 50
@@ -949,8 +949,8 @@ app.get('/api/student/rank', authMiddleware, async (c) => {
         const myXp = myProg?.xp || 0
 
         // Platform rank
-        const pr = await c.env.DB.prepare(`SELECT COUNT(*) + 1 as rank FROM student_progress sp JOIN users u ON sp.student_id = u.id WHERE u.role = 'student' AND u.status = 'approved' AND sp.xp > ?`).bind(myXp).first() as any
-        const pt = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM users WHERE role = 'student' AND status = 'approved'`).first() as any
+        const pr = await c.env.DB.prepare(`SELECT COUNT(*) + 1 as rank FROM student_progress sp JOIN users u ON sp.student_id = u.id WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL) AND sp.xp > ?`).bind(myXp).first() as any
+        const pt = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM users WHERE role = 'student' AND (status = 'approved' OR status IS NULL)`).first() as any
 
         // Class rank
         const myClass = await c.env.DB.prepare('SELECT class_id FROM class_students WHERE student_id = ? LIMIT 1').bind(me.id).first() as any
