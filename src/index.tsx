@@ -557,6 +557,21 @@ app.get('/api/classes/:id/available-students', authMiddleware, async (c) => {
     return c.json(results)
 })
 
+// Get all students with their current class assignment (admin only — for search/transfer UI)
+app.get('/api/admin/students-with-class', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare(`
+        SELECT u.id, u.full_name, u.username, cs.class_id, c.name as class_name
+        FROM users u
+        LEFT JOIN class_students cs ON cs.student_id = u.id
+        LEFT JOIN classes c ON c.id = cs.class_id
+        WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
+        ORDER BY u.full_name
+    `).all()
+    return c.json(results)
+})
+
 // Get teachers list (admin only)
 app.get('/api/teachers', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -10052,6 +10067,7 @@ async function loadUsers() {
 // ── Schools + Classes admin functions ──────────────────────────────────────
 
 var cachedTeachers = [];
+var cachedAllStudents = [];
 
 async function loadClasses() {
     // "loadClasses" is the hook called by the tab switch; now delegates to loadSchools
@@ -10084,7 +10100,10 @@ async function loadSchools() {
         return;
     }
 
-    cachedTeachers = await fetch('/api/teachers').then(r=>r.json()).catch(()=>[]);
+    [cachedTeachers, cachedAllStudents] = await Promise.all([
+        fetch('/api/teachers').then(r=>r.json()).catch(()=>[]),
+        fetch('/api/admin/students-with-class').then(r=>r.json()).catch(()=>[])
+    ]);
 
     // Update stat counter (total classes across all schools)
     document.getElementById('statClasses').textContent = Array.isArray(allClasses) ? allClasses.length : 0;
@@ -10114,11 +10133,8 @@ async function loadSchools() {
         container.appendChild(legacyDiv);
         const uc = document.getElementById('unassigned_classes');
         for (const cls of unassigned) {
-            const [students, available] = await Promise.all([
-                fetch('/api/classes/' + cls.id + '/students').then(r=>r.json()),
-                fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json())
-            ]);
-            uc.innerHTML += buildClassHTML(cls, students, available);
+            const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
+            uc.innerHTML += buildClassHTML(cls, students);
         }
     }
 }
@@ -10127,11 +10143,8 @@ async function buildSchoolHTML(school, schoolClasses) {
     var teacherOpts = cachedTeachers.map(t=>\`<option value="\${t.id}">\${t.full_name} (@\${t.username})</option>\`).join('');
     var classesHTML = '';
     for (const cls of schoolClasses) {
-        const [students, available] = await Promise.all([
-            fetch('/api/classes/' + cls.id + '/students').then(r=>r.json()),
-            fetch('/api/classes/' + cls.id + '/available-students').then(r=>r.json())
-        ]);
-        classesHTML += buildClassHTML(cls, students, available);
+        const students = await fetch('/api/classes/' + cls.id + '/students').then(r=>r.json());
+        classesHTML += buildClassHTML(cls, students);
     }
     return \`
         <div class="flex items-start justify-between mb-4">
@@ -10168,16 +10181,17 @@ async function buildSchoolHTML(school, schoolClasses) {
     \`;
 }
 
-function buildClassHTML(cls, students, available) {
+function buildClassHTML(cls, students) {
+    var enrolledIds = students.map(s => s.id);
     var studentRows = students.map(s => \`
         <tr class="border-b hover:bg-gray-50">
             <td class="py-1.5 font-semibold text-sm">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
             <td class="py-1.5 text-xs text-yellow-500 font-bold">⭐ \${s.xp||0}</td>
             <td class="py-1.5 text-xs"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Lv \${s.level||1}</span></td>
-            <td class="py-1.5"><button onclick="removeStudentFromClass(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs">✕</button></td>
+            <td class="py-1.5"><button onclick="removeStudentFromClass(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs" title="Remove from class">✕</button></td>
         </tr>\`).join('');
-    var availableOpts = available.map(s => \`<option value="\${s.id}">\${s.full_name} (@\${s.username})</option>\`).join('');
     var teacherOpts = cachedTeachers.map(t=>\`<option value="\${t.id}" \${cls.teacher_id==t.id?'selected':''}>\${t.full_name}</option>\`).join('');
+    var totalStudents = cachedAllStudents.length;
     return \`<div id="class_\${cls.id}" class="bg-white border rounded-xl p-4">
         <div class="flex items-start justify-between mb-2">
             <div id="class_view_\${cls.id}">
@@ -10200,7 +10214,18 @@ function buildClassHTML(cls, students, available) {
             </div>
         </div>
         \${students.length ? \`<div class="overflow-x-auto mb-2"><table class="w-full text-sm"><thead><tr class="text-gray-400 text-xs border-b"><th class="pb-1 text-left">Student</th><th class="pb-1 text-left">XP</th><th class="pb-1 text-left">Level</th><th></th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-xs mb-2">No students enrolled yet.</p>'}
-        \${available.length ? \`<div class="flex gap-2 items-center"><select id="addStudentSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400"><option value="">+ Add student...</option>\${availableOpts}</select><button onclick="addStudentToClass(\${cls.id})" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700">Add</button></div>\` : '<p class="text-gray-400 text-xs">All approved students enrolled.</p>'}
+        \${totalStudents > 0 ? \`
+        <div class="border-t pt-3 mt-1">
+            <div class="relative">
+                <input type="text" id="stuSearch_\${cls.id}"
+                    placeholder="🔍 Search students to add or transfer..."
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                    oninput="renderStudentSearch(\${cls.id}, this.value)"
+                    onblur="setTimeout(()=>{ var r=document.getElementById('stuResults_\${cls.id}'); if(r) r.classList.add('hidden'); }, 200)"
+                    onfocus="renderStudentSearch(\${cls.id}, this.value)">
+                <div id="stuResults_\${cls.id}" class="hidden absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto border rounded-lg shadow-xl bg-white divide-y text-sm z-20"></div>
+            </div>
+        </div>\` : '<p class="text-gray-400 text-xs border-t pt-2 mt-1">No approved students in the system yet.</p>'}
     </div>\`;
 }
 
@@ -10263,11 +10288,57 @@ async function removeStudentFromClass(classId, studentId) {
     loadSchools();
 }
 
-async function addStudentToClass(classId) {
-    var sel = document.getElementById('addStudentSel_' + classId);
-    if (!sel.value) return;
-    await fetch('/api/classes/' + classId + '/students', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ student_id: sel.value }) });
+async function adminAddStudent(studentId, classId) {
+    await fetch('/api/classes/' + classId + '/students', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ student_id: studentId })
+    });
     loadSchools();
+}
+
+async function adminTransferStudent(studentId, toClassId, fromClassId) {
+    if (!confirm('Move this student to this class? They will be removed from their current class.')) return;
+    await fetch('/api/classes/' + fromClassId + '/students/' + studentId, { method: 'DELETE' });
+    await fetch('/api/classes/' + toClassId + '/students', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ student_id: studentId })
+    });
+    loadSchools();
+}
+
+function renderStudentSearch(classId, query) {
+    var container = document.getElementById('stuResults_' + classId);
+    if (!container) return;
+    var q = (query || '').toLowerCase().trim();
+    var list = q
+        ? cachedAllStudents.filter(function(s) {
+            return s.full_name.toLowerCase().includes(q) || s.username.toLowerCase().includes(q);
+          })
+        : cachedAllStudents.slice(0, 8);
+    if (!list.length) {
+        container.innerHTML = '<p class="text-gray-400 text-xs p-3 text-center">No students found.</p>';
+        container.classList.remove('hidden');
+        return;
+    }
+    container.innerHTML = list.slice(0, 25).map(function(s) {
+        var inThis  = s.class_id == classId;
+        var inOther = s.class_id && !inThis;
+        var badge = inThis
+            ? '<span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-bold">✓ In this class</span>'
+            : inOther
+                ? '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">📚 ' + s.class_name + '</span>'
+                : '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">Unassigned</span>';
+        var btn = inThis ? ''
+            : inOther
+                ? '<button onmousedown="adminTransferStudent(' + s.id + ',' + classId + ',' + s.class_id + ')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Transfer</button>'
+                : '<button onmousedown="adminAddStudent(' + s.id + ',' + classId + ')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Add</button>';
+        return '<div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 gap-2">'
+            + '<div class="min-w-0"><span class="font-medium text-gray-800 text-sm">' + s.full_name + '</span>'
+            + '<span class="text-gray-400 text-xs ml-1">@' + s.username + '</span></div>'
+            + '<div class="flex items-center gap-2 flex-shrink-0">' + badge + btn + '</div>'
+            + '</div>';
+    }).join('');
+    container.classList.remove('hidden');
 }
 
 function showCreateSchool() { document.getElementById('createSchoolForm').classList.toggle('hidden'); }
@@ -10719,7 +10790,17 @@ async function loadClasses() {
                 <span id="assignMsg_\${cls.id}" class="text-xs hidden"></span>
             </div>
             \${students.length ? \`<div class="overflow-x-auto mb-4"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500 text-left text-xs"><th class="pb-2">Student</th><th class="pb-2">Level</th><th class="pb-2">XP</th><th class="pb-2">Lessons</th><th class="pb-2">Streak</th><th class="pb-2">Actions</th></tr></thead><tbody>\${studentRows}</tbody></table></div>\` : '<p class="text-gray-400 text-center py-6 mb-2">No students in this class yet.</p>'}
-            \${available.length ? \`<div class="flex gap-2 items-center border-t pt-4"><select id="tAddSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"><option value="">+ Enrol an approved student...</option>\${availableOpts}</select><button onclick="teacherAddStudent(\${cls.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button></div>\` : '<p class="text-gray-400 text-xs border-t pt-3 mt-2">All approved students are already enrolled.</p>'}
+            \${available.length ? \`<div class="border-t pt-4 mt-2">
+                <input type="text" placeholder="🔍 Search unassigned students..."
+                    class="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-blue-400"
+                    oninput="filterTeacherStudents(\${cls.id}, this.value)">
+                <div class="flex gap-2 items-center">
+                    <select id="tAddSel_\${cls.id}" class="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+                        <option value="">+ Select student to enrol...</option>\${availableOpts}
+                    </select>
+                    <button onclick="teacherAddStudent(\${cls.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700">Add</button>
+                </div>
+            </div>\` : '<p class="text-gray-400 text-xs border-t pt-3 mt-2">All unassigned students are already enrolled.</p>'}
         \`;
         container.appendChild(div);
     }
@@ -10817,6 +10898,17 @@ async function teacherAddStudent(classId) {
     if (!sel || !sel.value) return;
     await fetch('/api/classes/' + classId + '/students', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ student_id: sel.value }) });
     loadClasses();
+}
+
+function filterTeacherStudents(classId, query) {
+    var sel = document.getElementById('tAddSel_' + classId);
+    if (!sel) return;
+    var q = query.toLowerCase().trim();
+    Array.from(sel.options).forEach(function(opt) {
+        if (!opt.value) return; // keep placeholder
+        opt.hidden = q ? !opt.text.toLowerCase().includes(q) : false;
+    });
+    sel.value = ''; // reset selection when filtering
 }
 
 async function removeStudent(classId, studentId) {
