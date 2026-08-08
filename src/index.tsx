@@ -10554,9 +10554,9 @@ async function createUser() {
 
 async function changeRole(id, sel) {
     const newRole = sel.value;
-    const warnings = { teacher: 'This will remove the user from any class they are enrolled in as a student and delete their progress.', admin: 'This grants full admin access.' };
-    const warn = warnings[newRole] ? '\n\n⚠️ ' + warnings[newRole] : '';
-    if (!confirm('Change this user\'s role to "' + newRole + '"?' + warn)) { loadUsers(); return; }
+    const warnings = { teacher: 'This will remove the user from class enrollment and delete their student progress.', admin: 'This grants full admin access.' };
+    const warn = warnings[newRole] ? ' WARNING: ' + warnings[newRole] : '';
+    if (!confirm('Change role to "' + newRole + '"?' + warn)) { loadUsers(); return; }
     const res = await fetch('/api/admin/users/' + id + '/role', {
         method: 'PUT', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ role: newRole })
