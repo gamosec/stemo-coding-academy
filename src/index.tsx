@@ -10335,16 +10335,29 @@ function renderStudentSearch(classId, query) {
         container.classList.remove('hidden');
         return;
     }
-    container.innerHTML = list.map(function(s) {
-        var inThis  = s.class_id == classId;
-        var inOther = s.class_id && !inThis;
-        var badge = inThis
+    // Group: 1) already in this class, 2) unassigned, 3) each other class alphabetically
+    var inThis   = list.filter(function(s){ return s.class_id == classId; });
+    var unassigned = list.filter(function(s){ return !s.class_id; });
+    var inOtherMap = {};
+    list.forEach(function(s){
+        if (s.class_id && s.class_id != classId) {
+            var key = s.class_name || ('Class ' + s.class_id);
+            if (!inOtherMap[key]) inOtherMap[key] = [];
+            inOtherMap[key].push(s);
+        }
+    });
+    var otherGroups = Object.keys(inOtherMap).sort();
+
+    function renderRow(s) {
+        var isInThis  = s.class_id == classId;
+        var isInOther = s.class_id && !isInThis;
+        var badge = isInThis
             ? '<span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-bold">✓ In this class</span>'
-            : inOther
-                ? '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">📚 ' + s.class_name + '</span>'
+            : isInOther
+                ? '<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">📚 ' + (s.class_name||'') + '</span>'
                 : '<span class="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">Unassigned</span>';
-        var btn = inThis ? ''
-            : inOther
+        var btn = isInThis ? ''
+            : isInOther
                 ? '<button onmousedown="adminTransferStudent(' + s.id + ',' + classId + ',' + s.class_id + ')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Transfer</button>'
                 : '<button onmousedown="adminAddStudent(' + s.id + ',' + classId + ')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Add</button>';
         return '<div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 gap-2">'
@@ -10352,7 +10365,28 @@ function renderStudentSearch(classId, query) {
             + '<span class="text-gray-400 text-xs ml-1">@' + s.username + '</span></div>'
             + '<div class="flex items-center gap-2 flex-shrink-0">' + badge + btn + '</div>'
             + '</div>';
-    }).join('');
+    }
+
+    function groupHeader(label, count, color) {
+        return '<div class="px-3 py-1 text-xs font-bold uppercase tracking-wide ' + color + ' border-b">'
+            + label + ' <span class="font-normal opacity-70">(' + count + ')</span></div>';
+    }
+
+    var html = '';
+    if (inThis.length) {
+        html += groupHeader('✓ Already in this class', inThis.length, 'bg-green-50 text-green-700');
+        html += inThis.map(renderRow).join('');
+    }
+    if (unassigned.length) {
+        html += groupHeader('⚪ Unassigned', unassigned.length, 'bg-gray-50 text-gray-600');
+        html += unassigned.map(renderRow).join('');
+    }
+    otherGroups.forEach(function(grp) {
+        html += groupHeader('📚 ' + grp, inOtherMap[grp].length, 'bg-amber-50 text-amber-700');
+        html += inOtherMap[grp].map(renderRow).join('');
+    });
+
+    container.innerHTML = html;
     container.classList.remove('hidden');
 }
 
