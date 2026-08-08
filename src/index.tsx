@@ -528,12 +528,9 @@ app.get('/api/students/unenrolled', authMiddleware, async (c) => {
     if (me.role === 'teacher') {
         query = `SELECT id, full_name, username FROM users
             WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
-            AND id NOT IN (
-                SELECT cs.student_id FROM class_students cs
-                JOIN classes c ON cs.class_id = c.id
-                WHERE c.teacher_id = ?
-            ) ORDER BY full_name`
-        args = [me.id]
+            AND id NOT IN (SELECT DISTINCT student_id FROM class_students)
+            ORDER BY full_name`
+        args = []
     } else {
         query = `SELECT id, full_name, username FROM users
             WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
