@@ -326,6 +326,25 @@ app.post('/api/admin/users', authMiddleware, async (c) => {
     }
 })
 
+// Change user role (admin only)
+app.put('/api/admin/users/:id/role', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const id = c.req.param('id')
+    if (String(id) === String(me.id)) return c.json({ error: 'Cannot change your own role' }, 400)
+    const { role } = await c.req.json()
+    const allowed = ['student', 'teacher', 'parent', 'admin']
+    if (!allowed.includes(role)) return c.json({ error: 'Invalid role' }, 400)
+    await c.env.DB.prepare('UPDATE users SET status = ? WHERE id = ?').bind('approved', id).run()
+    await c.env.DB.prepare('UPDATE users SET role = ? WHERE id = ?').bind(role, id).run()
+    // If changed TO teacher: remove from class_students (teachers aren't enrolled as students)
+    if (role === 'teacher') {
+        await c.env.DB.prepare('DELETE FROM class_students WHERE student_id = ?').bind(id).run()
+        await c.env.DB.prepare('DELETE FROM student_progress WHERE student_id = ?').bind(id).run()
+    }
+    return c.json({ success: true, role })
+})
+
 // Delete user
 app.delete('/api/admin/users/:id', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -3437,6 +3456,9 @@ const htmlContent = `<!DOCTYPE html>
         // Current logged-in student (populated on init)
         var currentUser = null;
 
+        // true when a teacher/admin visits /academy — suppresses all XP, progress, and saves
+        var isTeacherDemo = false;
+
         // Lesson assigned by teacher (lesson ID string, e.g. 'lesson-3')
         var assignedLessonId = null;
 
@@ -3450,9 +3472,16 @@ const htmlContent = `<!DOCTYPE html>
             console.log('STEMO initializing...');
             // Load user info from injected data attribute
             var xpEl = document.getElementById('xpCounter');
+            isTeacherDemo = xpEl.getAttribute('data-demo') === 'teacher';
             var userData = null;
             try { userData = JSON.parse(xpEl.getAttribute('data-user') || 'null'); } catch(e) {}
-            if (userData) {
+            if (isTeacherDemo) {
+                // Teacher/admin preview mode — no XP, no progress saving, no localStorage writes
+                xpEl.title = 'Preview Mode — XP not tracked for teachers';
+                updateUI();
+                loadLessons();
+                loadBadges();
+            } else if (userData) {
                 currentUser = userData;
                 document.getElementById('studentName').textContent = userData.full_name || userData.username;
                 loadProgressFromDB(userData.id);
@@ -3525,6 +3554,7 @@ const htmlContent = `<!DOCTYPE html>
 
         // Save progress to D1 (and localStorage as fallback)
         async function saveProgress() {
+            if (isTeacherDemo) return; // Teachers never earn or save XP
             localStorage.setItem('stemo_xp', stemo.xp);
             localStorage.setItem('stemo_level', stemo.level);
             localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
@@ -7937,8 +7967,13 @@ const htmlContent = `<!DOCTYPE html>
             }
             var nextBtn = document.getElementById('nextLessonBtn');
 
+            // Teacher preview: always show "preview" banner, never XP
+            if (isTeacherDemo) {
+                document.getElementById('xpBannerLabel').textContent = '🎓 Teacher Preview';
+                document.getElementById('xpEarned').textContent = 'XP not saved for teachers';
+                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-blue-400 to-indigo-500 rounded-2xl p-4 mb-6';
             // XP banner: show points for first completion, "Already completed" for replays
-            if (xp > 0) {
+            } else if (xp > 0) {
                 document.getElementById('xpBannerLabel').textContent = isChallenge ? '🏆 Challenge Bonus!' : 'You earned';
                 document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
                 document.getElementById('xpBanner').className = isChallenge
@@ -10104,6 +10139,9 @@ async function loadUsers() {
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
         <td class="py-2 flex gap-2 items-center flex-wrap">
             \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
+            <select onchange="changeRole(\${u.id}, this)" class="border rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:border-indigo-400" title="Change role">
+                \${['student','teacher','parent','admin'].map(r => \`<option value="\${r}" \${r===u.role?'selected':''}>\${r}</option>\`).join('')}
+            </select>
             <button onclick="deleteUser(\${u.id}, '\${escHtml(u.username)}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
         </td>
     </tr>\`).join('');
@@ -10513,6 +10551,19 @@ async function createUser() {
     else { msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + data.error; }
 }
 
+
+async function changeRole(id, sel) {
+    const newRole = sel.value;
+    const warnings = { teacher: 'This will remove the user from any class they are enrolled in as a student and delete their progress.', admin: 'This grants full admin access.' };
+    const warn = warnings[newRole] ? '\n\n⚠️ ' + warnings[newRole] : '';
+    if (!confirm('Change this user\'s role to "' + newRole + '"?' + warn)) { loadUsers(); return; }
+    const res = await fetch('/api/admin/users/' + id + '/role', {
+        method: 'PUT', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ role: newRole })
+    }).then(r => r.json());
+    if (res.success) { loadUsers(); loadSchools && loadSchools(); }
+    else alert('❌ ' + (res.error || 'Failed'));
+}
 
 async function deleteUser(id, username) {
     if (!confirm('Delete user @' + username + '?')) return;
@@ -11861,11 +11912,14 @@ app.get('/academy', async (c) => {
     if (!token) return c.redirect('/login')
     const payload = await verifyToken(token, c.env)
     if (!payload) return c.redirect('/login')
+    const backUrl = payload.role === 'admin' ? '/dashboard/admin' : '/dashboard/teacher'
     // Show academy in demo mode for teachers/admins (no progress saved)
     const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
-        🎓 Demo Mode — You are viewing the academy as a teacher. Progress is not saved. <a href="/dashboard/teacher" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
+        🎓 Preview Mode — You are viewing the academy as a ${payload.role}. XP and progress are <u>not saved</u>. <a href="${backUrl}" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
     </div>`
-    const page = htmlContent.replace('<body', demoBanner + '<body')
+    const page = htmlContent
+        .replace('<body', demoBanner + '<body')
+        .replace('id="xpCounter"', `id="xpCounter" data-demo="teacher"`)
     return c.html(page)
 })
 
