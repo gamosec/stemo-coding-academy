@@ -10140,7 +10140,7 @@ async function loadUsers() {
         <td class="py-2 flex gap-2 items-center flex-wrap">
             \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
             <select onchange="changeRole(\${u.id}, this)" class="border rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:border-indigo-400" title="Change role">
-                \${['student','teacher','parent','admin'].map(r => \`<option value="\${r}" \${r===u.role?'selected':''}>\${r}</option>\`).join('')}
+                \${['student','teacher','parent','admin'].map(function(r){ return '<option value="'+r+'" '+(r===u.role?'selected':'')+'>'+r+'</option>'; }).join('')}
             </select>
             <button onclick="deleteUser(\${u.id}, '\${escHtml(u.username)}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
         </td>
