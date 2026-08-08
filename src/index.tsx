@@ -10028,24 +10028,54 @@ async function deleteVideo(id) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function loadPending() {
-    const pending = await fetch('/api/admin/pending').then(r=>r.json());
+    const [pending, classes] = await Promise.all([
+        fetch('/api/admin/pending').then(r=>r.json()),
+        fetch('/api/classes').then(r=>r.json()).catch(()=>[])
+    ]);
     document.getElementById('pendingBadge').textContent = pending.length;
     const list = document.getElementById('pendingList');
     if (!pending.length) {
         list.innerHTML = '<p class="text-gray-400 text-center py-8">✅ No pending registrations right now!</p>';
         return;
     }
+    // Build grouped class options by school
+    var schoolGroups = {};
+    classes.forEach(function(c) {
+        var grp = c.school_name || '📂 No School';
+        if (!schoolGroups[grp]) schoolGroups[grp] = [];
+        schoolGroups[grp].push(c);
+    });
+    var groupedOpts = Object.keys(schoolGroups).sort().map(function(grp) {
+        return '<optgroup label="' + grp + '">' +
+            schoolGroups[grp].map(function(c){ return '<option value="' + c.id + '">' + escHtml(c.name) + '</option>'; }).join('') +
+            '</optgroup>';
+    }).join('');
+
     list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
-        <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
-            <div>
-                <div class="font-bold text-gray-800">\${escHtml(u.full_name)}</div>
-                <div class="text-gray-500 text-sm">@\${escHtml(u.username)} • registered \${u.created_at?.slice(0,10) || 'today'}</div>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="approveUser(\${u.id}, 'approve')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">✅ Approve</button>
-                <button onclick="approveUser(\${u.id}, 'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">❌ Reject</button>
+        <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <div class="font-bold text-gray-800">\${escHtml(u.full_name)}</div>
+                    <div class="text-gray-500 text-sm">@\${escHtml(u.username)} • registered \${u.created_at?.slice(0,10)||'today'}</div>
+                </div>
+                <div class="flex gap-2 flex-wrap items-center">
+                    \${classes.length ? \`<select id="adminApproveClass_\${u.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-green-400 max-w-[200px]"><option value="">— No class yet —</option>\${groupedOpts}</select>\` : ''}
+                    <button onclick="adminApproveAndEnroll(\${u.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">✅ Approve</button>
+                    <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all">❌ Reject</button>
+                </div>
             </div>
         </div>\`).join('')}</div>\`;
+}
+
+async function adminApproveAndEnroll(id) {
+    const sel = document.getElementById('adminApproveClass_' + id);
+    const classId = sel ? sel.value : '';
+    await fetch('/api/admin/users/' + id + '/approve', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'approve', class_id: classId || null })
+    });
+    loadPending();
+    loadUsers();
 }
 
 async function approveUser(id, action) {
@@ -10804,7 +10834,18 @@ async function loadPending() {
     else badge.classList.add('hidden');
     const list = document.getElementById('pendingList');
     if (!pending.length) { list.innerHTML = '<p class="text-gray-400 text-center py-8">✅ No pending registrations right now!</p>'; return; }
-    const classOpts = allClasses.map(c=>\`<option value="\${c.id}">\${c.name}</option>\`).join('');
+    // Group teacher's classes by school for a cleaner dropdown
+    var tSchoolGroups = {};
+    allClasses.forEach(function(c) {
+        var grp = c.school_name || '📂 No School';
+        if (!tSchoolGroups[grp]) tSchoolGroups[grp] = [];
+        tSchoolGroups[grp].push(c);
+    });
+    var tGroupedOpts = Object.keys(tSchoolGroups).sort().map(function(grp) {
+        return '<optgroup label="' + grp + '">' +
+            tSchoolGroups[grp].map(function(c){ return '<option value="' + c.id + '">' + escHtml(c.name) + '</option>'; }).join('') +
+            '</optgroup>';
+    }).join('');
     list.innerHTML = \`<div class="space-y-3">\${pending.map(u => \`
         <div class="p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <div class="flex items-start justify-between gap-3 flex-wrap">
@@ -10813,7 +10854,7 @@ async function loadPending() {
                     <div class="text-gray-500 text-sm">@\${escHtml(u.username)} • registered \${u.created_at?.slice(0,10)||'today'}</div>
                 </div>
                 <div class="flex gap-2 flex-wrap items-center">
-                    \${allClasses.length ? \`<select id="approveClass_\${u.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-green-400"><option value="">No class yet</option>\${classOpts}</select>\` : ''}
+                    \${allClasses.length ? \`<select id="approveClass_\${u.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-green-400 max-w-[200px]"><option value="">— No class yet —</option>\${tGroupedOpts}</select>\` : ''}
                     <button onclick="approveAndEnroll(\${u.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold">✅ Approve</button>
                     <button onclick="approveUser(\${u.id},'reject')" class="bg-red-400 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold">❌ Reject</button>
                 </div>
