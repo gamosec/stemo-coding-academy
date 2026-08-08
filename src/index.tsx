@@ -2365,7 +2365,7 @@ const htmlContent = `<!DOCTYPE html>
                         <div>
                             <h2 class="text-3xl font-bold text-gray-800" id="profileName">Loading...</h2>
                             <p class="text-gray-400 text-lg">@<span id="profileUsername">-</span></p>
-                            <span class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full mt-1 inline-block">🎓 Student</span>
+                            <span id="roleBadge" class="bg-indigo-100 text-indigo-700 text-sm font-bold px-3 py-1 rounded-full mt-1 inline-block">🎓 Student</span>
                         </div>
                     </div>
                     <div id="profileClassInfo" class="bg-gray-50 rounded-2xl p-4 mb-4 space-y-2"></div>
@@ -3476,8 +3476,18 @@ const htmlContent = `<!DOCTYPE html>
             var userData = null;
             try { userData = JSON.parse(xpEl.getAttribute('data-user') || 'null'); } catch(e) {}
             if (isTeacherDemo) {
-                // Teacher/admin preview mode — no XP, no progress saving, no localStorage writes
-                xpEl.title = 'Preview Mode — XP not tracked for teachers';
+                // Teacher/admin preview mode — reset any stale localStorage data so it shows clean
+                stemo.xp = 0; stemo.level = 1; stemo.completedLessons = []; stemo.badges = []; stemo.streak = 1;
+                // Show the teacher/admin's actual name and role
+                if (userData) {
+                    var displayName = userData.full_name || userData.username || 'Teacher';
+                    document.getElementById('studentName').textContent = displayName;
+                    var roleLabel = userData.role ? (userData.role.charAt(0).toUpperCase() + userData.role.slice(1)) : 'Teacher';
+                    // Update the role badge in the profile tab
+                    var roleBadgeEl = document.getElementById('roleBadge');
+                    if (roleBadgeEl) roleBadgeEl.textContent = '🎓 ' + roleLabel;
+                }
+                xpEl.title = 'Preview Mode — XP not tracked for ' + (userData && userData.role ? userData.role + 's' : 'teachers');
                 updateUI();
                 loadLessons();
                 loadBadges();
@@ -11917,9 +11927,10 @@ app.get('/academy', async (c) => {
     const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
         🎓 Preview Mode — You are viewing the academy as a ${payload.role}. XP and progress are <u>not saved</u>. <a href="${backUrl}" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
     </div>`
+    const userJson = JSON.stringify({ id: payload.id, role: payload.role, username: payload.username, full_name: payload.full_name || payload.username })
     const page = htmlContent
         .replace('<body', demoBanner + '<body')
-        .replace('id="xpCounter"', `id="xpCounter" data-demo="teacher"`)
+        .replace('id="xpCounter"', `id="xpCounter" data-demo="teacher" data-user='${userJson}'`)
     return c.html(page)
 })
 
