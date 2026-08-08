@@ -428,10 +428,10 @@ app.get('/api/classes', authMiddleware, async (c) => {
     const me = c.get('user')
     let rows
     if (me.role === 'admin') {
-        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id ORDER BY c.created_at DESC').all()
+        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name, s.name as school_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id LEFT JOIN schools s ON s.id = c.school_id ORDER BY c.created_at DESC').all()
         rows = results
     } else if (me.role === 'teacher') {
-        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.teacher_id = ? ORDER BY c.created_at DESC').bind(me.id).all()
+        const { results } = await c.env.DB.prepare('SELECT c.*, u.full_name as teacher_name, s.name as school_name FROM classes c LEFT JOIN users u ON c.teacher_id = u.id LEFT JOIN schools s ON s.id = c.school_id WHERE c.teacher_id = ? ORDER BY c.created_at DESC').bind(me.id).all()
         rows = results
     } else {
         return c.json({ error: 'Forbidden' }, 403)
@@ -478,9 +478,12 @@ app.get('/api/classes/:id/students', authMiddleware, async (c) => {
     if (me.role !== 'admin' && me.role !== 'teacher') return c.json({ error: 'Forbidden' }, 403)
     const classId = c.req.param('id')
     const { results } = await c.env.DB.prepare(`
-        SELECT u.id, u.username, u.full_name, sp.xp, sp.level, sp.completed_lessons, sp.streak
+        SELECT u.id, u.username, u.full_name, sp.xp, sp.level, sp.completed_lessons, sp.streak,
+               s.name as school_name
         FROM class_students cs JOIN users u ON cs.student_id = u.id
         LEFT JOIN student_progress sp ON sp.student_id = u.id
+        LEFT JOIN classes cl ON cl.id = cs.class_id
+        LEFT JOIN schools s ON s.id = cl.school_id
         WHERE cs.class_id = ?
     `).bind(classId).all()
     return c.json(results)
@@ -575,10 +578,12 @@ app.get('/api/admin/students-with-class', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     const { results } = await c.env.DB.prepare(`
-        SELECT u.id, u.full_name, u.username, cs.class_id, c.name as class_name
+        SELECT u.id, u.full_name, u.username, cs.class_id, c.name as class_name,
+               s.name as school_name
         FROM users u
         LEFT JOIN class_students cs ON cs.student_id = u.id
         LEFT JOIN classes c ON c.id = cs.class_id
+        LEFT JOIN schools s ON s.id = c.school_id
         WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
         ORDER BY u.full_name
     `).all()
@@ -10196,9 +10201,15 @@ async function buildSchoolHTML(school, schoolClasses) {
 
 function buildClassHTML(cls, students) {
     var enrolledIds = students.map(s => s.id);
+    var schoolLabel = cls.school_name
+        ? \`<span class="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full">🏫 \${cls.school_name}</span>\`
+        : '';
     var studentRows = students.map(s => \`
         <tr class="border-b hover:bg-gray-50">
-            <td class="py-1.5 font-semibold text-sm">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></td>
+            <td class="py-1.5">
+                <div class="font-semibold text-sm">\${s.full_name}<span class="text-gray-400 text-xs ml-1">@\${s.username}</span></div>
+                \${s.school_name ? \`<div class="text-purple-600 text-xs mt-0.5">🏫 \${s.school_name}</div>\` : ''}
+            </td>
             <td class="py-1.5 text-xs text-yellow-500 font-bold">⭐ \${s.xp||0}</td>
             <td class="py-1.5 text-xs"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Lv \${s.level||1}</span></td>
             <td class="py-1.5"><button onclick="removeStudentFromClass(\${cls.id},\${s.id})" class="text-red-400 hover:text-red-600 text-xs" title="Remove from class">✕</button></td>
@@ -10360,9 +10371,13 @@ function renderStudentSearch(classId, query) {
             : isInOther
                 ? '<button onmousedown="adminTransferStudent(' + s.id + ',' + classId + ',' + s.class_id + ')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Transfer</button>'
                 : '<button onmousedown="adminAddStudent(' + s.id + ',' + classId + ')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded-lg font-bold flex-shrink-0">Add</button>';
+        var schoolLine = s.school_name
+            ? '<div class="text-purple-600 text-xs">🏫 ' + s.school_name + '</div>'
+            : '';
         return '<div class="flex items-center justify-between px-3 py-2 hover:bg-gray-50 gap-2">'
             + '<div class="min-w-0"><span class="font-medium text-gray-800 text-sm">' + s.full_name + '</span>'
-            + '<span class="text-gray-400 text-xs ml-1">@' + s.username + '</span></div>'
+            + '<span class="text-gray-400 text-xs ml-1">@' + s.username + '</span>'
+            + schoolLine + '</div>'
             + '<div class="flex items-center gap-2 flex-shrink-0">' + badge + btn + '</div>'
             + '</div>';
     }
@@ -10796,6 +10811,7 @@ async function loadClasses() {
                 <td class="py-2.5">
                     <div class="font-semibold text-sm">\${escHtml(s.full_name)}</div>
                     <div class="text-gray-400 text-xs">@\${escHtml(s.username)}</div>
+                    \${s.school_name ? \`<div class="text-purple-600 text-xs">🏫 \${escHtml(s.school_name)}</div>\` : ''}
                     <div id="pwForm_\${s.id}" class="hidden mt-2 flex gap-2 items-center">
                         <input type="password" id="pwInput_\${s.id}" placeholder="New password" class="border rounded-lg px-2 py-1 text-xs w-32 focus:outline-none focus:border-blue-400">
                         <button onclick="submitResetPw(\${s.id})" class="bg-blue-600 text-white text-xs px-2 py-1 rounded-lg font-bold">Set</button>
@@ -10822,6 +10838,7 @@ async function loadClasses() {
             <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>
                     <h2 class="text-xl text-blue-700">🏫 \${escHtml(cls.name)}</h2>
+                    \${cls.school_name ? \`<span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5">🏫 \${escHtml(cls.school_name)}</span>\` : ''}
                     <p class="text-gray-400 text-sm mt-0.5">\${escHtml(cls.description||'')}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
