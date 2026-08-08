@@ -10329,13 +10329,13 @@ function renderStudentSearch(classId, query) {
         ? cachedAllStudents.filter(function(s) {
             return s.full_name.toLowerCase().includes(q) || s.username.toLowerCase().includes(q);
           })
-        : cachedAllStudents.slice(0, 8);
+        : cachedAllStudents.slice();
     if (!list.length) {
         container.innerHTML = '<p class="text-gray-400 text-xs p-3 text-center">No students found.</p>';
         container.classList.remove('hidden');
         return;
     }
-    container.innerHTML = list.slice(0, 25).map(function(s) {
+    container.innerHTML = list.map(function(s) {
         var inThis  = s.class_id == classId;
         var inOther = s.class_id && !inThis;
         var badge = inThis
