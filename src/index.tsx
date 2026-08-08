@@ -337,8 +337,8 @@ app.put('/api/admin/users/:id/role', authMiddleware, async (c) => {
     if (!allowed.includes(role)) return c.json({ error: 'Invalid role' }, 400)
     await c.env.DB.prepare('UPDATE users SET status = ? WHERE id = ?').bind('approved', id).run()
     await c.env.DB.prepare('UPDATE users SET role = ? WHERE id = ?').bind(role, id).run()
-    // If changed TO teacher: remove from class_students (teachers aren't enrolled as students)
-    if (role === 'teacher') {
+    // Any non-student role: remove from class_students and wipe student_progress
+    if (role !== 'student') {
         await c.env.DB.prepare('DELETE FROM class_students WHERE student_id = ?').bind(id).run()
         await c.env.DB.prepare('DELETE FROM student_progress WHERE student_id = ?').bind(id).run()
     }
@@ -821,6 +821,19 @@ app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) =>
     ).bind(xp, level, JSON.stringify(cleanLessons), JSON.stringify(cleanBadges), streak, studentId).run()
 
     return c.json({ ok: true, xp, level, lessons: cleanLessons.length })
+})
+
+// Wipe orphaned student_progress for a non-student user (teacher/admin/parent)
+app.post('/api/admin/clean-progress/:userId', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const userId = c.req.param('userId')
+    const user = await c.env.DB.prepare('SELECT role FROM users WHERE id = ?').bind(userId).first() as any
+    if (!user) return c.json({ error: 'User not found' }, 404)
+    if (user.role === 'student') return c.json({ error: 'Use Sanitize for students' }, 400)
+    await c.env.DB.prepare('DELETE FROM class_students WHERE student_id = ?').bind(userId).run()
+    await c.env.DB.prepare('DELETE FROM student_progress WHERE student_id = ?').bind(userId).run()
+    return c.json({ success: true })
 })
 
 // ============================================
@@ -10148,7 +10161,7 @@ async function loadUsers() {
         <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${escHtml(u.status||'approved')}</span></td>
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
         <td class="py-2 flex gap-2 items-center flex-wrap">
-            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : ''}
+            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : \`<button onclick="cleanProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-purple-400 hover:text-purple-600 text-xs font-bold" title="Remove any leftover student progress/class data">🧹 Clean DB</button>\`}
             <select onchange="changeRole(\${u.id}, this)" class="border rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:border-indigo-400" title="Change role">
                 \${['student','teacher','parent','admin'].map(function(r){ return '<option value="'+r+'" '+(r===u.role?'selected':'')+'>'+r+'</option>'; }).join('')}
             </select>
@@ -10579,6 +10592,13 @@ async function deleteUser(id, username) {
     if (!confirm('Delete user @' + username + '?')) return;
     await fetch('/api/admin/users/' + id, { method: 'DELETE' });
     loadUsers();
+}
+
+async function cleanProgress(id, username) {
+    if (!confirm('Remove all leftover student progress and class enrollment for @' + username + '? This clears stale DB data for this teacher/admin.')) return;
+    const res = await fetch('/api/admin/clean-progress/' + id, { method: 'POST' }).then(r => r.json());
+    if (res.success) { alert('✅ Cleaned up DB records for @' + username); loadUsers(); loadSchools && loadSchools(); }
+    else alert('❌ ' + (res.error || 'Failed'));
 }
 
 async function sanitizeProgress(id, username) {
