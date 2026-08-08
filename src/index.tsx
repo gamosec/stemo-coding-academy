@@ -10152,6 +10152,50 @@ async function loadSchools() {
             uc.innerHTML += buildClassHTML(cls, students);
         }
     }
+
+    // Unassigned students banner (admin version — can pick any class from any school)
+    const unenrolledStudents = await fetch('/api/students/unenrolled').then(r=>r.json()).catch(()=>[]);
+    if (unenrolledStudents.length) {
+        // Build grouped class options: group by school
+        var schoolGroups = {};
+        allClasses.forEach(function(c) {
+            var grp = c.school_name || '📂 No School';
+            if (!schoolGroups[grp]) schoolGroups[grp] = [];
+            schoolGroups[grp].push(c);
+        });
+        var groupedOpts = Object.keys(schoolGroups).sort().map(function(grp) {
+            var opts = schoolGroups[grp].map(function(c) {
+                return \`<option value="\${c.id}">\${c.name}</option>\`;
+            }).join('');
+            return \`<optgroup label="\${grp}">\${opts}</optgroup>\`;
+        }).join('');
+
+        const bannerDiv = document.createElement('div');
+        bannerDiv.className = 'bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 mt-4';
+        bannerDiv.innerHTML = \`
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xl">⚠️</span>
+                <h3 class="font-bold text-amber-800">\${unenrolledStudents.length} approved student\${unenrolledStudents.length > 1 ? 's are' : ' is'} not in any class</h3>
+            </div>
+            <div class="space-y-2">
+                \${unenrolledStudents.map(s => \`
+                <div class="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-amber-200 gap-3 flex-wrap">
+                    <div>
+                        <span class="font-semibold text-gray-800">\${s.full_name}</span>
+                        <span class="text-gray-400 text-xs ml-2">@\${s.username}</span>
+                    </div>
+                    \${allClasses.length ? \`<div class="flex gap-2 items-center">
+                        <select id="adminQaSel_\${s.id}" class="border rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-indigo-400">
+                            <option value="">Pick a class...</option>
+                            \${groupedOpts}
+                        </select>
+                        <button onclick="adminQuickEnroll(\${s.id})" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700">➕ Enrol</button>
+                    </div>\` : ''}
+                </div>\`).join('')}
+            </div>
+        \`;
+        container.appendChild(bannerDiv);
+    }
 }
 
 async function buildSchoolHTML(school, schoolClasses) {
@@ -11026,6 +11070,16 @@ async function quickEnroll(studentId) {
         body: JSON.stringify({ student_id: studentId })
     });
     loadClasses();
+}
+
+async function adminQuickEnroll(studentId) {
+    const sel = document.getElementById('adminQaSel_' + studentId);
+    if (!sel || !sel.value) { alert('Please select a class first.'); return; }
+    await fetch('/api/classes/' + sel.value + '/students', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ student_id: studentId })
+    });
+    loadSchools();
 }
 
 function closePwModal(e) { document.getElementById('pwModal').classList.add('hidden'); }
