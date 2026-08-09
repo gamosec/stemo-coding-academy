@@ -277,6 +277,24 @@ app.post('/api/auth/logout', (c) => {
     return res
 })
 
+// Self-service password change — requires current password (anti-abuse)
+app.post('/api/auth/change-password', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const body = await c.req.json()
+    const current_password = body.current_password || ''
+    const new_password = body.new_password || ''
+    if (!current_password || !new_password) return c.json({ error: 'Both fields are required' }, 400)
+    if (new_password.length < 6) return c.json({ error: 'New password must be at least 6 characters' }, 400)
+    if (new_password.length > 200) return c.json({ error: 'Password too long' }, 400)
+    if (current_password === new_password) return c.json({ error: 'New password must differ from current password' }, 400)
+    const currentHash = await hashPassword(current_password)
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE id = ? AND password_hash = ?').bind(me.id, currentHash).first()
+    if (!user) return c.json({ error: 'Current password is incorrect' }, 400)
+    const newHash = await hashPassword(new_password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, me.id).run()
+    return c.json({ success: true })
+})
+
 // Get current user
 app.get('/api/auth/me', async (c) => {
     const cookie = c.req.header('cookie') || ''
@@ -821,6 +839,22 @@ app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) =>
     ).bind(xp, level, JSON.stringify(cleanLessons), JSON.stringify(cleanBadges), streak, studentId).run()
 
     return c.json({ ok: true, xp, level, lessons: cleanLessons.length })
+})
+
+// Admin resets any user's password (no current password needed — admin authority)
+app.post('/api/admin/users/:id/reset-password', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const id = c.req.param('id')
+    const body = await c.req.json()
+    const password = body.password || ''
+    if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+    if (password.length > 200) return c.json({ error: 'Password too long' }, 400)
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first()
+    if (!user) return c.json({ error: 'User not found' }, 404)
+    const hash = await hashPassword(password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(hash, id).run()
+    return c.json({ success: true })
 })
 
 // Wipe orphaned student_progress for a non-student user (teacher/admin/parent)
@@ -2384,6 +2418,17 @@ const htmlContent = `<!DOCTYPE html>
                     <div id="profileClassInfo" class="bg-gray-50 rounded-2xl p-4 mb-4 space-y-2"></div>
                     <div class="text-gray-400 text-xs" id="profileJoined"></div>
                 </div>
+                <!-- Change Password Card -->
+                <div class="bg-white rounded-3xl card-shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">🔒 Change Password</h3>
+                    <div class="space-y-3">
+                        <input id="pwCurrent" type="password" placeholder="Current password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 text-sm">
+                        <input id="pwNew" type="password" placeholder="New password (min 6 characters)" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 text-sm">
+                        <input id="pwConfirm" type="password" placeholder="Confirm new password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 text-sm">
+                        <div id="pwMsg" class="text-sm hidden"></div>
+                        <button onclick="changeStudentPassword()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold transition-all">Update Password</button>
+                    </div>
+                </div>
                 <!-- Assigned Lesson Banner -->
                 <div id="profileLessonBanner" class="hidden bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
                     <div class="flex items-center gap-4 flex-wrap">
@@ -3635,6 +3680,35 @@ const htmlContent = `<!DOCTYPE html>
                     updateProfileStats();
                 }
             } catch(e) { console.log('Using local progress'); }
+        }
+
+        // Change password (student self-service)
+        async function changeStudentPassword() {
+            var cur = document.getElementById('pwCurrent').value.trim();
+            var nw  = document.getElementById('pwNew').value;
+            var cf  = document.getElementById('pwConfirm').value;
+            var msg = document.getElementById('pwMsg');
+            msg.className = 'text-sm'; msg.classList.remove('hidden');
+            if (!cur || !nw || !cf) { msg.classList.add('text-red-600'); msg.textContent = '❌ All fields are required.'; return; }
+            if (nw.length < 6)      { msg.classList.add('text-red-600'); msg.textContent = '❌ New password must be at least 6 characters.'; return; }
+            if (nw !== cf)          { msg.classList.add('text-red-600'); msg.textContent = '❌ Passwords do not match.'; return; }
+            msg.classList.remove('text-red-600'); msg.classList.add('text-gray-500'); msg.textContent = 'Saving…';
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ current_password: cur, new_password: nw })
+                }).then(r => r.json());
+                if (res.success) {
+                    msg.classList.remove('text-gray-500'); msg.classList.add('text-green-600');
+                    msg.textContent = '✅ Password updated successfully!';
+                    document.getElementById('pwCurrent').value = '';
+                    document.getElementById('pwNew').value = '';
+                    document.getElementById('pwConfirm').value = '';
+                } else {
+                    msg.classList.remove('text-gray-500'); msg.classList.add('text-red-600');
+                    msg.textContent = '❌ ' + (res.error || 'Failed to update password.');
+                }
+            } catch(e) { msg.classList.add('text-red-600'); msg.textContent = '❌ Network error. Try again.'; }
         }
 
         // Logout
@@ -10165,6 +10239,7 @@ async function loadUsers() {
             <select onchange="changeRole(\${u.id}, this)" class="border rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:border-indigo-400" title="Change role">
                 \${['student','teacher','parent','admin'].map(function(r){ return '<option value="'+r+'" '+(r===u.role?'selected':'')+'>'+r+'</option>'; }).join('')}
             </select>
+            <button onclick="adminResetPw(\${u.id}, '\${escHtml(u.full_name||u.username)}')" class="text-blue-400 hover:text-blue-600 text-xs font-bold" title="Reset this user's password">🔑 Reset PW</button>
             <button onclick="deleteUser(\${u.id}, '\${escHtml(u.username)}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
         </td>
     </tr>\`).join('');
@@ -10623,6 +10698,32 @@ async function linkParent() {
     else { msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + data.error; }
 }
 
+var adminResetPwTarget = null;
+function adminResetPw(id, name) {
+    adminResetPwTarget = id;
+    document.getElementById('adminPwTarget').textContent = name;
+    document.getElementById('adminPwInput').value = '';
+    var msg = document.getElementById('adminPwMsg'); msg.textContent=''; msg.classList.add('hidden');
+    document.getElementById('adminPwModal').classList.remove('hidden');
+}
+async function confirmAdminResetPw() {
+    var pw = document.getElementById('adminPwInput').value;
+    var msg = document.getElementById('adminPwMsg');
+    msg.className='text-sm'; msg.classList.remove('hidden');
+    if (!pw || pw.length < 6) { msg.classList.add('text-red-600'); msg.textContent='Password must be at least 6 characters.'; return; }
+    msg.classList.add('text-gray-500'); msg.textContent='Saving…';
+    const res = await fetch('/api/admin/users/' + adminResetPwTarget + '/reset-password', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pw })
+    }).then(r=>r.json());
+    if (res.success) {
+        msg.className='text-sm text-green-600'; msg.textContent='✅ Password updated!';
+        setTimeout(function(){ document.getElementById('adminPwModal').classList.add('hidden'); }, 1500);
+    } else {
+        msg.className='text-sm text-red-600'; msg.textContent='❌ '+(res.error||'Failed.');
+    }
+}
+
 async function logout() {
     await fetch('/api/auth/logout', { method:'POST' });
     window.location.href = '/login';
@@ -10630,6 +10731,22 @@ async function logout() {
 
 init();
 </script>
+
+<!-- Admin Reset Password Modal -->
+<div id="adminPwModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">🔑 Reset Password</h3>
+        <p class="text-gray-500 text-sm mb-4">Set a new password for <strong id="adminPwTarget"></strong>.</p>
+        <input id="adminPwInput" type="password" placeholder="New password (min 6 chars)"
+            class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 mb-2">
+        <div id="adminPwMsg" class="text-sm mb-3 hidden"></div>
+        <div class="flex gap-2">
+            <button onclick="confirmAdminResetPw()" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold hover:bg-blue-700">Set Password</button>
+            <button onclick="document.getElementById('adminPwModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2.5 rounded-xl font-bold">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
     <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
     <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
@@ -10662,6 +10779,7 @@ const teacherDashboard = `<!DOCTYPE html>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
             <a href="/academy" target="_blank" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🤖 Open Academy</a>
+            <button onclick="openMyPwModal()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🔒 Change Password</button>
             <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
         </div>
     </div>
@@ -10734,6 +10852,24 @@ const teacherDashboard = `<!DOCTYPE html>
             <!-- Video list -->
             <div id="teacherVideoList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-video text-4xl mb-3 block opacity-40"></i>Click a video to watch</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Self-service Change My Password Modal (teacher) -->
+<div id="myPwModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">🔒 Change My Password</h3>
+        <p class="text-gray-400 text-sm mb-4">Enter your current password to confirm, then choose a new one.</p>
+        <div class="space-y-3">
+            <input id="myPwCurrent" type="password" placeholder="Current password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <input id="myPwNew" type="password" placeholder="New password (min 6 chars)" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <input id="myPwConfirm" type="password" placeholder="Confirm new password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <div id="myPwMsg" class="text-sm hidden"></div>
+            <div class="flex gap-2">
+                <button onclick="changeMyPassword()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold">Update Password</button>
+                <button onclick="document.getElementById('myPwModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2.5 rounded-xl font-bold">Cancel</button>
             </div>
         </div>
     </div>
@@ -11206,6 +11342,33 @@ async function adminQuickEnroll(studentId) {
 
 function closePwModal(e) { document.getElementById('pwModal').classList.add('hidden'); }
 
+function openMyPwModal() {
+    ['myPwCurrent','myPwNew','myPwConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
+    var msg = document.getElementById('myPwMsg'); msg.textContent=''; msg.classList.add('hidden');
+    document.getElementById('myPwModal').classList.remove('hidden');
+}
+async function changeMyPassword() {
+    var cur = document.getElementById('myPwCurrent').value.trim();
+    var nw  = document.getElementById('myPwNew').value;
+    var cf  = document.getElementById('myPwConfirm').value;
+    var msg = document.getElementById('myPwMsg');
+    msg.className = 'text-sm'; msg.classList.remove('hidden');
+    if (!cur||!nw||!cf){ msg.classList.add('text-red-600'); msg.textContent='All fields are required.'; return; }
+    if (nw.length<6)   { msg.classList.add('text-red-600'); msg.textContent='New password must be at least 6 characters.'; return; }
+    if (nw!==cf)       { msg.classList.add('text-red-600'); msg.textContent='Passwords do not match.'; return; }
+    msg.classList.add('text-gray-500'); msg.textContent='Saving…';
+    const res = await fetch('/api/auth/change-password',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({current_password:cur, new_password:nw})
+    }).then(r=>r.json());
+    if (res.success) {
+        msg.className='text-sm text-green-600'; msg.textContent='✅ Password updated!';
+        setTimeout(function(){ document.getElementById('myPwModal').classList.add('hidden'); }, 1500);
+    } else {
+        msg.className='text-sm text-red-600'; msg.textContent='❌ '+(res.error||'Failed.');
+    }
+}
+
 async function logout() {
     await fetch('/api/auth/logout', { method:'POST' });
     window.location.href = '/login';
@@ -11241,12 +11404,30 @@ const parentDashboard = `<!DOCTYPE html>
         </div>
         <div class="flex items-center gap-4">
             <span class="text-purple-200 text-sm" id="welcomeMsg"></span>
+            <button onclick="openParentPwModal()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🔒 Change Password</button>
             <button onclick="logout()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-bold">🚪 Logout</button>
         </div>
     </div>
 </nav>
 <div class="max-w-4xl mx-auto p-6">
     <div id="childrenContainer" class="space-y-6"></div>
+</div>
+<!-- Change Password Modal (parent) -->
+<div id="parentPwModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">🔒 Change My Password</h3>
+        <p class="text-gray-400 text-sm mb-4">Enter your current password to confirm, then choose a new one.</p>
+        <div class="space-y-3">
+            <input id="parentPwCurrent" type="password" placeholder="Current password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <input id="parentPwNew" type="password" placeholder="New password (min 6 chars)" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <input id="parentPwConfirm" type="password" placeholder="Confirm new password" class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-400">
+            <div id="parentPwMsg" class="text-sm hidden"></div>
+            <div class="flex gap-2">
+                <button onclick="changeParentPassword()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold">Update Password</button>
+                <button onclick="document.getElementById('parentPwModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2.5 rounded-xl font-bold">Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
 const allLessons = 14;
@@ -11298,6 +11479,32 @@ async function init() {
             \${badges.length ? \`<div><h3 class="font-bold text-gray-700 mb-2">🏆 Badges Earned</h3><div class="flex gap-2 flex-wrap">\${badges.map(b=>\`<span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">\${b}</span>\`).join('')}</div></div>\` : ''}
         </div>\`;
     }).join('');
+}
+function openParentPwModal() {
+    ['parentPwCurrent','parentPwNew','parentPwConfirm'].forEach(function(id){ document.getElementById(id).value=''; });
+    var msg = document.getElementById('parentPwMsg'); msg.textContent=''; msg.classList.add('hidden');
+    document.getElementById('parentPwModal').classList.remove('hidden');
+}
+async function changeParentPassword() {
+    var cur = document.getElementById('parentPwCurrent').value.trim();
+    var nw  = document.getElementById('parentPwNew').value;
+    var cf  = document.getElementById('parentPwConfirm').value;
+    var msg = document.getElementById('parentPwMsg');
+    msg.className = 'text-sm'; msg.classList.remove('hidden');
+    if (!cur||!nw||!cf){ msg.classList.add('text-red-600'); msg.textContent='All fields are required.'; return; }
+    if (nw.length<6)   { msg.classList.add('text-red-600'); msg.textContent='New password must be at least 6 characters.'; return; }
+    if (nw!==cf)       { msg.classList.add('text-red-600'); msg.textContent='Passwords do not match.'; return; }
+    msg.classList.add('text-gray-500'); msg.textContent='Saving…';
+    const res = await fetch('/api/auth/change-password',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({current_password:cur, new_password:nw})
+    }).then(r=>r.json());
+    if (res.success) {
+        msg.className='text-sm text-green-600'; msg.textContent='✅ Password updated!';
+        setTimeout(function(){ document.getElementById('parentPwModal').classList.add('hidden'); }, 1500);
+    } else {
+        msg.className='text-sm text-red-600'; msg.textContent='❌ '+(res.error||'Failed.');
+    }
 }
 async function logout() {
     await fetch('/api/auth/logout', { method:'POST' });
