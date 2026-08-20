@@ -1021,7 +1021,7 @@ app.post('/api/admin/interactive-lessons', authMiddleware, async (c) => {
     }
     if (!validFileName) return c.json({ error: 'Upload a .html or .htm file' }, 400)
     if (new TextEncoder().encode(content).byteLength > MAX_INTERACTIVE_HTML_BYTES) {
-        return c.json({ error: 'HTML file must be 256 KB or smaller' }, 400)
+        return c.json({ error: 'The complete lesson package must be 256 KB or smaller' }, 400)
     }
     if (!validInteractiveHtml(content)) return c.json({ error: 'Upload a complete HTML document' }, 400)
     const order = Number.isFinite(Number(sort_order)) ? Math.max(0, Math.floor(Number(sort_order))) : 0
@@ -10257,14 +10257,20 @@ const adminDashboard = `<!DOCTYPE html>
                 <h2 class="text-xl">💻 Interactive Lessons</h2>
                 <button onclick="document.getElementById('interactiveLessonForm').classList.toggle('hidden')" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-purple-700">+ Upload HTML Lesson</button>
             </div>
-            <p class="text-gray-500 text-sm mb-4">Upload one self-contained .html file (up to 256 KB). Lessons open in a secure isolated page.</p>
+            <p class="text-gray-500 text-sm mb-4">Upload an .html file and any images it references. Relative image paths are embedded automatically (256 KB total).</p>
             <div id="interactiveLessonForm" class="hidden bg-purple-50 rounded-xl p-4 mb-4 border border-purple-200">
                 <h3 class="font-bold text-purple-700 mb-3">Upload Interactive HTML Lesson</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <input id="interactiveLessonTitle" placeholder="Lesson name (e.g. Lesson 1: HTML Quiz)" maxlength="120" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
-                    <input id="interactiveLessonFile" type="file" accept=".html,.htm,text/html" class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-purple-400">
+                    <label class="text-xs font-bold text-purple-800">HTML file
+                        <input id="interactiveLessonFile" type="file" accept=".html,.htm,text/html" class="block w-full mt-1 border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-purple-400">
+                    </label>
+                    <label class="text-xs font-bold text-purple-800">Lesson images (optional)
+                        <input id="interactiveLessonAssets" type="file" multiple accept="image/*,.svg" class="block w-full mt-1 border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-purple-400">
+                    </label>
                     <input id="interactiveLessonOrder" type="number" min="0" placeholder="Order (1, 2, 3…)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
                 </div>
+                <p class="text-xs text-purple-700 mt-2">Images are optional. For example, if your HTML uses <code>src="steam-logo.png"</code>, select that image here and it will be embedded into the lesson automatically.</p>
                 <label class="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-gray-700"><input id="interactiveLessonPublished" type="checkbox" checked class="accent-purple-600"> Publish immediately for students</label>
                 <div class="flex gap-2 mt-3">
                     <button onclick="uploadInteractiveLesson()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700">⬆️ Upload Lesson</button>
@@ -10457,24 +10463,134 @@ async function uploadInteractiveLesson() {
     if (file.size > 256 * 1024) {
         msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'The HTML file must be 256 KB or smaller.'; return;
     }
-    msg.className = 'mt-2 text-sm text-gray-500'; msg.textContent = 'Uploading…';
+    msg.className = 'mt-2 text-sm text-gray-500'; msg.textContent = 'Embedding lesson images…';
     try {
         var html = await file.text();
+        var assetInput = document.getElementById('interactiveLessonAssets');
+        var assets = assetInput.files ? Array.from(assetInput.files) : [];
+        var bundledHtml = await bundleInteractiveLessonAssets(html, assets);
+        if (new Blob([bundledHtml]).size > 256 * 1024) {
+            throw new Error('The HTML and embedded lesson images must be 256 KB or smaller.');
+        }
         var res = await fetch('/api/admin/interactive-lessons', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({title:title, html_content:html, file_name:file.name, sort_order:order, is_published:published})
+            body: JSON.stringify({title:title, html_content:bundledHtml, file_name:file.name, sort_order:order, is_published:published})
         });
         var data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Upload failed');
         document.getElementById('interactiveLessonTitle').value = '';
         document.getElementById('interactiveLessonFile').value = '';
+        document.getElementById('interactiveLessonAssets').value = '';
         document.getElementById('interactiveLessonOrder').value = '';
         msg.className = 'mt-2 text-sm text-green-600'; msg.textContent = '✅ Lesson uploaded successfully.';
         loadAdminInteractiveLessons();
     } catch(e) {
         msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + (e.message || 'Upload failed.');
     }
+}
+
+function normalizeLessonAssetPath(value) {
+    try { value = decodeURIComponent(value); } catch(e) {}
+    var path = String(value || '').split(String.fromCharCode(92)).join('/');
+    while (path.indexOf('./') === 0) path = path.slice(2);
+    while (path.indexOf('/') === 0) path = path.slice(1);
+    return path;
+}
+
+function lessonAssetFileKeys(file) {
+    var keys = [];
+    var fullPath = normalizeLessonAssetPath(file.webkitRelativePath || file.name);
+    if (fullPath) keys.push(fullPath);
+    var name = fullPath.split('/').pop();
+    if (name && !keys.includes(name)) keys.push(name);
+    return keys;
+}
+
+function findLessonAsset(reference, assets) {
+    var path = normalizeLessonAssetPath(String(reference || '').split(/[?#]/)[0]);
+    if (!path) return null;
+    var exact = assets.filter(function(file) {
+        return lessonAssetFileKeys(file).some(function(key) { return key === path; });
+    });
+    if (exact.length === 1) return exact[0];
+    if (exact.length > 1) return null;
+    var basename = path.split('/').pop();
+    var byName = assets.filter(function(file) {
+        var keys = lessonAssetFileKeys(file);
+        return keys.length > 0 && keys[keys.length - 1] === basename;
+    });
+    return byName.length === 1 ? byName[0] : null;
+}
+
+function isExternalLessonAsset(reference) {
+    return /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(String(reference || '').trim());
+}
+
+function readLessonAssetAsDataUrl(file) {
+    return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() { resolve(String(reader.result || '')); };
+        reader.onerror = function() { reject(new Error('Could not read supporting file ' + file.name)); };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function bundleInteractiveLessonAssets(html, assets) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var dataUrlCache = new Map();
+    var missing = new Set();
+    async function replaceReference(reference) {
+        var raw = String(reference || '').trim();
+        if (!raw || isExternalLessonAsset(raw) || /^data:/i.test(raw)) return raw;
+        var asset = findLessonAsset(raw, assets);
+        if (!asset) { missing.add(raw.split(/[?#]/)[0]); return raw; }
+        if (!dataUrlCache.has(asset)) dataUrlCache.set(asset, await readLessonAssetAsDataUrl(asset));
+        return dataUrlCache.get(asset);
+    }
+    async function replaceSrcset(srcset) {
+        var entries = String(srcset || '').split(',');
+        var bundledEntries = [];
+        for (var entry of entries) {
+            var parts = entry.trim().split(' ').filter(Boolean);
+            if (!parts.length) continue;
+            parts[0] = await replaceReference(parts[0]);
+            bundledEntries.push(parts.join(' '));
+        }
+        return bundledEntries.join(', ');
+    }
+    async function replaceCssUrls(css) {
+        var matches = Array.from(String(css || '').matchAll(/url[(][ \t]*["']?([^"')]+)["']?[ \t]*[)]/gi));
+        for (var match of matches) {
+            var bundled = await replaceReference(match[1]);
+            css = css.replace(match[0], 'url("' + bundled.replace(/"/g, '\\"') + '")');
+        }
+        return css;
+    }
+    var elements = Array.from(doc.querySelectorAll('img[src], img[srcset], video[poster], link[rel~="icon"][href], [style]'));
+    for (var element of elements) {
+        for (var attribute of ['src', 'href', 'poster']) {
+            if (element.hasAttribute(attribute)) {
+                element.setAttribute(attribute, await replaceReference(element.getAttribute(attribute)));
+            }
+        }
+        if (element.hasAttribute('srcset')) {
+            element.setAttribute('srcset', await replaceSrcset(element.getAttribute('srcset')));
+        }
+        if (element.hasAttribute('style')) {
+            element.setAttribute('style', await replaceCssUrls(element.getAttribute('style')));
+        }
+    }
+    var styles = Array.from(doc.querySelectorAll('style'));
+    for (var style of styles) {
+        style.textContent = await replaceCssUrls(style.textContent || '');
+    }
+    if (missing.size) {
+        throw new Error('Select the supporting file(s) used by the lesson: ' + Array.from(missing).slice(0, 4).join(', '));
+    }
+    if (!assets.length) return html;
+    return '<!doctype html>\n' + doc.documentElement.outerHTML;
 }
 
 function openAdminInteractiveLesson(id) {
