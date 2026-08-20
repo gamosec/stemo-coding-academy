@@ -10524,7 +10524,11 @@ function findLessonAsset(reference, assets) {
 }
 
 function isExternalLessonAsset(reference) {
-    return /^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(String(reference || '').trim());
+    var raw = String(reference || '').trim();
+    if (!raw) return false;
+    if (raw[0] === '/' || raw[0] === '#') return true;
+    if (raw.indexOf('//') === 0) return true;
+    return /^[a-z][a-z0-9+.-]*:/i.test(raw);
 }
 
 function readLessonAssetAsDataUrl(file) {
@@ -10590,7 +10594,7 @@ async function bundleInteractiveLessonAssets(html, assets) {
         throw new Error('Select the supporting file(s) used by the lesson: ' + Array.from(missing).slice(0, 4).join(', '));
     }
     if (!assets.length) return html;
-    return '<!doctype html>\n' + doc.documentElement.outerHTML;
+    return '<!doctype html>\\n' + doc.documentElement.outerHTML;
 }
 
 function openAdminInteractiveLesson(id) {
