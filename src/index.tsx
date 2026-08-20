@@ -197,11 +197,27 @@ app.use('*', async (c, next) => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 html_content TEXT NOT NULL,
+                lesson_number INTEGER,
                 is_published INTEGER NOT NULL DEFAULT 1,
                 sort_order INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`).run()
+            try {
+                await c.env.DB.prepare('ALTER TABLE interactive_lessons ADD COLUMN lesson_number INTEGER').run()
+            } catch(_) {}
+            await c.env.DB.prepare(`
+                UPDATE interactive_lessons AS target
+                SET lesson_number = target.sort_order
+                WHERE target.lesson_number IS NULL
+                  AND target.sort_order > 0
+                  AND (SELECT COUNT(*) FROM interactive_lessons AS matching WHERE matching.sort_order = target.sort_order) = 1
+            `).run()
+            try {
+                await c.env.DB.prepare(
+                    'CREATE UNIQUE INDEX IF NOT EXISTS idx_interactive_lessons_lesson_number ON interactive_lessons(lesson_number) WHERE lesson_number IS NOT NULL'
+                ).run()
+            } catch(_) {}
         } catch(_) {}
     }
     return next()
@@ -1027,9 +1043,14 @@ function restoreBuiltinLessonLogos(content: string): string {
 }
 
 function interactiveLessonMetadataQuery(publishedOnly = false): string {
-    return `SELECT id, title, is_published, sort_order, created_at, updated_at
+    return `SELECT id, title, lesson_number, is_published, sort_order, created_at, updated_at
         FROM interactive_lessons ${publishedOnly ? 'WHERE is_published = 1' : ''}
         ORDER BY sort_order, id`
+}
+
+async function interactiveLessonNumberExists(db: any, lessonNumber: number): Promise<boolean> {
+    const statement = db.prepare('SELECT id FROM interactive_lessons WHERE lesson_number=? LIMIT 1').bind(lessonNumber)
+    return Boolean(await statement.first())
 }
 
 app.get('/api/interactive-lessons', authMiddleware, async (c) => {
@@ -1049,7 +1070,7 @@ app.get('/api/admin/interactive-lessons', authMiddleware, async (c) => {
 app.post('/api/admin/interactive-lessons', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
-    const { title, html_content, file_name, sort_order, is_published } = await c.req.json()
+    const { title, html_content, file_name, lesson_number, sort_order, is_published } = await c.req.json()
     const cleanTitle = typeof title === 'string' ? title.trim() : ''
     const content = typeof html_content === 'string' ? html_content : ''
     const validFileName = typeof file_name === 'string' && /^[^/\\]+\.(html?|HTML?)$/.test(file_name)
@@ -1061,11 +1082,19 @@ app.post('/api/admin/interactive-lessons', authMiddleware, async (c) => {
         return c.json({ error: 'The complete lesson package must be 256 KB or smaller' }, 400)
     }
     if (!validInteractiveHtml(content)) return c.json({ error: 'Upload a complete HTML document' }, 400)
-    const order = Number.isFinite(Number(sort_order)) ? Math.max(0, Math.floor(Number(sort_order))) : 0
+    const lessonNumber = Number(lesson_number)
+    if (!Number.isInteger(lessonNumber) || lessonNumber < 1) {
+        return c.json({ error: 'Choose a positive lesson number' }, 400)
+    }
+    const suppliedOrder = sort_order === null || sort_order === undefined || sort_order === '' ? NaN : Number(sort_order)
+    const order = Number.isFinite(suppliedOrder) ? Math.max(0, Math.floor(suppliedOrder)) : lessonNumber
     const published = is_published === false || is_published === 0 ? 0 : 1
+    if (await interactiveLessonNumberExists(c.env.DB, lessonNumber)) {
+        return c.json({ error: `Lesson number ${lessonNumber} is already in use. Choose a different number.` }, 409)
+    }
     const result = await c.env.DB.prepare(
-        'INSERT INTO interactive_lessons (title, html_content, is_published, sort_order) VALUES (?, ?, ?, ?)'
-    ).bind(cleanTitle, content, published, order).run()
+        'INSERT INTO interactive_lessons (title, html_content, lesson_number, is_published, sort_order) VALUES (?, ?, ?, ?, ?)'
+    ).bind(cleanTitle, content, lessonNumber, published, order).run()
     return c.json({ ok: true, id: result.meta.last_row_id })
 })
 
@@ -1097,18 +1126,7 @@ app.delete('/api/admin/interactive-lessons/:id', authMiddleware, async (c) => {
     return c.json({ ok: true })
 })
 
-// The uploaded document is embedded in an opaque-origin iframe instead of being
-// rendered as the platform page itself. It cannot read platform cookies or parent
-// DOM, call APIs (connect-src none), open popups, or navigate the academy.
-app.get('/interactive-lessons/:id', authMiddleware, async (c) => {
-    const me = c.get('user')
-    const id = c.req.param('id')
-    if (!['student', 'teacher', 'admin'].includes(me.role)) return c.text('Forbidden', 403)
-    if (!validInteractiveLessonId(id)) return c.text('Lesson not found', 404)
-    const lesson = await c.env.DB.prepare(
-        'SELECT title, html_content, is_published FROM interactive_lessons WHERE id=?'
-    ).bind(id).first() as any
-    if (!lesson || (!lesson.is_published && me.role !== 'admin')) return c.text('Lesson not found', 404)
+function renderInteractiveLesson(c: any, lesson: any) {
     const title = escapeHtmlAttribute(lesson.title || 'Interactive Lesson')
     const srcdoc = escapeHtmlAttribute(restoreBuiltinLessonLogos(lesson.html_content))
     return c.html(`<!doctype html>
@@ -1123,6 +1141,37 @@ app.get('/interactive-lessons/:id', authMiddleware, async (c) => {
     <iframe title="${title}" sandbox="allow-scripts allow-forms allow-modals allow-downloads" referrerpolicy="no-referrer" srcdoc="${srcdoc}"></iframe>
 </body>
 </html>`)
+}
+
+// Public lesson numbers are immutable and separate from display ordering. The
+// database ID route below remains available for old bookmarks and admin tools.
+app.get('/interactive-lessons/lesson/:number', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const number = c.req.param('number')
+    if (!['student', 'teacher', 'admin'].includes(me.role)) return c.text('Forbidden', 403)
+    if (!/^[1-9]\d*$/.test(number)) return c.text('Lesson not found', 404)
+    const lesson = await c.env.DB.prepare(
+        me.role === 'admin'
+            ? 'SELECT title, html_content, is_published FROM interactive_lessons WHERE lesson_number=? LIMIT 1'
+            : 'SELECT title, html_content, is_published FROM interactive_lessons WHERE lesson_number=? AND is_published=1 LIMIT 1'
+    ).bind(Number(number)).first() as any
+    if (!lesson) return c.text('Lesson not found', 404)
+    return renderInteractiveLesson(c, lesson)
+})
+
+// The uploaded document is embedded in an opaque-origin iframe instead of being
+// rendered as the platform page itself. It cannot read platform cookies or parent
+// DOM, call APIs (connect-src none), open popups, or navigate the academy.
+app.get('/interactive-lessons/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const id = c.req.param('id')
+    if (!['student', 'teacher', 'admin'].includes(me.role)) return c.text('Forbidden', 403)
+    if (!validInteractiveLessonId(id)) return c.text('Lesson not found', 404)
+    const lesson = await c.env.DB.prepare(
+        'SELECT title, html_content, is_published FROM interactive_lessons WHERE id=?'
+    ).bind(id).first() as any
+    if (!lesson || (!lesson.is_published && me.role !== 'admin')) return c.text('Lesson not found', 404)
+    return renderInteractiveLesson(c, lesson)
 })
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -8689,8 +8738,9 @@ const htmlContent = `<!DOCTYPE html>
             return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
-        function openInteractiveLesson(id) {
-            window.open('/interactive-lessons/' + id, '_blank', 'noopener');
+        function openInteractiveLesson(id, lessonNumber) {
+            var target = Number(lessonNumber) > 0 ? '/interactive-lessons/lesson/' + Number(lessonNumber) : '/interactive-lessons/' + id;
+            window.open(target, '_blank', 'noopener');
         }
 
         async function loadInteractiveLessons() {
@@ -8704,11 +8754,13 @@ const htmlContent = `<!DOCTYPE html>
                 }
                 list.innerHTML = lessons.map(function(lesson) {
                     var id = Number(lesson.id);
+                    var lessonNumber = Number(lesson.lesson_number);
                     return '<div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-5 hover:shadow-md transition-all">' +
                         '<div class="w-12 h-12 bg-purple-500 text-white rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-laptop-code"></i></div>' +
                         '<h4 class="font-bold text-gray-800">' + escapeInteractiveTitle(lesson.title) + '</h4>' +
-                        '<p class="text-gray-500 text-sm mt-1 mb-4">HTML interactive activity</p>' +
-                        '<button onclick="openInteractiveLesson(' + id + ')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-sm transition-all"><i class="fas fa-play mr-1"></i> ' + interactiveText('interactive_open') + '</button>' +
+                        '<p class="text-gray-500 text-sm mt-1 mb-1">HTML interactive activity</p>' +
+                        (lessonNumber > 0 ? '<p class="text-purple-600 text-xs font-bold mb-3">Lesson ' + lessonNumber + '</p>' : '<div class="mb-3"></div>') +
+                        '<button onclick="openInteractiveLesson(' + id + ',' + lessonNumber + ')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-sm transition-all"><i class="fas fa-play mr-1"></i> ' + interactiveText('interactive_open') + '</button>' +
                     '</div>';
                 }).join('');
             } catch(e) {
@@ -10294,7 +10346,7 @@ const adminDashboard = `<!DOCTYPE html>
                 <h2 class="text-xl">💻 Interactive Lessons</h2>
                 <button onclick="document.getElementById('interactiveLessonForm').classList.toggle('hidden')" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-purple-700">+ Upload HTML Lesson</button>
             </div>
-            <p class="text-gray-500 text-sm mb-4">Upload an .html file and any images it references. Relative image paths are embedded automatically (256 KB total).</p>
+            <p class="text-gray-500 text-sm mb-4">Upload an .html file and any images it references. Lesson number is permanent and used in the lesson link; display order can be changed later.</p>
             <div id="interactiveLessonForm" class="hidden bg-purple-50 rounded-xl p-4 mb-4 border border-purple-200">
                 <h3 class="font-bold text-purple-700 mb-3">Upload Interactive HTML Lesson</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -10305,7 +10357,8 @@ const adminDashboard = `<!DOCTYPE html>
                     <label class="text-xs font-bold text-purple-800">Lesson images (optional)
                         <input id="interactiveLessonAssets" type="file" multiple accept="image/*,.svg" class="block w-full mt-1 border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-purple-400">
                     </label>
-                    <input id="interactiveLessonOrder" type="number" min="0" placeholder="Order (1, 2, 3…)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                    <input id="interactiveLessonNumber" type="number" min="1" required placeholder="Lesson number (e.g. 10)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                    <input id="interactiveLessonOrder" type="number" min="0" placeholder="Display order (optional)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
                 </div>
                 <p class="text-xs text-purple-700 mt-2">Images are optional. For example, if your HTML uses <code>src="steam-logo.png"</code>, select that image here and it will be embedded into the lesson automatically.</p>
                 <label class="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-gray-700"><input id="interactiveLessonPublished" type="checkbox" checked class="accent-purple-600"> Publish immediately for students</label>
@@ -10317,7 +10370,7 @@ const adminDashboard = `<!DOCTYPE html>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Order</th><th class="pb-2">Lesson Name</th><th class="pb-2">Status</th><th class="pb-2">Updated</th><th class="pb-2">Actions</th></tr></thead>
+                    <thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Lesson No.</th><th class="pb-2">Display Order</th><th class="pb-2">Internal ID</th><th class="pb-2">Lesson Name</th><th class="pb-2">Status</th><th class="pb-2">Updated</th><th class="pb-2">Actions</th></tr></thead>
                     <tbody id="adminInteractiveLessonList"></tbody>
                 </table>
             </div>
@@ -10456,10 +10509,10 @@ async function loadAdminInteractiveLessons() {
         var res = await fetch('/api/admin/interactive-lessons');
         adminInteractiveLessons = await res.json();
         if (!Array.isArray(adminInteractiveLessons) || !adminInteractiveLessons.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No interactive lessons yet. Upload a complete HTML file to get started.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8">No interactive lessons yet. Upload a complete HTML file to get started.</td></tr>';
             return;
         }
-        tbody.innerHTML = adminInteractiveLessons.map(function(lesson) {
+            tbody.innerHTML = adminInteractiveLessons.map(function(lesson) {
             var isPublished = Number(lesson.is_published) === 1;
             var status = isPublished
                 ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">Published</span>'
@@ -10467,32 +10520,36 @@ async function loadAdminInteractiveLessons() {
             var updated = lesson.updated_at ? String(lesson.updated_at).slice(0, 10) : '-';
             var toggleText = isPublished ? 'Unpublish' : 'Publish';
             return '<tr class="border-b hover:bg-gray-50">' +
-                '<td class="py-3 px-2 text-gray-500 w-12 text-center">' + (lesson.sort_order || '-') + '</td>' +
+                '<td class="py-3 px-2 text-purple-700 font-bold w-20 text-center">' + (lesson.lesson_number > 0 ? '#' + lesson.lesson_number : 'Legacy') + '</td>' +
+                '<td class="py-3 px-2 text-gray-500 w-20 text-center">' + (lesson.sort_order > 0 ? lesson.sort_order : '-') + '</td>' +
+                '<td class="py-3 px-2 text-gray-400 text-xs w-16 text-center">ID ' + Number(lesson.id) + '</td>' +
                 '<td class="py-3 px-2 font-semibold text-gray-800">' + escHtml(lesson.title) + '</td>' +
                 '<td class="py-3 px-2">' + status + '</td>' +
                 '<td class="py-3 px-2 text-gray-400">' + updated + '</td>' +
                 '<td class="py-3 px-2"><div class="flex gap-2 flex-wrap">' +
-                    '<button onclick="openAdminInteractiveLesson(' + Number(lesson.id) + ')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">↗ Open</button>' +
+                    '<button onclick="openAdminInteractiveLesson(' + Number(lesson.id) + ',' + Number(lesson.lesson_number) + ')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">↗ Open</button>' +
                     '<button onclick="editInteractiveLesson(' + Number(lesson.id) + ')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold">✏️ Edit</button>' +
                     '<button onclick="toggleInteractiveLesson(' + Number(lesson.id) + ')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-lg text-xs font-bold">' + toggleText + '</button>' +
                     '<button onclick="deleteInteractiveLesson(' + Number(lesson.id) + ')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg text-xs font-bold">🗑️ Delete</button>' +
                 '</div></td></tr>';
         }).join('');
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-red-500 py-8">Could not load interactive lessons.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-red-500 py-8">Could not load interactive lessons.</td></tr>';
     }
 }
 
 async function uploadInteractiveLesson() {
     var title = document.getElementById('interactiveLessonTitle').value.trim();
     var fileInput = document.getElementById('interactiveLessonFile');
-    var order = parseInt(document.getElementById('interactiveLessonOrder').value) || 0;
+    var lessonNumber = parseInt(document.getElementById('interactiveLessonNumber').value);
+    var orderValue = document.getElementById('interactiveLessonOrder').value.trim();
+    var order = orderValue === '' ? null : (parseInt(orderValue) || 0);
     var published = document.getElementById('interactiveLessonPublished').checked;
     var msg = document.getElementById('interactiveLessonMsg');
     var file = fileInput.files && fileInput.files[0];
     msg.classList.remove('hidden');
-    if (!title || !file) {
-        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'Choose a lesson name and an HTML file.'; return;
+    if (!title || !file || !Number.isInteger(lessonNumber) || lessonNumber < 1) {
+        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'Choose a lesson name, a positive lesson number, and an HTML file.'; return;
     }
     if (!/\.html?$/i.test(file.name)) {
         msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'Only .html or .htm files are allowed.'; return;
@@ -10512,13 +10569,14 @@ async function uploadInteractiveLesson() {
         var res = await fetch('/api/admin/interactive-lessons', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({title:title, html_content:bundledHtml, file_name:file.name, sort_order:order, is_published:published})
+            body: JSON.stringify({title:title, html_content:bundledHtml, file_name:file.name, lesson_number:lessonNumber, sort_order:order, is_published:published})
         });
         var data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Upload failed');
         document.getElementById('interactiveLessonTitle').value = '';
         document.getElementById('interactiveLessonFile').value = '';
         document.getElementById('interactiveLessonAssets').value = '';
+        document.getElementById('interactiveLessonNumber').value = '';
         document.getElementById('interactiveLessonOrder').value = '';
         msg.className = 'mt-2 text-sm text-green-600'; msg.textContent = '✅ Lesson uploaded successfully.';
         loadAdminInteractiveLessons();
@@ -10634,8 +10692,9 @@ async function bundleInteractiveLessonAssets(html, assets) {
     return '<!doctype html>\\n' + doc.documentElement.outerHTML;
 }
 
-function openAdminInteractiveLesson(id) {
-    window.open('/interactive-lessons/' + id, '_blank', 'noopener');
+function openAdminInteractiveLesson(id, lessonNumber) {
+    var target = Number(lessonNumber) > 0 ? '/interactive-lessons/lesson/' + Number(lessonNumber) : '/interactive-lessons/' + id;
+    window.open(target, '_blank', 'noopener');
 }
 
 async function updateInteractiveLesson(lesson) {
