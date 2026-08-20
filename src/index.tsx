@@ -148,6 +148,25 @@ app.use('*', async (c, next) => {
     c.res.headers.set('X-Content-Type-Options', 'nosniff')
     c.res.headers.set('X-Frame-Options', 'DENY')
     c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    // Interactive lesson pages are trusted viewer shells. Untrusted HTML is placed
+    // inside an opaque-origin sandboxed iframe; CSP blocks API/fetch connections.
+    if (c.req.path.startsWith('/interactive-lessons/')) {
+        c.res.headers.set('Content-Security-Policy',
+            "default-src 'none'; " +
+            "script-src 'unsafe-inline' https:; " +
+            "style-src 'unsafe-inline' https:; " +
+            "img-src data: https:; " +
+            "font-src data: https:; " +
+            "media-src data: https:; " +
+            "frame-src data:; " +
+            "connect-src 'none'; " +
+            "form-action 'none'; " +
+            "base-uri 'none'; " +
+            "frame-ancestors 'none'"
+        )
+        c.res.headers.set('Cache-Control', 'no-store')
+        return
+    }
     // CSP: allow inline scripts/styles (needed for server-rendered pages) but lock down
     // connect-src to self (blocks XSS data-exfiltration), frame-src to YouTube only
     c.res.headers.set('Content-Security-Policy',
@@ -173,6 +192,15 @@ app.use('*', async (c, next) => {
                 youtube_url TEXT NOT NULL,
                 sort_order INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`).run()
+            await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS interactive_lessons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                html_content TEXT NOT NULL,
+                is_published INTEGER NOT NULL DEFAULT 1,
+                sort_order INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`).run()
         } catch(_) {}
     }
@@ -942,6 +970,122 @@ app.delete('/api/admin/videos/:id', authMiddleware, async (c) => {
     if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
     await c.env.DB.prepare('DELETE FROM lesson_videos WHERE id=?').bind(c.req.param('id')).run()
     return c.json({ ok: true })
+})
+// ──────────────────────────────────────────────────────────────────────────
+
+// ── Interactive HTML Lessons ──────────────────────────────────────────────
+const MAX_INTERACTIVE_HTML_BYTES = 256 * 1024
+
+function validInteractiveLessonId(value: string): boolean {
+    return /^[1-9]\d*$/.test(value)
+}
+
+function validInteractiveHtml(content: string): boolean {
+    const normalized = content.trim().toLowerCase()
+    return normalized.length > 0 && (normalized.startsWith('<!doctype html') || normalized.includes('<html'))
+}
+
+function escapeHtmlAttribute(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function interactiveLessonMetadataQuery(publishedOnly = false): string {
+    return `SELECT id, title, is_published, sort_order, created_at, updated_at
+        FROM interactive_lessons ${publishedOnly ? 'WHERE is_published = 1' : ''}
+        ORDER BY sort_order, id`
+}
+
+app.get('/api/interactive-lessons', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (!['student', 'teacher', 'admin'].includes(me.role)) return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare(interactiveLessonMetadataQuery(true)).all()
+    return c.json(results)
+})
+
+app.get('/api/admin/interactive-lessons', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { results } = await c.env.DB.prepare(interactiveLessonMetadataQuery()).all()
+    return c.json(results)
+})
+
+app.post('/api/admin/interactive-lessons', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { title, html_content, file_name, sort_order, is_published } = await c.req.json()
+    const cleanTitle = typeof title === 'string' ? title.trim() : ''
+    const content = typeof html_content === 'string' ? html_content : ''
+    const validFileName = typeof file_name === 'string' && /^[^/\\]+\.(html?|HTML?)$/.test(file_name)
+    if (!cleanTitle || cleanTitle.length > 120 || hasHtmlChars(cleanTitle)) {
+        return c.json({ error: 'Lesson title must be 1–120 plain-text characters' }, 400)
+    }
+    if (!validFileName) return c.json({ error: 'Upload a .html or .htm file' }, 400)
+    if (new TextEncoder().encode(content).byteLength > MAX_INTERACTIVE_HTML_BYTES) {
+        return c.json({ error: 'HTML file must be 256 KB or smaller' }, 400)
+    }
+    if (!validInteractiveHtml(content)) return c.json({ error: 'Upload a complete HTML document' }, 400)
+    const order = Number.isFinite(Number(sort_order)) ? Math.max(0, Math.floor(Number(sort_order))) : 0
+    const published = is_published === false || is_published === 0 ? 0 : 1
+    const result = await c.env.DB.prepare(
+        'INSERT INTO interactive_lessons (title, html_content, is_published, sort_order) VALUES (?, ?, ?, ?)'
+    ).bind(cleanTitle, content, published, order).run()
+    return c.json({ ok: true, id: result.meta.last_row_id })
+})
+
+app.put('/api/admin/interactive-lessons/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const id = c.req.param('id')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    if (!validInteractiveLessonId(id)) return c.json({ error: 'Invalid lesson' }, 400)
+    const { title, sort_order, is_published } = await c.req.json()
+    const cleanTitle = typeof title === 'string' ? title.trim() : ''
+    if (!cleanTitle || cleanTitle.length > 120 || hasHtmlChars(cleanTitle)) {
+        return c.json({ error: 'Lesson title must be 1–120 plain-text characters' }, 400)
+    }
+    const order = Number.isFinite(Number(sort_order)) ? Math.max(0, Math.floor(Number(sort_order))) : 0
+    const published = is_published === false || is_published === 0 ? 0 : 1
+    const result = await c.env.DB.prepare(
+        "UPDATE interactive_lessons SET title=?, sort_order=?, is_published=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
+    ).bind(cleanTitle, order, published, id).run()
+    if (!result.meta.changes) return c.json({ error: 'Lesson not found' }, 404)
+    return c.json({ ok: true })
+})
+
+app.delete('/api/admin/interactive-lessons/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const id = c.req.param('id')
+    if (me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    if (!validInteractiveLessonId(id)) return c.json({ error: 'Invalid lesson' }, 400)
+    await c.env.DB.prepare('DELETE FROM interactive_lessons WHERE id=?').bind(id).run()
+    return c.json({ ok: true })
+})
+
+// The uploaded document is embedded in an opaque-origin iframe instead of being
+// rendered as the platform page itself. It cannot read platform cookies or parent
+// DOM, call APIs (connect-src none), open popups, or navigate the academy.
+app.get('/interactive-lessons/:id', authMiddleware, async (c) => {
+    const me = c.get('user')
+    const id = c.req.param('id')
+    if (!['student', 'teacher', 'admin'].includes(me.role)) return c.text('Forbidden', 403)
+    if (!validInteractiveLessonId(id)) return c.text('Lesson not found', 404)
+    const lesson = await c.env.DB.prepare(
+        'SELECT title, html_content, is_published FROM interactive_lessons WHERE id=?'
+    ).bind(id).first() as any
+    if (!lesson || (!lesson.is_published && me.role !== 'admin')) return c.text('Lesson not found', 404)
+    const title = escapeHtmlAttribute(lesson.title || 'Interactive Lesson')
+    const srcdoc = escapeHtmlAttribute(lesson.html_content)
+    return c.html(`<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title} | STEMO Interactive Lesson</title>
+    <style>html,body{width:100%;height:100%;margin:0;background:#f8fafc}iframe{display:block;width:100%;height:100%;border:0;background:#fff}</style>
+</head>
+<body>
+    <iframe title="${title}" sandbox="allow-scripts allow-forms allow-modals allow-downloads" referrerpolicy="no-referrer" srcdoc="${srcdoc}"></iframe>
+</body>
+</html>`)
 })
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -1876,6 +2020,9 @@ const htmlContent = `<!DOCTYPE html>
             <button onclick="switchTab('videos')" id="tab-videos" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
                 <i class="fas fa-video mr-1"></i><span data-i18n="tab_videos">Video Training</span>
             </button>
+            <button onclick="switchTab('interactive')" id="tab-interactive" class="tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm">
+                <i class="fas fa-laptop-code mr-1"></i><span data-i18n="tab_interactive">Interactive Lessons</span>
+            </button>
             <select id="langSelect" onchange="setLanguage(this.value)" class="ml-auto px-3 py-2 rounded-full font-bold text-sm bg-white border-2 border-indigo-200 text-indigo-600 cursor-pointer" title="Language / اللغة">
                 <option value="en">🇬🇧 English</option>
                 <option value="ar">🇸🇦 العربية</option>
@@ -2545,6 +2692,24 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="videoList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div class="text-gray-400 text-center py-12 col-span-3">
                         <i class="fas fa-video text-4xl mb-3 block"></i>Loading videos...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive HTML Lessons Tab -->
+        <div id="interactive-section" class="hidden">
+            <div class="bg-white rounded-3xl card-shadow p-6">
+                <div class="flex items-center justify-between mb-4 gap-4">
+                    <h3 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-laptop-code text-purple-500 mr-2"></i><span data-i18n="interactive_title">Interactive Lessons</span>
+                    </h3>
+                    <button onclick="loadInteractiveLessons()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-full text-sm font-bold transition-all">🔄 <span data-i18n="btn_refresh">Refresh</span></button>
+                </div>
+                <p class="text-gray-500 mb-6 text-sm" data-i18n="interactive_subtitle">Explore interactive activities prepared by your academy.</p>
+                <div id="interactiveLessonList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="text-gray-400 text-center py-12 col-span-3">
+                        <i class="fas fa-laptop-code text-4xl mb-3 block"></i><span data-i18n="interactive_loading">Loading interactive lessons...</span>
                     </div>
                 </div>
             </div>
@@ -7121,7 +7286,9 @@ const htmlContent = `<!DOCTYPE html>
         var I18N = {
             en: {
                 tab_learn: 'Learn', tab_code: 'Code', tab_achievements: 'Achievements',
-                tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training',
+                tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training', tab_interactive: 'Interactive Lessons',
+                interactive_title: 'Interactive Lessons', interactive_subtitle: 'Explore interactive activities prepared by your academy.',
+                interactive_loading: 'Loading interactive lessons...', interactive_empty: 'No interactive lessons available yet.', interactive_open: 'Open Lesson', btn_refresh: 'Refresh',
                 btn_run: 'Run',
                 cat_move: '🚶 Move', cat_draw: '🎨 Draw', cat_fun: '🎉 Fun', cat_loop: '🔁 Loop',
                 welcome_title: 'Welcome to STEMO Academy!',
@@ -7138,7 +7305,9 @@ const htmlContent = `<!DOCTYPE html>
             },
             ar: {
                 tab_learn: 'تعلّم', tab_code: 'برمجة', tab_achievements: 'الإنجازات',
-                tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو',
+                tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو', tab_interactive: 'دروس تفاعلية',
+                interactive_title: 'دروس تفاعلية', interactive_subtitle: 'اكتشف أنشطة تفاعلية أعدّتها أكاديميتك.',
+                interactive_loading: 'جارٍ تحميل الدروس التفاعلية...', interactive_empty: 'لا توجد دروس تفاعلية متاحة بعد.', interactive_open: 'فتح الدرس', btn_refresh: 'تحديث',
                 btn_run: 'تشغيل',
                 cat_move: '🚶 حركة', cat_draw: '🎨 رسم', cat_fun: '🎉 مرح', cat_loop: '🔁 تكرار',
                 welcome_title: 'أهلاً بك في أكاديمية ستيمو!',
@@ -7155,13 +7324,17 @@ const htmlContent = `<!DOCTYPE html>
             },
             es: {
                 tab_learn: 'Aprender', tab_code: 'Código', tab_achievements: 'Logros',
-                tab_profile: 'Mi Perfil', tab_leaderboard: 'Clasificación', tab_videos: 'Videos',
+                tab_profile: 'Mi Perfil', tab_leaderboard: 'Clasificación', tab_videos: 'Videos', tab_interactive: 'Lecciones interactivas',
+                interactive_title: 'Lecciones interactivas', interactive_subtitle: 'Explora actividades preparadas por tu academia.',
+                interactive_loading: 'Cargando lecciones interactivas...', interactive_empty: 'Aún no hay lecciones interactivas.', interactive_open: 'Abrir lección', btn_refresh: 'Actualizar',
                 btn_run: 'Ejecutar',
                 cat_move: '🚶 Mover', cat_draw: '🎨 Dibujar', cat_fun: '🎉 Diversión', cat_loop: '🔁 Repetir'
             },
             fr: {
                 tab_learn: 'Apprendre', tab_code: 'Code', tab_achievements: 'Succès',
-                tab_profile: 'Mon Profil', tab_leaderboard: 'Classement', tab_videos: 'Vidéos',
+                tab_profile: 'Mon Profil', tab_leaderboard: 'Classement', tab_videos: 'Vidéos', tab_interactive: 'Leçons interactives',
+                interactive_title: 'Leçons interactives', interactive_subtitle: 'Découvrez les activités préparées par votre académie.',
+                interactive_loading: 'Chargement des leçons interactives...', interactive_empty: 'Aucune leçon interactive disponible.', interactive_open: 'Ouvrir la leçon', btn_refresh: 'Actualiser',
                 btn_run: 'Lancer',
                 cat_move: '🚶 Bouger', cat_draw: '🎨 Dessiner', cat_fun: '🎉 Amusant', cat_loop: '🔁 Répéter'
             }
@@ -8282,7 +8455,7 @@ const htmlContent = `<!DOCTYPE html>
         // TAB NAVIGATION
         // ============================================
         function switchTab(tab) {
-            ['learn','code','achievements','profile','leaderboard','videos'].forEach(function(t) {
+            ['learn','code','achievements','profile','leaderboard','videos','interactive'].forEach(function(t) {
                 document.getElementById(t + '-section').classList.add('hidden');
                 document.getElementById('tab-' + t).className = 'tab-inactive px-5 py-2 rounded-full font-bold transition-all text-sm';
             });
@@ -8293,6 +8466,7 @@ const htmlContent = `<!DOCTYPE html>
             }
             if (tab === 'leaderboard') switchLbTab('class');
             if (tab === 'videos') loadStudentVideos();
+            if (tab === 'interactive') loadInteractiveLessons();
         }
 
         // ============================================
@@ -8464,6 +8638,44 @@ const htmlContent = `<!DOCTYPE html>
                 }).join('');
             } catch(e) {
                 list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load videos. Please try again.</div>';
+            }
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
+        // ── Student Interactive HTML Lessons ────────────────────────────────────
+        function interactiveText(key) {
+            var dict = I18N[currentLang] || I18N.en;
+            return dict[key] || I18N.en[key] || key;
+        }
+
+        function escapeInteractiveTitle(value) {
+            return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function openInteractiveLesson(id) {
+            window.open('/interactive-lessons/' + id, '_blank', 'noopener');
+        }
+
+        async function loadInteractiveLessons() {
+            var list = document.getElementById('interactiveLessonList');
+            list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-spinner fa-spin text-3xl mb-2 block"></i>' + interactiveText('interactive_loading') + '</div>';
+            try {
+                var lessons = await fetch('/api/interactive-lessons').then(function(r) { return r.json(); });
+                if (!Array.isArray(lessons) || !lessons.length) {
+                    list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-laptop-code text-5xl mb-3 block opacity-40"></i><p class="font-semibold">' + interactiveText('interactive_empty') + '</p></div>';
+                    return;
+                }
+                list.innerHTML = lessons.map(function(lesson) {
+                    var id = Number(lesson.id);
+                    return '<div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-5 hover:shadow-md transition-all">' +
+                        '<div class="w-12 h-12 bg-purple-500 text-white rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-laptop-code"></i></div>' +
+                        '<h4 class="font-bold text-gray-800">' + escapeInteractiveTitle(lesson.title) + '</h4>' +
+                        '<p class="text-gray-500 text-sm mt-1 mb-4">HTML interactive activity</p>' +
+                        '<button onclick="openInteractiveLesson(' + id + ')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-sm transition-all"><i class="fas fa-play mr-1"></i> ' + interactiveText('interactive_open') + '</button>' +
+                    '</div>';
+                }).join('');
+            } catch(e) {
+                list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load interactive lessons. Please try again.</div>';
             }
         }
         // ────────────────────────────────────────────────────────────────────────
@@ -9922,6 +10134,7 @@ const adminDashboard = `<!DOCTYPE html>
         <button onclick="showTab('classes')" id="tab-classes" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏫 Classes</button>
         <button onclick="showTab('links')" id="tab-links" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🔗 Parent Links</button>
         <button onclick="showTab('videos')" id="tab-videos" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🎬 Videos</button>
+        <button onclick="showTab('interactive')" id="tab-interactive" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">💻 Interactive Lessons</button>
     </div>
     <!-- Pending Approvals Tab -->
     <div id="section-pending">
@@ -10037,6 +10250,36 @@ const adminDashboard = `<!DOCTYPE html>
             </div>
         </div>
     </div>
+    <!-- Interactive HTML Lessons Tab -->
+    <div id="section-interactive" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-2 gap-4">
+                <h2 class="text-xl">💻 Interactive Lessons</h2>
+                <button onclick="document.getElementById('interactiveLessonForm').classList.toggle('hidden')" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-purple-700">+ Upload HTML Lesson</button>
+            </div>
+            <p class="text-gray-500 text-sm mb-4">Upload one self-contained .html file (up to 256 KB). Lessons open in a secure isolated page.</p>
+            <div id="interactiveLessonForm" class="hidden bg-purple-50 rounded-xl p-4 mb-4 border border-purple-200">
+                <h3 class="font-bold text-purple-700 mb-3">Upload Interactive HTML Lesson</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input id="interactiveLessonTitle" placeholder="Lesson name (e.g. Lesson 1: HTML Quiz)" maxlength="120" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                    <input id="interactiveLessonFile" type="file" accept=".html,.htm,text/html" class="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-purple-400">
+                    <input id="interactiveLessonOrder" type="number" min="0" placeholder="Order (1, 2, 3…)" class="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                </div>
+                <label class="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-gray-700"><input id="interactiveLessonPublished" type="checkbox" checked class="accent-purple-600"> Publish immediately for students</label>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="uploadInteractiveLesson()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-700">⬆️ Upload Lesson</button>
+                    <button onclick="document.getElementById('interactiveLessonForm').classList.add('hidden')" class="bg-gray-200 px-4 py-2 rounded-lg text-sm font-bold">Cancel</button>
+                </div>
+                <div id="interactiveLessonMsg" class="mt-2 text-sm hidden"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="border-b text-gray-500 text-left"><th class="pb-2">Order</th><th class="pb-2">Lesson Name</th><th class="pb-2">Status</th><th class="pb-2">Updated</th><th class="pb-2">Actions</th></tr></thead>
+                    <tbody id="adminInteractiveLessonList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 <script>
 let allUsers = [];
@@ -10057,16 +10300,17 @@ async function init() {
     loadClasses();
     loadLinkDropdowns();
     loadAdminVideos();
+    loadAdminInteractiveLessons();
 }
 
 function showTab(tab) {
-    ['pending','users','classes','links','videos'].forEach(t => {
+    ['pending','users','classes','links','videos','interactive'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
         const btn = document.getElementById('tab-'+t);
         if (btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    const activeColors = {pending:'bg-orange-500',users:'bg-indigo-600',classes:'bg-indigo-600',links:'bg-indigo-600',videos:'bg-red-500'};
+    const activeColors = {pending:'bg-orange-500',users:'bg-indigo-600',classes:'bg-indigo-600',links:'bg-indigo-600',videos:'bg-red-500',interactive:'bg-purple-600'};
     document.getElementById('tab-'+tab).className = \`tab-btn \${activeColors[tab]||'bg-indigo-600'} text-white px-5 py-2 rounded-full font-bold text-sm\`;
 }
 
@@ -10156,6 +10400,122 @@ async function deleteVideo(id) {
     if (!confirm('Delete this video?')) return;
     await fetch('/api/admin/videos/'+id, {method:'DELETE'});
     loadAdminVideos();
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Admin Interactive HTML Lesson CRUD ──────────────────────────────────────
+var adminInteractiveLessons = [];
+
+async function loadAdminInteractiveLessons() {
+    var tbody = document.getElementById('adminInteractiveLessonList');
+    if (!tbody) return;
+    try {
+        var res = await fetch('/api/admin/interactive-lessons');
+        adminInteractiveLessons = await res.json();
+        if (!Array.isArray(adminInteractiveLessons) || !adminInteractiveLessons.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No interactive lessons yet. Upload a complete HTML file to get started.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = adminInteractiveLessons.map(function(lesson) {
+            var isPublished = Number(lesson.is_published) === 1;
+            var status = isPublished
+                ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">Published</span>'
+                : '<span class="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs font-bold">Draft</span>';
+            var updated = lesson.updated_at ? String(lesson.updated_at).slice(0, 10) : '-';
+            var toggleText = isPublished ? 'Unpublish' : 'Publish';
+            return '<tr class="border-b hover:bg-gray-50">' +
+                '<td class="py-3 px-2 text-gray-500 w-12 text-center">' + (lesson.sort_order || '-') + '</td>' +
+                '<td class="py-3 px-2 font-semibold text-gray-800">' + escHtml(lesson.title) + '</td>' +
+                '<td class="py-3 px-2">' + status + '</td>' +
+                '<td class="py-3 px-2 text-gray-400">' + updated + '</td>' +
+                '<td class="py-3 px-2"><div class="flex gap-2 flex-wrap">' +
+                    '<button onclick="openAdminInteractiveLesson(' + Number(lesson.id) + ')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">↗ Open</button>' +
+                    '<button onclick="editInteractiveLesson(' + Number(lesson.id) + ')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-3 py-1 rounded-lg text-xs font-bold">✏️ Edit</button>' +
+                    '<button onclick="toggleInteractiveLesson(' + Number(lesson.id) + ')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded-lg text-xs font-bold">' + toggleText + '</button>' +
+                    '<button onclick="deleteInteractiveLesson(' + Number(lesson.id) + ')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg text-xs font-bold">🗑️ Delete</button>' +
+                '</div></td></tr>';
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-red-500 py-8">Could not load interactive lessons.</td></tr>';
+    }
+}
+
+async function uploadInteractiveLesson() {
+    var title = document.getElementById('interactiveLessonTitle').value.trim();
+    var fileInput = document.getElementById('interactiveLessonFile');
+    var order = parseInt(document.getElementById('interactiveLessonOrder').value) || 0;
+    var published = document.getElementById('interactiveLessonPublished').checked;
+    var msg = document.getElementById('interactiveLessonMsg');
+    var file = fileInput.files && fileInput.files[0];
+    msg.classList.remove('hidden');
+    if (!title || !file) {
+        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'Choose a lesson name and an HTML file.'; return;
+    }
+    if (!/\.html?$/i.test(file.name)) {
+        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'Only .html or .htm files are allowed.'; return;
+    }
+    if (file.size > 256 * 1024) {
+        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = 'The HTML file must be 256 KB or smaller.'; return;
+    }
+    msg.className = 'mt-2 text-sm text-gray-500'; msg.textContent = 'Uploading…';
+    try {
+        var html = await file.text();
+        var res = await fetch('/api/admin/interactive-lessons', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({title:title, html_content:html, file_name:file.name, sort_order:order, is_published:published})
+        });
+        var data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Upload failed');
+        document.getElementById('interactiveLessonTitle').value = '';
+        document.getElementById('interactiveLessonFile').value = '';
+        document.getElementById('interactiveLessonOrder').value = '';
+        msg.className = 'mt-2 text-sm text-green-600'; msg.textContent = '✅ Lesson uploaded successfully.';
+        loadAdminInteractiveLessons();
+    } catch(e) {
+        msg.className = 'mt-2 text-sm text-red-600'; msg.textContent = '❌ ' + (e.message || 'Upload failed.');
+    }
+}
+
+function openAdminInteractiveLesson(id) {
+    window.open('/interactive-lessons/' + id, '_blank', 'noopener');
+}
+
+async function updateInteractiveLesson(lesson) {
+    var res = await fetch('/api/admin/interactive-lessons/' + lesson.id, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({title:lesson.title, sort_order:lesson.sort_order || 0, is_published:lesson.is_published})
+    });
+    var data = await res.json();
+    if (!data.ok) alert('❌ ' + (data.error || 'Could not update lesson.'));
+    await loadAdminInteractiveLessons();
+}
+
+function editInteractiveLesson(id) {
+    var lesson = adminInteractiveLessons.find(function(item) { return Number(item.id) === Number(id); });
+    if (!lesson) return;
+    var title = prompt('Lesson name:', lesson.title);
+    if (title === null) return;
+    var order = prompt('Sort order:', lesson.sort_order || 0);
+    if (order === null) return;
+    updateInteractiveLesson({id:lesson.id, title:title.trim(), sort_order:parseInt(order) || 0, is_published:Number(lesson.is_published) === 1});
+}
+
+function toggleInteractiveLesson(id) {
+    var lesson = adminInteractiveLessons.find(function(item) { return Number(item.id) === Number(id); });
+    if (!lesson) return;
+    var willPublish = Number(lesson.is_published) !== 1;
+    if (!confirm((willPublish ? 'Publish' : 'Unpublish') + ' "' + lesson.title + '"?')) return;
+    updateInteractiveLesson({id:lesson.id, title:lesson.title, sort_order:lesson.sort_order || 0, is_published:willPublish});
+}
+
+async function deleteInteractiveLesson(id) {
+    if (!confirm('Delete this interactive lesson permanently?')) return;
+    var res = await fetch('/api/admin/interactive-lessons/' + id, {method:'DELETE'});
+    var data = await res.json();
+    if (!data.ok) { alert('❌ ' + (data.error || 'Could not delete lesson.')); return; }
+    loadAdminInteractiveLessons();
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
