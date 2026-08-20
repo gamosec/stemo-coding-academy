@@ -989,6 +989,43 @@ function escapeHtmlAttribute(value: string): string {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+const BUILTIN_LESSON_LOGO_NAMES = new Set([
+    'logo.png', 'logo.jpg', 'logo.jpeg', 'logo.svg',
+    'steam-logo.png', 'steam-logo.jpg', 'steam-logo.jpeg', 'steam-logo.svg',
+    'steam-logo-white.png', 'steam-logo-white.svg',
+    'steam-logo-color.png', 'steam-logo-color.svg',
+    'steamlogo.png', 'steamlogo.jpg', 'steamlogo.svg'
+])
+
+function builtinLessonLogoFallback(reference: string): string {
+    const cleanReference = reference.trim().split(/[?#]/)[0].replace(/\\/g, '/')
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(cleanReference)) return reference
+    const fileName = cleanReference.split('/').pop()?.toLowerCase() || ''
+    return BUILTIN_LESSON_LOGO_NAMES.has(fileName) ? '/static/steam-logo.png' : reference
+}
+
+function restoreBuiltinLessonLogos(content: string): string {
+    let restored = content.replace(
+        /(\b(?:src|href|poster)\s*=\s*)(["'])([^"']+)\2/gi,
+        (_match, prefix, quote, reference) => prefix + quote + builtinLessonLogoFallback(reference) + quote
+    )
+    restored = restored.replace(
+        /(\bsrcset\s*=\s*)(["'])([^"']+)\2/gi,
+        (_match, prefix, quote, srcset) => {
+            const rewritten = srcset.split(',').map((candidate: string) => {
+                const parts = candidate.trim().split(/\s+/)
+                if (parts.length) parts[0] = builtinLessonLogoFallback(parts[0])
+                return parts.join(' ')
+            }).join(', ')
+            return prefix + quote + rewritten + quote
+        }
+    )
+    return restored.replace(
+        /(url\(\s*["']?)([^"')]+)(["']?\s*\))/gi,
+        (_match, prefix, reference, suffix) => prefix + builtinLessonLogoFallback(reference) + suffix
+    )
+}
+
 function interactiveLessonMetadataQuery(publishedOnly = false): string {
     return `SELECT id, title, is_published, sort_order, created_at, updated_at
         FROM interactive_lessons ${publishedOnly ? 'WHERE is_published = 1' : ''}
@@ -1073,7 +1110,7 @@ app.get('/interactive-lessons/:id', authMiddleware, async (c) => {
     ).bind(id).first() as any
     if (!lesson || (!lesson.is_published && me.role !== 'admin')) return c.text('Lesson not found', 404)
     const title = escapeHtmlAttribute(lesson.title || 'Interactive Lesson')
-    const srcdoc = escapeHtmlAttribute(lesson.html_content)
+    const srcdoc = escapeHtmlAttribute(restoreBuiltinLessonLogos(lesson.html_content))
     return c.html(`<!doctype html>
 <html lang="en">
 <head>
