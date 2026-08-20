@@ -1183,10 +1183,42 @@ app.get('/api/admin/students', authMiddleware, async (c) => {
     return c.json(results)
 })
 
+const LEADERBOARD_DEFAULT_PAGE_SIZE = 30
+const LEADERBOARD_MAX_PAGE_SIZE = 50
+
+function getLeaderboardPagination(c: any) {
+    const requestedPage = Number.parseInt(c.req.query('page') || '1', 10)
+    const requestedSize = Number.parseInt(c.req.query('page_size') || String(LEADERBOARD_DEFAULT_PAGE_SIZE), 10)
+    const pageSize = Number.isFinite(requestedSize)
+        ? Math.min(LEADERBOARD_MAX_PAGE_SIZE, Math.max(10, requestedSize))
+        : LEADERBOARD_DEFAULT_PAGE_SIZE
+    const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1
+    return { page, pageSize, offset: (page - 1) * pageSize }
+}
+
+function leaderboardPageResponse(results: any[], page: number, pageSize: number, total: number) {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    return {
+        results,
+        page,
+        pageSize,
+        total,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: page < totalPages
+    }
+}
+
 // Leaderboard — top students ranked by XP (accessible to students and teachers)
 app.get('/api/leaderboard', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'student' && me.role !== 'teacher' && me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+    const { page, pageSize, offset } = getLeaderboardPagination(c)
+    const totalRow = await c.env.DB.prepare(`
+        SELECT COUNT(DISTINCT u.id) as total
+        FROM users u
+        WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
+    `).first() as any
     const { results } = await c.env.DB.prepare(`
         SELECT u.id, u.full_name, u.username, u.created_at,
                COALESCE(sp.xp, 0) as xp,
@@ -1202,10 +1234,10 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
         LEFT JOIN classes c ON cs.class_id = c.id
         LEFT JOIN schools s ON c.school_id = s.id
         WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
-        ORDER BY COALESCE(sp.xp, 0) DESC
-        LIMIT 50
-    `).all()
-    return c.json(results)
+        ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
+        LIMIT ? OFFSET ?
+    `).bind(pageSize, offset).all()
+    return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
 })
 
 // Leaderboard — student's own class
@@ -1213,6 +1245,17 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
     try {
+        const { page, pageSize, offset } = getLeaderboardPagination(c)
+        const totalRow = await c.env.DB.prepare(`
+            SELECT COUNT(*) as total FROM (
+                SELECT u.id
+                FROM class_students cs2
+                JOIN class_students cs ON cs.class_id = cs2.class_id
+                JOIN users u ON u.id = cs.student_id
+                WHERE cs2.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
+                GROUP BY u.id
+            ) class_students
+        `).bind(me.id).first() as any
         const { results } = await c.env.DB.prepare(`
             SELECT u.id, u.full_name, u.username,
                    COALESCE(sp.xp, 0) as xp,
@@ -1229,10 +1272,10 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
             LEFT JOIN schools s ON s.id = c.school_id
             WHERE cs2.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
             GROUP BY u.id
-            ORDER BY COALESCE(sp.xp, 0) DESC
-            LIMIT 50
-        `).bind(me.id).all()
-        return c.json(results)
+            ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
+            LIMIT ? OFFSET ?
+        `).bind(me.id, pageSize, offset).all()
+        return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
     } catch (e: any) { console.error('Leaderboard class error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
@@ -1241,6 +1284,19 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
     const me = c.get('user')
     if (me.role !== 'student') return c.json({ error: 'Forbidden' }, 403)
     try {
+        const { page, pageSize, offset } = getLeaderboardPagination(c)
+        const totalRow = await c.env.DB.prepare(`
+            SELECT COUNT(*) as total FROM (
+                SELECT DISTINCT u.id
+                FROM class_students mycs
+                JOIN classes myc ON myc.id = mycs.class_id
+                JOIN schools mys ON mys.id = myc.school_id
+                JOIN classes c ON c.school_id = mys.id
+                JOIN class_students cs ON cs.class_id = c.id
+                JOIN users u ON u.id = cs.student_id
+                WHERE mycs.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
+            ) school_students
+        `).bind(me.id).first() as any
         const { results } = await c.env.DB.prepare(`
             SELECT u.id, u.full_name, u.username,
                    COALESCE(sp.xp, 0) as xp,
@@ -1259,10 +1315,10 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
             LEFT JOIN schools s ON s.id = c.school_id
             WHERE mycs.student_id = ? AND u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
             GROUP BY u.id
-            ORDER BY COALESCE(sp.xp, 0) DESC
-            LIMIT 50
-        `).bind(me.id).all()
-        return c.json(results)
+            ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
+            LIMIT ? OFFSET ?
+        `).bind(me.id, pageSize, offset).all()
+        return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
     } catch (e: any) { console.error('Leaderboard school error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
