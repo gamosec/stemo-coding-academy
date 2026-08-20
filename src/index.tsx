@@ -2808,6 +2808,18 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="flex justify-center gap-4 mb-8" id="podiumRow"></div>
                 <!-- Full ranking table -->
                 <div id="leaderboardList" class="space-y-2"></div>
+                <div id="leaderboardPagination" class="hidden mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                    <div class="text-sm text-gray-500" id="leaderboardPageSummary"></div>
+                    <div class="flex items-center gap-2">
+                        <label for="leaderboardPageSize" class="text-xs text-gray-500">Per page</label>
+                        <select id="leaderboardPageSize" onchange="changeLeaderboardPageSize(this.value)" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:border-indigo-400">
+                            <option value="30" selected>30</option>
+                            <option value="50">50</option>
+                        </select>
+                        <button id="leaderboardPrev" onclick="changeLeaderboardPage(-1)" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-gray-100 text-gray-400 disabled:opacity-50" disabled>← Previous</button>
+                        <button id="leaderboardNext" onclick="changeLeaderboardPage(1)" class="px-3 py-1.5 rounded-lg text-sm font-bold bg-indigo-100 text-indigo-700 disabled:opacity-50" disabled>Next →</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -8826,9 +8838,29 @@ const htmlContent = `<!DOCTYPE html>
         // ────────────────────────────────────────────────────────────────────────
 
         var currentLbTab = 'class';
+        var currentLbPage = 1;
+        var currentLbPageSize = 30;
+
+        function hideLeaderboardPagination() {
+            var pagination = document.getElementById('leaderboardPagination');
+            if (pagination) pagination.classList.add('hidden');
+        }
+
+        function changeLeaderboardPage(direction) {
+            currentLbPage = Math.max(1, currentLbPage + direction);
+            loadLeaderboard();
+        }
+
+        function changeLeaderboardPageSize(value) {
+            var size = parseInt(value, 10);
+            currentLbPageSize = size === 50 ? 50 : 30;
+            currentLbPage = 1;
+            loadLeaderboard();
+        }
 
         function switchLbTab(tab) {
             currentLbTab = tab;
+            currentLbPage = 1;
             ['class','school','platform'].forEach(function(t) {
                 var btn = document.getElementById('lb-tab-' + t);
                 if (!btn) return;
@@ -8847,10 +8879,12 @@ const htmlContent = `<!DOCTYPE html>
         async function loadLeaderboard() {
             document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-6">Loading...</p>';
             document.getElementById('podiumRow').innerHTML = '';
+            hideLeaderboardPagination();
             var tab = currentLbTab || 'class';
             var url = tab === 'class' ? '/api/leaderboard/class'
                     : tab === 'school' ? '/api/leaderboard/school'
                     : '/api/leaderboard';
+            url += '?page=' + currentLbPage + '&page_size=' + currentLbPageSize;
             try {
                 const data = await fetch(url).then(r => r.json());
                 if (data && data.error) {
@@ -8860,13 +8894,37 @@ const htmlContent = `<!DOCTYPE html>
                     document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">' + msg + '</p>';
                     return;
                 }
-                if (!Array.isArray(data) || data.length === 0) {
+                var rows = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+                var page = Number(data.page) || currentLbPage;
+                var pageSize = Number(data.pageSize) || currentLbPageSize;
+                var total = Number(data.total) || rows.length;
+                var totalPages = Number(data.totalPages) || Math.max(1, Math.ceil(total / pageSize));
+                if (page > totalPages && totalPages > 0) {
+                    currentLbPage = totalPages;
+                    loadLeaderboard();
+                    return;
+                }
+                if (rows.length === 0) {
                     var empty = tab === 'class' ? 'No classmates yet — ask your teacher to add students! 🎒'
                               : tab === 'school' ? 'No school leaderboard yet — your school may not be set up yet. 🏫'
                               : 'No students yet. Be the first! 🚀';
                     document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">' + empty + '</p>';
                     return;
                 }
+                currentLbPage = page;
+                currentLbPageSize = pageSize;
+                var pagination = document.getElementById('leaderboardPagination');
+                var pageSummary = document.getElementById('leaderboardPageSummary');
+                var prevButton = document.getElementById('leaderboardPrev');
+                var nextButton = document.getElementById('leaderboardNext');
+                var pageSizeSelect = document.getElementById('leaderboardPageSize');
+                var firstShown = (page - 1) * pageSize + 1;
+                var lastShown = Math.min(page * pageSize, total);
+                if (pagination) pagination.classList.remove('hidden');
+                if (pageSummary) pageSummary.textContent = 'Showing ' + firstShown + '–' + lastShown + ' of ' + total + ' students · Page ' + page + ' of ' + totalPages;
+                if (prevButton) prevButton.disabled = page <= 1;
+                if (nextButton) nextButton.disabled = page >= totalPages;
+                if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
                 const myId = currentUser ? currentUser.id : null;
                 const medals = ['🥇','🥈','🥉'];
                 const podiumColors = ['from-yellow-400 to-amber-500','from-gray-300 to-gray-400','from-orange-400 to-amber-600'];
@@ -8909,25 +8967,34 @@ const htmlContent = `<!DOCTYPE html>
 
                 // Top 3 podium
                 var podiumHtml = '';
-                [1, 0, 2].forEach(function(idx) {
-                    var s = data[idx];
-                    if (!s) return;
-                    var isMe = s.id == myId;
-                    podiumHtml += '<div class="flex flex-col items-center gap-1 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
-                    podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
-                    podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + escHtml((s.full_name || 'S')[0].toUpperCase()) + '</div>';
-                    podiumHtml += '<div class="text-center" style="max-width:6rem">';
-                    podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + escHtml(s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
-                    podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0).toLocaleString() + '</div>';
-                    if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + escHtml(s.school_name) + '</div>';
-                    if (s.class_name)  podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + escHtml(s.class_name) + '</div>';
-                    podiumHtml += '</div>';
-                    podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
-                    podiumHtml += '</div>';
-                });
-                document.getElementById('podiumRow').innerHTML = podiumHtml;
+                var podium = document.getElementById('podiumRow');
+                if (page === 1) {
+                    [1, 0, 2].forEach(function(idx) {
+                        var s = rows[idx];
+                        if (!s) return;
+                        var isMe = s.id == myId;
+                        podiumHtml += '<div class="flex flex-col items-center gap-1 ' + (idx === 0 ? 'order-2' : idx === 1 ? 'order-1' : 'order-3') + '">';
+                        podiumHtml += '<div class="text-3xl">' + medals[idx] + '</div>';
+                        podiumHtml += '<div class="w-14 h-14 rounded-full bg-gradient-to-br ' + podiumColors[idx] + ' flex items-center justify-center text-2xl font-bold text-white border-4 ' + (isMe ? 'border-indigo-500' : 'border-white') + '">' + escHtml((s.full_name || 'S')[0].toUpperCase()) + '</div>';
+                        podiumHtml += '<div class="text-center" style="max-width:6rem">';
+                        podiumHtml += '<div class="font-bold text-xs text-gray-800 truncate">' + escHtml(s.full_name || s.username) + (isMe ? ' ★' : '') + '</div>';
+                        podiumHtml += '<div class="text-yellow-500 font-bold text-sm">⭐ ' + (s.xp || 0).toLocaleString() + '</div>';
+                        if (s.school_name) podiumHtml += '<div class="text-purple-600 text-xs truncate">🏫 ' + escHtml(s.school_name) + '</div>';
+                        if (s.class_name)  podiumHtml += '<div class="text-blue-500 text-xs truncate">🎒 ' + escHtml(s.class_name) + '</div>';
+                        podiumHtml += '</div>';
+                        podiumHtml += '<div class="bg-gradient-to-t ' + podiumColors[idx] + ' rounded-t-xl w-20 ' + podiumSizes[idx] + '"></div>';
+                        podiumHtml += '</div>';
+                    });
+                }
+                if (podium) {
+                    podium.innerHTML = podiumHtml;
+                    podium.classList.toggle('hidden', page !== 1);
+                }
 
-                var allRows = data.map(function(s, i) { return lbRow(s, i + 1, i < 3); }).join('');
+                var allRows = rows.map(function(s, i) {
+                    var rank = (page - 1) * pageSize + i + 1;
+                    return lbRow(s, rank, page === 1 && i < 3);
+                }).join('');
                 document.getElementById('leaderboardList').innerHTML = '<div class="space-y-2">' + allRows + '</div>';
             } catch(e) {
                 document.getElementById('leaderboardList').innerHTML = '<p class="text-center text-gray-400 py-8">Unable to load leaderboard</p>';
