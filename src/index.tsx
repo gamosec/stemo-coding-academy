@@ -3553,7 +3553,7 @@ const htmlContent = `<!DOCTYPE html>
                 objectives: [
                     { id: 'moved', label: '📦 Use a variable to move STEMO (trail length > 200px)', check: function() {
                         var total = 0;
-                        targetTrails.forEach(function(t){ total += Math.sqrt((t.x2-t.x1)*(t.x2-t.x1)+(t.y2-t.y1)*(t.y2-t.y1)); });
+                        robot.trails.forEach(function(t){ total += Math.sqrt((t.x2-t.x1)*(t.x2-t.x1)+(t.y2-t.y1)*(t.y2-t.y1)); });
                         return total > 200;
                     }},
                     { id: 'closed', label: '🔁 Draw a closed shape (return within 80px of start)', check: function() {

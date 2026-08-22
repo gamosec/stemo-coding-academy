@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { referencedBlocks, runtimeContracts } from './curriculum-capabilities.mjs'
 
 const sourcePath = resolve(process.argv[2] || 'src/index.tsx')
@@ -507,6 +508,15 @@ if (errors.length > 0) {
   console.error('\nCurriculum validation failed:\n')
   for (const error of errors) console.error(`- ${error}`)
   process.exit(1)
+}
+
+const challengeExecution = spawnSync(process.execPath, [
+  resolve('scripts/validate-challenge-execution.mjs'), sourcePath,
+], { encoding: 'utf8' })
+if (challengeExecution.status !== 0) {
+  console.error(challengeExecution.stdout)
+  console.error(challengeExecution.stderr)
+  process.exit(challengeExecution.status || 1)
 }
 
 console.log(`Curriculum validation passed: ${regularLessons.length} Learn lessons, ${blockTypes.size} Blockly blocks, and ${challengeIds.length} challenge worlds are consistent.`)
