@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "vite",
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
-    "build": "vite build",
+    "validate:curriculum": "node scripts/validate-curriculum.mjs",
+    "test:curriculum": "node scripts/test-curriculum-validator.mjs",
+    "build": "npm run validate:curriculum && vite build",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy dist",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"

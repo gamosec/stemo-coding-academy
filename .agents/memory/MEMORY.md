@@ -5,3 +5,4 @@
 - [Curriculum/progress validation sync](curriculum-progress-validation.md) — new curriculum sections must be added to allLessons whitelist in progress-save routes or completions get silently stripped.
 - [Progress anti-abuse](progress-anti-abuse.md) — save route recomputes XP/streak/badges server-side and gates new completions by unlock order + cooldown; new sections/badges must be mirrored there.
 - [Student academy Arabic i18n](student-i18n.md) — all student-facing strings must route through I18N/tr* helpers; secondary render paths (restore, banners) are the usual leak points.
+- [Curriculum capability validation](curriculum-capability-validation.md) — build gate traces taught controls through palette, parser, and executor without evaluating source.
