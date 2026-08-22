@@ -1425,7 +1425,7 @@ const curriculum = {
                 { id: 't6', text: 'Add "Home" as the very last block — I teleport back to the start! 🏠', completed: false }
             ],
             hint: 'Think of a compass: Forward = North, Right = East, Back = South, Left = West. A 90° turn is always a perfect corner — just like the corners of a square room!',
-            homework: 'Can you make me walk in a "Z" shape? You need: Forward → diagonal move (Right turn, Forward, Left turn) → Forward. Try it!',
+            homework: 'Can you make me walk in a "Z" shape? Try: Forward → Right turn → Forward → Left turn → Forward. Notice how turns change the direction of the next move!',
             nextLesson: 'lesson-3'
         },
         {
@@ -1441,7 +1441,7 @@ const curriculum = {
                 { id: 't2', text: 'Add "Forward 5" and click Run — you drew a line! 📏', completed: false },
                 { id: 't3', text: 'Now add "Pen Up 🖊️" → "Forward 3" → "Pen Down ✏️" → "Forward 3". Run it — see the gap in the line? That\'s a dashed line!', completed: false },
                 { id: 't4', text: 'Clear and draw an L-shape: Pen Down → Forward 5 → Right 90 → Forward 5', completed: false },
-                { id: 't5', text: 'Challenge: draw a staircase! (Hint: repeat Pen Down → Forward 2 → Right 90 → Forward 2 → Left 90)', completed: false }
+                { id: 't5', text: 'Challenge: draw a staircase! Add this sequence three times: Pen Down → Forward 2 → Right 90 → Forward 2 → Left 90.', completed: false }
             ],
             hint: 'Remember the order: Pen Down FIRST, then move. Pen Up = no trail. Pen Down = trail. Think of it like pressing a stamp on paper!',
             homework: 'Draw your initials! Think about which lines need Pen Down and which gaps need Pen Up. For example, the letter "L" = Forward 4, Right 90, Forward 2.',
@@ -1460,7 +1460,7 @@ const curriculum = {
                 { id: 't2', text: 'Add a "Size 10" block before Pen Down — Run again. The line is now thick!', completed: false },
                 { id: 't3', text: 'Change the Color block to blue and Size to 3. Run — thin blue line! 🔵', completed: false },
                 { id: 't4', text: 'Now build this: Color red → Pen Down → Forward 3 → Color blue → Forward 3 → Color green → Forward 3. Three-colour line! 🎨', completed: false },
-                { id: 't5', text: 'Try drawing a thick red square: Color red → Size 8 → Pen Down → Forward 4 → Right 90 (×4)', completed: false }
+                { id: 't5', text: 'Try drawing a thick red square: Color red → Size 8 → Pen Down, then add Forward 4 → Right 90 four times.', completed: false }
             ],
             hint: 'Place Color and Size blocks BEFORE Pen Down for the cleanest result. You can also change colour mid-drawing — add a new Color block between Forward blocks!',
             homework: 'Create a "Colour Road"! Draw 6 lines in a row, each a different colour (red, orange, yellow, green, blue, purple). Use Pen Up between lines to leave small gaps!',
@@ -1537,11 +1537,11 @@ const curriculum = {
                 { id: 't1', text: 'Click the 🔩 button above the board to place one metal piece near me', completed: false },
                 { id: 't2', text: 'Build: Forward (to get close) → Magnet ON → Run. Does the bolt attach? 🧲', completed: false },
                 { id: 't3', text: 'Now add: Forward 3 → Magnet OFF. The metal drops at the new location!', completed: false },
-                { id: 't4', text: 'Place 2 metal pieces. Write a program to pick up the first, carry it to the second, then drop both together', completed: false },
-                { id: 't5', text: 'Challenge: place 3 metals in a line. Collect all 3 in one trip — Magnet ON stays on while you move between them! Can you do it?', completed: false }
+                { id: 't4', text: 'Place 2 metal pieces. Pick up the first, move it to a new spot, and turn Magnet OFF to drop it. Then collect the second one.', completed: false },
+                { id: 't5', text: 'Challenge: place 3 metals in a line. Collect them one at a time: Magnet ON near a metal → move it → Magnet OFF. Can you sort all 3?', completed: false }
             ],
-            hint: 'Keep Magnet ON while moving between metal pieces — you carry them all! Only turn Magnet OFF when you want to drop. Make sure you are close (1-2 steps) before turning the magnet on.',
-            homework: 'Design a "Metal Sorting Station"! Place 4 metal pieces scattered on the board. Write a program to collect them all and bring every piece to the top-right corner. Use loops to make your program shorter!',
+            hint: 'Turn Magnet ON only when you are close to one metal piece. Move it to its new spot, turn Magnet OFF to drop it, then go back for the next piece.',
+            homework: 'Design a "Metal Sorting Station"! Place 4 metal pieces scattered on the board. Move each piece, one at a time, to the top-right corner. Use loops to make your program shorter!',
             nextLesson: 'lesson-9'
         },
         {
@@ -1560,7 +1560,7 @@ const curriculum = {
                 { id: 't5', text: 'Challenge: using what the sensor tells you, build a program that moves me to exactly 1 step from the wall without touching it!', completed: false }
             ],
             hint: 'The Scan Ahead beam shows in yellow — the shorter the beam, the closer the wall. If the beam reaches the edge of the board with no wall, the reading is "clear". Always scan before moving into unknown territory!',
-            homework: 'Build a "Safety Stop" system: add a Scan Ahead block. If the distance is 2 or less, stop (add a Home block). If it is more than 2, move forward 1 step and scan again (use a Repeat loop). This is how real self-driving cars work!',
+            homework: 'Build a "Safety Scan" program: Scan Ahead → move Forward 1 → Scan Ahead again. Watch the distance after every move and end the program when you are safely close to the wall. This is how parking sensors help drivers!',
             nextLesson: 'lesson-10'
         }
     ],
@@ -1572,16 +1572,16 @@ const curriculum = {
             difficulty: 'hard',
             xpReward: 300,
             icon: '🎯',
-            introduction: "NASA's Mars Rovers (Curiosity and Perseverance) drive themselves to target locations using exactly the same logic you are about to learn! 🚀 They calculate the direction to the target, rotate until they face it, then drive forward. My 'Go To Target' block does all of this automatically using my built-in sensors. The cool part: even if I am facing the wrong way, I spin around until I am pointing straight at the goal before moving. This technique is used in GPS navigation, drone delivery, and self-driving cars. Every time a package drone lands on your doorstep, it used this exact method!",
+            introduction: "NASA's Mars Rovers (Curiosity and Perseverance) drive themselves to target locations using exactly the same idea you are about to learn! 🚀 They calculate the direction to a target, rotate until they face it, then drive forward. My 'Go To Target' block turns me toward the current target and drives in that direction. The cool part: even if I am facing the wrong way, I spin around until I am pointing at the goal before moving. It works best when the path is clear; later, Smart Navigate can find a route around a complex maze. This technique is used in GPS navigation, drone delivery, and self-driving cars.",
             tasks: [
                 { id: 't1', text: 'Click the 🎯 Target button and place a target anywhere on the board', completed: false },
                 { id: 't2', text: 'Add the "Go To Target 🎯" block and Run — watch me calculate and navigate!', completed: false },
-                { id: 't3', text: 'Place a SECOND target (the first one disappears, place a new one far away). Add another "Go To Target" block — I navigate twice in a row!', completed: false },
+                { id: 't3', text: 'Move the target to a new, far-away place. Clear the program, then use "Go To Target" again to see me navigate to the new location!', completed: false },
                 { id: 't4', text: 'Now add a 🧱 wall between me and the target. Does my navigation avoid it, or do I need to help?', completed: false },
-                { id: 't5', text: 'Advanced: place the target in a corner. Add Scan Ahead before going — if there is a wall nearby, turn first, then navigate!', completed: false }
+                { id: 't5', text: 'Advanced: place the target in a corner with walls nearby. Use Scan Ahead, then move manually with Forward and Turn blocks to follow a clear route. Save Go To Target for open paths.', completed: false }
             ],
-            hint: 'The "Go To Target" block automatically rotates me to face the target then moves forward. If there are walls, combine it with Scan Ahead to detect and avoid them first!',
-            homework: 'Create a "Delivery Mission"! Place 2 targets: Target A (pick-up point) and imagine Target B (drop-off). Navigate to A (turn Magnet ON), then navigate to B (turn Magnet OFF). Just like a drone delivery robot!',
+            hint: 'The "Go To Target" block turns me toward the current target and moves forward. It works best with a clear path. Scan Ahead first when walls are nearby, or use Smart Navigate in a maze.',
+            homework: 'Create a "Delivery Practice" mission! Place one metal piece and one target. Turn Magnet ON near the metal, move it toward the target, then turn Magnet OFF to drop it at the destination.',
             nextLesson: 'lesson-11'
         },
         {
@@ -1596,11 +1596,11 @@ const curriculum = {
                 { id: 't1', text: 'Place a wall 3 steps ahead. Add: "If Wall Within 2" → THEN: Right 90 → ELSE: Forward 1. Run — I dodge the wall! 🛡️', completed: false },
                 { id: 't2', text: 'Put the If/Else inside a "Repeat 8 times" loop — now I explore, automatically turning whenever I see a wall!', completed: false },
                 { id: 't3', text: 'Add more walls and increase the Repeat to 15. Watch me navigate a mini maze!', completed: false },
-                { id: 't4', text: 'Now add a SECOND condition: If Wall Within 2 → Right 90, but ALSO: If at Home → Stop. (Add a Home check)', completed: false },
-                { id: 't5', text: 'Challenge: build a program where I turn LEFT if there is a wall on the right, and turn RIGHT if there is a wall on the left. Use two If blocks!', completed: false }
+                { id: 't4', text: 'Now add a SECOND If Wall block after the first one. Give each block a different turn, then run the program and see how changing one decision changes my route.', completed: false },
+                { id: 't5', text: 'Challenge: place walls on two parts of your route. Use two If Wall blocks inside one Repeat loop so I keep exploring instead of bumping into a wall!', completed: false }
             ],
             hint: 'If/Else always checks a condition (True/False). THEN = what to do if TRUE. ELSE = what to do if FALSE. You can chain multiple If blocks — check one condition, then another! Real AI is just millions of these simple decisions.',
-            homework: 'Build a "Smart Guard Robot"! Use a loop with an If/Else: IF fire detected WITHIN 3 → spray water, ELSE IF wall within 2 → turn right, ELSE → move forward 1. This is a simple autonomous firefighting patrol!',
+            homework: 'Build a "Smart Explorer"! Use a Repeat loop with If Wall Within 2: THEN turn right, ELSE move forward 1. Add walls and watch STEMO react on its own!',
             nextLesson: 'lesson-12'
         },
         {
@@ -1619,7 +1619,7 @@ const curriculum = {
                 { id: 't5', text: 'Place 2 fires in different spots. Use a Repeat loop with Check Temp + movement to find BOTH fires automatically!', completed: false }
             ],
             hint: 'Temperature increases as you move closer to fire. Check Temp → move closer → Check Temp again. If the second reading is higher, you are heading toward the fire! Combine with If blocks to react automatically.',
-            homework: 'Build a "Fire Mapping" mission: place 3 fires. Write a program that sweeps the board in a zigzag pattern, checking temperature at each position. When fire is detected, print its location (step number in the loop). Real wildfire drones do exactly this!',
+            homework: 'Build a "Fire Mapping" mission: place 3 fires. Write a program that sweeps the board in a zigzag pattern, checking temperature at each position. Use the temperature messages to note where the heat is strongest. Real wildfire drones do exactly this!',
             nextLesson: 'lesson-13'
         },
         {
@@ -1629,17 +1629,17 @@ const curriculum = {
             difficulty: 'extreme',
             xpReward: 500,
             icon: '🚒',
-            introduction: "Now it is time for ACTION! 🦸 I carry a small water tank with limited supply — just like a real aerial firefighting drone that can only carry so much water before it must refuel. Every spray uses exactly 1 unit. I start with 5 units. This means you CANNOT spray randomly — you must position perfectly and only spray when you are close enough. This is the engineering concept of EFFICIENCY: achieving the maximum result (all fires out) with the minimum resource (least water). Aerospace engineers obsess over this — a Mars mission that wastes fuel means the rover cannot reach its goals. Let's think strategically!",
+            introduction: "Now it is time for ACTION! 🦸 I carry a small water tank with limited supply — just like a real aerial firefighting drone that can only carry so much water before it must refuel. In this challenge I start with 9 units. Each unit removes one point of fire health, and every challenge fire has 3 points of health. This means you CANNOT spray randomly — you must position carefully and only spray when you are close enough. This is the engineering concept of EFFICIENCY: achieving the maximum result (all fires out) with the minimum resource (least water). Aerospace engineers obsess over this — a Mars mission that wastes fuel means the rover cannot reach its goals. Let's think strategically!",
             tasks: [
-                { id: 't1', text: 'Place ONE fire. Move to within 2 steps of it and add "Spray Water 💧". Run — fire extinguished with 1 unit! 🎯', completed: false },
-                { id: 't2', text: 'Place TWO fires far apart. Plan the SHORTEST path to visit both. Use Forward + turns to reach each one before spraying', completed: false },
-                { id: 't3', text: 'Now place THREE fires. You only have 5 sprays — can you put out all 3 with some water to spare?', completed: false },
-                { id: 't4', text: 'Add a "Check Water Level" block — it shows how much water you have left. Add it before and after each spray!', completed: false },
-                { id: 't5', text: 'Advanced: use an If block — "If Water Level > 0" THEN spray, ELSE go Home. This prevents wasting sprays!', completed: false },
-                { id: 't6', text: 'Speed challenge: place 4 fires. Put them all out in under 10 blocks (Forward + Spray only — no wasted moves)! ⏱️', completed: false }
+                { id: 't1', text: 'Place ONE fire. Move to within 3 steps of it and add "Spray Water 💧". Run — watch the fire go out and the water meter decrease! 🎯', completed: false },
+                { id: 't2', text: 'Place TWO fires far apart. Plan the SHORTEST path to visit both. Each fire needs 3 water units, so reach each one before using Spray Water.', completed: false },
+                { id: 't3', text: 'Open the 3-fire challenge. The tank starts with 9 units — exactly enough for the three challenge fires when you reach them safely.', completed: false },
+                { id: 't4', text: 'Watch the water meter on the board before and after each fire. Notice how putting out one full fire uses 3 water units.', completed: false },
+                { id: 't5', text: 'Advanced: plan your route before you run it. Only use Spray Water when STEMO is close enough to a fire, so no water is wasted.', completed: false },
+                { id: 't6', text: 'Speed challenge: replay the 3-fire challenge and count your movement blocks. Can you reach all three fires using a shorter route? ⏱️', completed: false }
             ],
-            hint: 'Plan your route BEFORE coding: which fire is closest? Go there first. Then which is next closest? This "nearest neighbour" strategy is used in real delivery route planning! Each spray must land within 2 steps of a fire to work.',
-            homework: 'Can you put out all 3 fires using exactly 3 sprays (one per fire, perfectly positioned)? Map out the board on paper first, then write the code. This level of planning is called algorithmic thinking!',
+            hint: 'Plan your route BEFORE coding: which fire is closest? Go there first. Then which is next closest? This "nearest neighbour" strategy is used in real delivery route planning! Get within 3 steps of a fire before using Spray Water. Each challenge fire needs 3 water units.',
+            homework: 'Put out all 3 fires by reaching each one before using Spray Water. One Spray Water block fully extinguishes a nearby challenge fire and uses 3 water units, so plan your route before you run it!',
             nextLesson: 'lesson-15'
         },
         {
@@ -1711,10 +1711,10 @@ const curriculum = {
                 { id: 't1', text: 'Drag "🔂 For Each Waypoint" block. Inside the DO section, add "💧 Spray Water". Run — STEMO navigates to fire 1, sprays, fire 2, sprays, fire 3, sprays. ALL DONE!', completed: false },
                 { id: 't2', text: 'Add "📍 Show My Position" inside the For Each — STEMO announces its location at every fire. This is called LOGGING, and real systems do it for debugging!', completed: false },
                 { id: 't3', text: 'Modify: add "🌡️ Check Temp" inside For Each BEFORE Spray Water — see the temperature spike at each fire just before extinguishing!', completed: false },
-                { id: 't4', text: 'Clear the waypoints (🗑️). Place 2 fires manually. Move STEMO near each and add waypoints manually. Then run For Each → Spray Water. Your own fire list!', completed: false },
-                { id: 't5', text: 'MASTER challenge: Clear all. Add 3 metals and 2 fires. Use TWO separate waypoint replays (reload with different waypoints between them) to first collect metals, then extinguish fires.', completed: false }
+                { id: 't4', text: 'Press Reset, then Clear Waypoints. Move STEMO near two of the challenge fires and add a waypoint at each one. Run For Each → Spray Water to use your own smaller fire list!', completed: false },
+                { id: 't5', text: 'MASTER challenge: after a reset, Clear Waypoints and record all three challenge fire locations with Add Waypoint. Run For Each Waypoint → Check Temp → Spray Water to handle your own list!', completed: false }
             ],
-            hint: 'The waypoint list is pre-loaded with all 3 fire locations. "For Each Waypoint → Spray Water" is the ENTIRE solution — one compound block handles navigation + action for every item in the list. If you run out of water (starts at 5), press Reset and try again.',
+            hint: 'The waypoint list is pre-loaded with all 3 fire locations. "For Each Waypoint → Spray Water" is the ENTIRE solution — one compound block handles navigation + action for every item in the list. The challenge starts with 10 water units, enough for all three fires.',
             homework: 'Design the ultimate list program: place items of your choice (metals, fires, targets). Build a waypoint list manually using Add Waypoint. Then write a For Each program that handles each item appropriately. Present your program to the class!',
             nextLesson: 'lesson-19'
         },
@@ -1727,9 +1727,9 @@ const curriculum = {
             icon: '🔧',
             introduction: "Every professional programmer uses FUNCTIONS — reusable named blocks of code. Instead of copy-pasting the same 10 blocks over and over, you write them once, name them, and call the name. NASA engineers use functions to control Mars rovers. Game developers use functions for every character move. In this lesson you'll create two functions — drawSquare and bigSquare — and combine them to produce a stunning geometric star pattern with just a few blocks. This is real software engineering!",
             tasks: [
-                { id: 't1', text: 'Drag a "🔧 Define Function" block. Name it "drawSquare". Inside, add: Pen Down → Repeat 4 times (Move 3 steps, Turn Right 90°). Press Run — a square appears!', completed: false },
-                { id: 't2', text: 'Drag another "🔧 Define Function" block. Name it "bigSquare". Inside, add: Repeat 4 times → (▶ Call Function: drawSquare, Turn Right 90°). Press Run — four overlapping squares!', completed: false },
-                { id: 't3', text: 'Below both definitions add: ▶ Call Function: bigSquare → Turn Right 45° → ▶ Call Function: bigSquare. Press Run — the star appears!', completed: false },
+                { id: 't1', text: 'Drag a "🔧 Define Function" block. Name it "drawSquare". Inside, add: Pen Down → Repeat 4 times (Move 3 steps, Turn Right 90°). Below the definition add ▶ Call Function: drawSquare, then press Run — a square appears!', completed: false },
+                { id: 't2', text: 'Drag another "🔧 Define Function" block. Name it "bigSquare". Inside, add: Repeat 4 times → (▶ Call Function: drawSquare, Turn Right 90°). Definitions save a recipe; they run only when called.', completed: false },
+                { id: 't3', text: 'Replace the Call Function: drawSquare below the definitions with: ▶ Call Function: bigSquare → Turn Right 45° → ▶ Call Function: bigSquare. Press Run — the star appears!', completed: false },
                 { id: 't4', text: 'Change the step size inside drawSquare from 3 to 5. Press Run — the whole star grows. That is the power of functions: change one number, everything updates!', completed: false },
                 { id: 't5', text: 'Create a third function called "starBurst". Inside: Call bigSquare → Turn Right 30° → Call bigSquare → Turn Right 30° → Call bigSquare. What shape do you get?', completed: false }
             ],
@@ -1744,17 +1744,17 @@ const curriculum = {
             difficulty: 'extreme',
             xpReward: 1000,
             icon: '🏆',
-            introduction: "🎓 CONGRATULATIONS — you have reached the FINAL lesson of the STEMO Academy! Across your whole journey you have learned: sequencing, loops, geometry, sensors (ultrasonic + thermal), decision-making (If/Else), electromagnets, efficient resource use, variables, saved positions, lists, and functions. These are the EXACT skills that real robotics engineers use every day. Your final mission is the ultimate test: set up a board with walls, metals AND fires all mixed together, then write ONE autonomous program that handles everything — navigate around walls, collect all metals, and extinguish all fires — without any help from you. You are the engineer. STEMO is your robot. Let's graduate!",
+            introduction: "🎓 CONGRATULATIONS — you have reached the FINAL lesson of the STEMO Academy! Across your whole journey you have learned: sequencing, loops, geometry, sensors (ultrasonic + thermal), decision-making (If/Else), electromagnets, efficient resource use, variables, saved positions, lists, and functions. These are the EXACT skills that real robotics engineers use every day. Your final mission is the ultimate test: the challenge board is ready with walls, metal pieces, fires, and a target. Write ONE program that navigates around obstacles, collects at least one metal, extinguishes every fire, and reaches the target. You are the engineer. STEMO is your robot. Let's graduate!",
             tasks: [
-                { id: 't1', text: 'Set the scene: place 2 walls, 2 metal pieces (🔩), and 2 fires (🔥) randomly on the board', completed: false },
+                { id: 't1', text: 'Open the Final Mission challenge. The board is already set up with walls, metal pieces, fires, and a target.', completed: false },
                 { id: 't2', text: 'Phase 1 — Scan: add Scan Ahead in all 4 directions at the start so I know where the obstacles are', completed: false },
-                { id: 't3', text: 'Phase 2 — Collect: navigate to both metal pieces, pick them up (Magnet ON), and drop them at Home (Magnet OFF)', completed: false },
-                { id: 't4', text: 'Phase 3 — Extinguish: navigate to both fires and spray water on each one (check water level first!)', completed: false },
-                { id: 't5', text: 'Phase 4 — Return: add a Home block at the very end — mission complete, robot returns to base! 🏠', completed: false },
-                { id: 't6', text: 'Combine all 4 phases into ONE program and Run it start to finish — the board should be cleared! 🏆🎉', completed: false },
+                { id: 't3', text: 'Phase 2 — Collect: navigate to the metal pieces with Magnet ON. Collect at least one metal to complete the collection objective.', completed: false },
+                { id: 't4', text: 'Phase 3 — Extinguish: navigate to both fires and spray water on each one. Watch the tank meter as you work.', completed: false },
+                { id: 't5', text: 'Phase 4 — Finish: navigate to the target after collecting metal and extinguishing the fires.', completed: false },
+                { id: 't6', text: 'Combine all 4 phases into ONE program and Run it start to finish — complete the metal, fire, and target objectives! 🏆🎉', completed: false },
                 { id: 't7', text: 'BONUS: count your total blocks used. Can you reduce it by 20% using loops and smarter routing? The best engineers optimise! ✨', completed: false }
             ],
-            hint: 'Break the mission into phases (Scan → Collect → Extinguish → Return) and build each phase separately first, then connect them. Use loops wherever actions repeat. Check water level before every spray. This top-down design approach is how real software is built!',
+            hint: 'Break the mission into phases (Scan → Collect → Extinguish → Target) and build each phase separately first, then connect them. Use loops wherever actions repeat and watch the tank meter while you extinguish fires. This top-down design approach is how real software is built!',
             homework: 'You are now a Master Coder! 🎓 Your challenge: design a completely NEW mission scenario and write the autonomous program for it. Ideas: delivery robot (pick up packages, avoid fires, drop at destination), rescue robot (find stranded people behind walls), or artist robot (draw a shape while collecting metals). Share your creation!',
             nextLesson: null
         }
@@ -3500,7 +3500,7 @@ const htmlContent = `<!DOCTYPE html>
                 },
                 objectives: [
                     { id: 'extinguish', label: '💧 Extinguish all fires', check: function() {
-                        return fireObjects.length > 0 && fireObjects.every(function(f){ return f.health <= 0; });
+                        return fireObjects.length === 0;
                     }}
                 ]
             },
@@ -3529,7 +3529,7 @@ const htmlContent = `<!DOCTYPE html>
                         return metalObjects.some(function(m){ return m.pickedUp; });
                     }},
                     { id: 'fire', label: '💧 Extinguish fires', check: function() {
-                        return fireObjects.length > 0 && fireObjects.every(function(f){ return f.health <= 0; });
+                        return fireObjects.length === 0;
                     }},
                     { id: 'reach', label: '🎯 Reach target', check: function() {
                         if (!targetPoint) return false;
@@ -7570,7 +7570,7 @@ const htmlContent = `<!DOCTYPE html>
                 d: 'تعلّم كل الاتجاهات الأربعة وتنقّل باحتراف',
                 i: 'عمل رائع في برنامجك الأول! 🎉 الآن لنستكشف كل الطرق التي أستطيع التحرك بها. أستطيع الذهاب للأمام ⬆️، وللخلف ⬇️، والدوران يسارًا ⬅️، والدوران يمينًا ➡️. يُقاس الدوران بالدرجات — فكّر في وجه الساعة: 90° هي ربع دورة (مثل الانعطاف عند زاوية)، و180° هي نصف دورة (مواجهة الاتجاه المعاكس)، و360° هي دورة كاملة! الروبوتات الحقيقية مثل المكانس الكهربائية تستخدم هذه الدورات نفسها لتنظيف بيتك كله دون أن تفوّت أي بقعة. أستطيع أيضًا القفز عائدًا إلى البيت 🏠 فورًا. لنتقن كل الحركات!',
                 hint: 'فكّر في البوصلة: للأمام = شمال، يمين = شرق، للخلف = جنوب، يسار = غرب. دورة 90° هي دائمًا زاوية مثالية — تمامًا مثل زوايا غرفة مربعة!',
-                hw: 'هل تستطيع أن تجعلني أمشي على شكل حرف Z؟ تحتاج إلى: للأمام ← حركة قطرية (دوران يمين، للأمام، دوران يسار) ← للأمام. جرّبها!',
+                hw: 'هل تستطيع أن تجعلني أمشي على شكل حرف Z؟ جرّب: للأمام ← دوران يمين ← للأمام ← دوران يسار ← للأمام. لاحظ كيف تغيّر الدورانات اتجاه الحركة التالية!',
                 tasks: [
                     'أضف للأمام 4 — أتحرك 4 خطوات لأعلى',
                     'أضف يمين 90 — أدور لأواجه اليمين (ربع دورة)',
@@ -7591,7 +7591,7 @@ const htmlContent = `<!DOCTYPE html>
                     'أضف للأمام 5 وانقر تشغيل — لقد رسمت خطًا! 📏',
                     'الآن أضف رفع القلم 🖊️ ← للأمام 3 ← انزال القلم ✏️ ← للأمام 3. شغّله — أترى الفجوة في الخط؟ إنه خط متقطّع!',
                     'امسح وارسم شكل حرف L: انزال القلم ← للأمام 5 ← يمين 90 ← للأمام 5',
-                    'تحدٍ: ارسم درجًا! (تلميح: كرّر انزال القلم ← للأمام 2 ← يمين 90 ← للأمام 2 ← يسار 90)'
+                    'تحدٍ: ارسم درجًا! أضف هذا التسلسل ثلاث مرات: انزال القلم ← للأمام 2 ← يمين 90 ← للأمام 2 ← يسار 90.'
                 ]
             },
             'lesson-4': {
@@ -7605,7 +7605,7 @@ const htmlContent = `<!DOCTYPE html>
                     'أضف مكعب حجم 10 قبل انزال القلم — شغّل مجددًا. الخط الآن سميك!',
                     'غيّر مكعب اللون إلى الأزرق والحجم إلى 3. شغّل — خط أزرق رفيع! 🔵',
                     'الآن ابنِ هذا: لون أحمر ← انزال القلم ← للأمام 3 ← لون أزرق ← للأمام 3 ← لون أخضر ← للأمام 3. خط بثلاثة ألوان! 🎨',
-                    'جرّب رسم مربع أحمر سميك: لون أحمر ← حجم 8 ← انزال القلم ← للأمام 4 ← يمين 90 (×4)'
+                    'جرّب رسم مربع أحمر سميك: لون أحمر ← حجم 8 ← انزال القلم، ثم أضف للأمام 4 ← يمين 90 أربع مرات.'
                 ]
             },
             'lesson-5': {
@@ -7654,14 +7654,14 @@ const htmlContent = `<!DOCTYPE html>
                 t: 'سحر المغناطيس',
                 d: 'التقط الأجسام المعدنية وحرّكها بمغناطيس كهربائي',
                 i: 'لديّ مغناطيس كهربائي قوي مدمج في مقدمتي! 🧲 المغناطيس الكهربائي يعمل فقط عندما يمرّ التيار الكهربائي خلاله — شغّله وتلتصق الأجسام المعدنية بي، وأطفئه فتسقط. الروبوتات الحقيقية في ساحات الخردة ومراكز إعادة التدوير تستخدم هذه التقنية بالضبط لفرز المعدن عن البلاستيك والورق تلقائيًا. الروبوتات ذاتية القيادة في مستودعات أمازون تستخدم المغناطيس لتحريك الرفوف! مغناطيسي قوي بما يكفي لحمل قطع البراغي 🔩 التي تضعها على اللوح. القاعدة: يجب أن أكون قريبًا جدًا من القطعة المعدنية لتلتصق. لنحرّك بعض المعدن!',
-                hint: 'أبقِ المغناطيس مشغّلًا أثناء التنقل بين القطع المعدنية — تحملها كلها! أطفئ المغناطيس فقط عندما تريد الإسقاط. تأكد أنك قريب (1-2 خطوة) قبل تشغيل المغناطيس.',
-                hw: 'صمّم محطة فرز معادن! ضع 4 قطع معدنية متناثرة على اللوح. اكتب برنامجًا لجمعها كلها وإحضار كل قطعة إلى الزاوية العلوية اليمنى. استخدم الحلقات لجعل برنامجك أقصر!',
+                hint: 'شغّل المغناطيس فقط عندما تكون قريبًا من قطعة معدنية واحدة. حرّكها إلى موقعها الجديد، وأطفئ المغناطيس لإسقاطها، ثم عد للقطعة التالية.',
+                hw: 'صمّم محطة فرز معادن! ضع 4 قطع معدنية متناثرة على اللوح. حرّك كل قطعة، واحدة تلو الأخرى، إلى الزاوية العلوية اليمنى. استخدم الحلقات لجعل برنامجك أقصر!',
                 tasks: [
                     'انقر زر 🔩 فوق اللوح لوضع قطعة معدنية قريبة مني',
                     'ابنِ: للأمام (للاقتراب) ← تشغيل المغناطيس ← تشغيل. هل يلتصق البرغي؟ 🧲',
                     'الآن أضف: للأمام 3 ← إطفاء المغناطيس. تسقط القطعة المعدنية في الموقع الجديد!',
-                    'ضع قطعتين معدنيتين. اكتب برنامجًا لالتقاط الأولى، وحملها إلى الثانية، ثم إسقاطهما معًا',
-                    'تحدٍ: ضع 3 قطع معدنية في صف. اجمعها كلها في رحلة واحدة — يبقى المغناطيس مشغّلًا أثناء تنقلك بينها! هل تستطيع فعلها؟'
+                    'ضع قطعتين معدنيتين. التقط الأولى، حرّكها إلى موقع جديد، وأطفئ المغناطيس لإسقاطها. ثم اجمع القطعة الثانية.',
+                    'تحدٍ: ضع 3 قطع معدنية في صف. اجمعها واحدة تلو الأخرى: تشغيل المغناطيس قرب معدن ← حرّكه ← إطفاء المغناطيس. هل تستطيع فرز الثلاث؟'
                 ]
             },
             'lesson-9': {
@@ -7669,7 +7669,7 @@ const htmlContent = `<!DOCTYPE html>
                 d: 'شاهد العوائق باستخدام الموجات الصوتية مثل الخفاش',
                 i: 'أستطيع الرؤية بلا عيون! 🦇 يعمل مستشعري فوق الصوتي تمامًا مثل تحديد الموقع بالصدى عند الخفافيش: أرسل موجة صوتية عالية النبرة (أعلى من أن يسمعها البشر)، وأقيس الوقت الذي تستغرقه لترتد. كلما استغرقت وقتًا أطول، كان العائق أبعد! تسمى هذه التقنية سونار (الملاحة وتحديد المدى بالصوت). تستخدمها الغواصات لرسم قاع المحيط. وتستخدمها السيارات في مستشعرات الركن التي تصدر صافرة عند الاقتراب من الجدار. أشهر مستشعر للهواة يسمى HC-SR04 وهو موجود في ملايين روبوتات الطلاب حول العالم! لنمسح عالمنا:',
                 hint: 'يظهر شعاع المسح الأمامي باللون الأصفر — كلما كان الشعاع أقصر، كان الجدار أقرب. إذا وصل الشعاع إلى حافة اللوح دون جدار، تكون القراءة واضح. امسح دائمًا قبل التحرك إلى منطقة مجهولة!',
-                hw: 'ابنِ نظام توقف أمان: أضف مكعب مسح أمامي. إذا كانت المسافة 2 أو أقل، توقّف (أضف مكعب البيت). إذا كانت أكثر من 2، تقدّم خطوة واحدة وامسح مجددًا (استخدم حلقة تكرار). هكذا تعمل السيارات ذاتية القيادة الحقيقية!',
+                hw: 'ابنِ برنامج مسح آمن: مسح للأمام ← تقدّم خطوة واحدة ← امسح للأمام مجددًا. راقب المسافة بعد كل حركة وأنهِ البرنامج عندما تكون قريبًا من الجدار بأمان. هكذا تساعد حساسات الركن السائقين!',
                 tasks: [
                     'انقر زر الجدار 🧱 لوضع جدار على بعد 4 خطوات أمامي',
                     'أضف مكعب مسح أمامي 📡 وشغّل — شاهد الشعاع الأصفر يُظهر المسافة!',
@@ -7681,15 +7681,15 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-10': {
                 t: 'ملّاح الفضاء',
                 d: 'وجّه الروبوت إلى الأهداف مثل مركبة المريخ الجوّالة',
-                i: 'مركبات ناسا الجوّالة على المريخ (كيوريوسيتي وبيرسيفيرانس) تقود نفسها إلى المواقع المستهدفة باستخدام المنطق نفسه الذي أنت على وشك تعلّمه! 🚀 تحسب الاتجاه إلى الهدف، وتدور حتى تواجهه، ثم تتقدم للأمام. مكعب اذهب إلى الهدف يفعل كل هذا تلقائيًا باستخدام مستشعراتي المدمجة. الجزء الرائع: حتى لو كنت أواجه الاتجاه الخاطئ، أدور حتى أشير مباشرة نحو الهدف قبل التحرك. تُستخدم هذه التقنية في ملاحة GPS وتوصيل الطائرات المسيّرة والسيارات ذاتية القيادة. في كل مرة تهبط فيها طائرة توصيل عند بابك، تكون قد استخدمت هذه الطريقة بالضبط!',
-                hint: 'مكعب اذهب إلى الهدف يدوّرني تلقائيًا لأواجه الهدف ثم أتحرك للأمام. إذا وُجدت جدران، اجمعه مع المسح الأمامي لكشفها وتجنّبها أولًا!',
-                hw: 'أنشئ مهمة توصيل! ضع هدفين: الهدف A (نقطة الالتقاط) وتخيّل الهدف B (نقطة التسليم). تنقّل إلى A (شغّل المغناطيس)، ثم تنقّل إلى B (أطفئ المغناطيس). تمامًا مثل روبوت توصيل بطائرة مسيّرة!',
+                i: 'مركبات ناسا الجوّالة على المريخ (كيوريوسيتي وبيرسيفيرانس) تقود نفسها إلى المواقع المستهدفة باستخدام الفكرة نفسها التي أنت على وشك تعلّمها! 🚀 تحسب الاتجاه إلى الهدف، وتدور حتى تواجهه، ثم تتقدم للأمام. مكعب اذهب إلى الهدف يدوّرني نحو الهدف الحالي ويقودني في اتجاهه. الجزء الرائع: حتى لو كنت أواجه الاتجاه الخاطئ، أدور حتى أشير نحو الهدف قبل التحرك. يعمل أفضل عندما يكون الطريق واضحًا؛ لاحقًا، تستطيع الملاحة الذكية إيجاد طريق حول متاهة معقدة. تُستخدم هذه الفكرة في ملاحة GPS وتوصيل الطائرات المسيّرة والسيارات ذاتية القيادة.',
+                hint: 'مكعب اذهب إلى الهدف يدوّرني نحو الهدف الحالي ثم يحرّكني للأمام. يعمل أفضل في طريق واضح. امسح للأمام أولًا عند وجود جدران، أو استخدم الملاحة الذكية في المتاهة.',
+                hw: 'أنشئ مهمة تدريب توصيل! ضع قطعة معدن واحدة وهدفًا واحدًا. شغّل المغناطيس قرب المعدن، حرّكه نحو الهدف، ثم أطفئ المغناطيس لإسقاطه عند الوجهة.',
                 tasks: [
                     'انقر زر الهدف 🎯 وضع هدفًا في أي مكان على اللوح',
                     'أضف مكعب اذهب إلى الهدف 🎯 وشغّل — شاهدني أحسب وأتنقّل!',
-                    'ضع هدفًا ثانيًا (يختفي الأول، ضع واحدًا جديدًا بعيدًا). أضف مكعب اذهب إلى الهدف آخر — أتنقّل مرتين متتاليتين!',
+                    'حرّك الهدف إلى مكان جديد وبعيد. امسح البرنامج، ثم استخدم اذهب إلى الهدف مجددًا لأتنقّل إلى الموقع الجديد!',
                     'الآن أضف جدارًا 🧱 بيني وبين الهدف. هل تتجنّبه ملاحتي، أم أحتاج مساعدتك؟',
-                    'متقدم: ضع الهدف في زاوية. أضف مسح أمامي قبل الذهاب — إذا كان هناك جدار قريب، دُر أولًا ثم تنقّل!'
+                    'متقدم: ضع الهدف في زاوية قرب جدران. امسح للأمام، ثم تحرّك يدويًا بمكعبات للأمام ودُر لاتباع طريق واضح. احتفظ بمكعب اذهب إلى الهدف للطرق المفتوحة.'
                 ]
             },
             'lesson-11': {
@@ -7697,13 +7697,13 @@ const htmlContent = `<!DOCTYPE html>
                 d: 'اتخذ القرارات بإذا/وإلا — قلب الذكاء الاصطناعي',
                 i: 'أنت الآن تدخل عالم الذكاء الاصطناعي! 🤖 كل نظام ذكي — من حواسيب الشطرنج إلى السيارات ذاتية القيادة — مبني على فكرة بسيطة واحدة: إذا (كان الشرط صحيحًا) عندها افعل هذا، وإلا افعل ذاك. إشارة المرور تستخدم هذا: إذا ضغط أحد المشاة الزر عندها اجعلها حمراء للسيارات، وإلا ابقَها خضراء. فتح هاتفك بالوجه يستخدم هذا: إذا تطابق الوجه عندها افتح، وإلا ابقَ مقفلًا. الشرط دائمًا إما صحيح أو خاطئ — لا يوجد ربما في الكود! في هذا الدرس، نمنحني القدرة على التفاعل مع بيئتي دون أن تتحكم بكل حركة. هذا سلوك ذاتي!',
                 hint: 'إذا/وإلا تفحص دائمًا شرطًا (صحيح/خاطئ). عندها = ماذا تفعل إذا كان صحيحًا. وإلا = ماذا تفعل إذا كان خاطئًا. يمكنك ربط عدة مكعبات إذا — تفحص شرطًا ثم آخر! الذكاء الاصطناعي الحقيقي ما هو إلا ملايين من هذه القرارات البسيطة.',
-                hw: 'ابنِ روبوت حارس ذكي! استخدم حلقة مع إذا/وإلا: إذا اكتُشفت نار ضمن 3 ← رُش الماء، وإلا إذا جدار ضمن 2 ← دُر يمينًا، وإلا ← تقدّم خطوة. هذه دورية إطفاء حرائق ذاتية بسيطة!',
+                hw: 'ابنِ مستكشفًا ذكيًا! استخدم حلقة تكرار مع إذا جدار خلال خطوتين: إذن دُر يمينًا، وإلا تقدّم خطوة واحدة. أضف جدرانًا وشاهد ستيمو يتفاعل وحده!',
                 tasks: [
                     'ضع جدارًا 3 خطوات أمامي. أضف: إذا جدار ضمن 2 ← عندها: يمين 90 ← وإلا: للأمام 1. شغّل — أتفادى الجدار! 🛡️',
                     'ضع إذا/وإلا داخل حلقة كرّر 8 مرات — الآن أستكشف، وأدور تلقائيًا كلما رأيت جدارًا!',
                     'أضف جدرانًا أكثر وزِد التكرار إلى 15. شاهدني أتنقّل في متاهة صغيرة!',
-                    'الآن أضف شرطًا ثانيًا: إذا جدار ضمن 2 ← يمين 90، ولكن أيضًا: إذا في البيت ← توقّف. (أضف فحص البيت)',
-                    'تحدٍ: ابنِ برنامجًا أدور فيه يسارًا إذا كان هناك جدار على اليمين، وأدور يمينًا إذا كان هناك جدار على اليسار. استخدم مكعبَي إذا!'
+                    'الآن أضف مكعب إذا جدار ثانيًا بعد الأول. أعطِ كل مكعب دورانًا مختلفًا، ثم شغّل البرنامج وشاهد كيف يغيّر قرار واحد مساري.',
+                    'تحدٍ: ضع جدرانًا في جزأين من مسارك. استخدم مكعبي إذا جدار داخل حلقة تكرار واحدة لأستمر في الاستكشاف بدل الاصطدام بجدار!'
                 ]
             },
             'lesson-12': {
@@ -7711,7 +7711,7 @@ const htmlContent = `<!DOCTYPE html>
                 d: 'اكتشف مصادر الحرارة بمستشعر كاميرا حرارية',
                 i: 'أحمل كاميرا حرارية بالأشعة تحت الحمراء — التقنية نفسها المستخدمة في طائرات إطفاء الحرائق ونظارات الرؤية الليلية العسكرية! 🌡️ الكاميرا العادية ترى الضوء. أما الكاميرا الحرارية فترى الحرارة — كل جسم يصدر قدرًا ضئيلًا من الحرارة، والحرائق تصدر الكثير. يقيس مستشعري درجة الحرارة أثناء تحركي. عندما ترتفع قراءة الحرارة فجأة، يعني ذلك أن النار قريبة! روبوتات إطفاء الحرائق الحقيقية تُنشَر بالفعل في المستودعات والغابات والمناطق العسكرية للعثور على الحرائق قبل دخول البشر إلى المناطق الخطرة. لندرّب مهارات كشف الحرارة لديّ:',
                 hint: 'ترتفع درجة الحرارة كلما اقتربت من النار. افحص الحرارة ← اقترب ← افحص الحرارة مجددًا. إذا كانت القراءة الثانية أعلى، فأنت متجه نحو النار! اجمعه مع مكعبات إذا للتفاعل تلقائيًا.',
-                hw: 'ابنِ مهمة رسم خريطة الحرائق: ضع 3 حرائق. اكتب برنامجًا يمسح اللوح بنمط متعرّج، فاحصًا درجة الحرارة عند كل موضع. عند اكتشاف نار، اطبع موقعها (رقم الخطوة في الحلقة). طائرات حرائق الغابات تفعل هذا بالضبط!',
+                hw: 'ابنِ مهمة رسم خريطة الحرائق: ضع 3 حرائق. اكتب برنامجًا يمسح اللوح بنمط متعرّج، فاحصًا درجة الحرارة عند كل موضع. استخدم رسائل الحرارة لتلاحظ أين تكون الحرارة الأقوى. طائرات حرائق الغابات تفعل هذا بالضبط!',
                 tasks: [
                     'انقر زر النار 🔥 لوضع نار واحدة على اللوح',
                     'أضف مكعب افحص درجة الحرارة 🌡️ وشغّل — شاهد قراءة الحرارة تظهر!',
@@ -7723,16 +7723,16 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-13': {
                 t: 'بطل الإطفاء',
                 d: 'أطفئ الحرائق بكفاءة — كل قطرة ماء مهمة!',
-                i: 'الآن حان وقت العمل! 🦸 أحمل خزان ماء صغيرًا بكمية محدودة — تمامًا مثل طائرة إطفاء جوية حقيقية لا تحمل إلا قدرًا معينًا من الماء قبل أن تحتاج للتعبئة. كل رشّة تستهلك وحدة واحدة بالضبط. أبدأ بـ 5 وحدات. هذا يعني أنك لا تستطيع الرش عشوائيًا — يجب أن تحدد الموقع بدقة وترش فقط عندما تكون قريبًا بما يكفي. هذا مفهوم هندسي يسمى الكفاءة: تحقيق أقصى نتيجة (إطفاء كل الحرائق) بأقل مورد (أقل ماء). مهندسو الفضاء يهتمون بهذا بشدة — مهمة إلى المريخ تهدر الوقود تعني أن المركبة لن تصل إلى أهدافها. لنفكّر باستراتيجية!',
-                hint: 'خطّط لمسارك قبل البرمجة: أي نار أقرب؟ اذهب إليها أولًا. ثم أيها التالية الأقرب؟ تُستخدم استراتيجية أقرب جار هذه في تخطيط مسارات التوصيل الحقيقية! كل رشة يجب أن تصل ضمن خطوتين من النار لتعمل.',
-                hw: 'هل تستطيع إطفاء الحرائق الثلاث باستخدام 3 رشات بالضبط (رشة لكل نار، بموقع مثالي)؟ ارسم اللوح على الورق أولًا، ثم اكتب الكود. هذا المستوى من التخطيط يسمى التفكير الخوارزمي!',
+                i: 'الآن حان وقت العمل! 🦸 أحمل خزان ماء صغيرًا بكمية محدودة — تمامًا مثل طائرة إطفاء جوية حقيقية لا تحمل إلا قدرًا معينًا من الماء قبل أن تحتاج للتعبئة. في هذا التحدي أبدأ بـ 9 وحدات. كل وحدة تقلّل صحة النار نقطة واحدة، وكل نار في التحدي لها 3 نقاط صحة. هذا يعني أنك لا تستطيع الرش عشوائيًا — يجب أن تحدد الموقع بدقة وترش فقط عندما تكون قريبًا بما يكفي. هذا مفهوم هندسي يسمى الكفاءة: تحقيق أقصى نتيجة (إطفاء كل الحرائق) بأقل مورد (أقل ماء). مهندسو الفضاء يهتمون بهذا بشدة — مهمة إلى المريخ تهدر الوقود تعني أن المركبة لن تصل إلى أهدافها. لنفكّر باستراتيجية!',
+                hint: 'خطّط لمسارك قبل البرمجة: أي نار أقرب؟ اذهب إليها أولًا. ثم أيها التالية الأقرب؟ تُستخدم استراتيجية أقرب جار هذه في تخطيط مسارات التوصيل الحقيقية! اقترب إلى ضمن 3 خطوات من النار قبل استخدام رش الماء. كل نار في التحدي تحتاج 3 وحدات ماء.',
+                hw: 'أطفئ الحرائق الثلاث بالوصول إلى كل واحدة قبل استخدام رش الماء. مكعب رش ماء واحد يطفئ نار تحدٍ قريبة بالكامل ويستهلك 3 وحدات ماء، لذا خطّط لمسارك قبل تشغيله!',
                 tasks: [
-                    'ضع نارًا واحدة. تحرّك إلى ضمن خطوتين منها وأضف رُش الماء 💧. شغّل — أُطفئت النار بوحدة واحدة! 🎯',
-                    'ضع نارين متباعدتين. خطّط لأقصر مسار لزيارتهما. استخدم للأمام + دورانات للوصول إلى كل واحدة قبل الرش',
-                    'الآن ضع ثلاث نيران. لديك 5 رشات فقط — هل تستطيع إطفاء الثلاث مع توفير بعض الماء؟',
-                    'أضف مكعب افحص مستوى الماء — يُظهر كم بقي لديك من ماء. أضفه قبل وبعد كل رشة!',
-                    'متقدم: استخدم مكعب إذا — إذا مستوى الماء أكبر من 0 عندها رُش، وإلا اذهب إلى البيت. هذا يمنع هدر الرشات!',
-                    'تحدي السرعة: ضع 4 نيران. أطفئها كلها في أقل من 10 مكعبات (للأمام + رُش فقط — بلا حركات مهدرة)! ⏱️'
+                    'ضع نارًا واحدة. تحرّك إلى ضمن 3 خطوات منها وأضف رُش الماء 💧. شغّل — شاهد النار تنطفئ ومؤشر الماء ينخفض! 🎯',
+                    'ضع نارين متباعدتين. خطّط لأقصر مسار لزيارتهما. كل نار تحتاج 3 وحدات ماء، لذا صِل إلى كل واحدة قبل استخدام رش الماء.',
+                    'افتح تحدي الحرائق الثلاث. يبدأ الخزان بـ 9 وحدات — تكفي تمامًا لحرائق التحدي الثلاث عند الوصول إليها بأمان.',
+                    'راقب مؤشر الماء على اللوح قبل وبعد كل نار. لاحظ أن إطفاء نار كاملة يستهلك 3 وحدات ماء.',
+                    'متقدم: خطّط لمسارك قبل تشغيله. استخدم رش الماء فقط عندما يكون ستيمو قريبًا بما يكفي من نار، حتى لا يُهدر الماء.',
+                    'تحدي السرعة: أعد تحدي الحرائق الثلاث وعدّ مكعبات الحركة. هل تصل إلى الحرائق الثلاثة بمسار أقصر؟ ⏱️'
                 ]
             },
             'lesson-15': {
@@ -7781,14 +7781,14 @@ const htmlContent = `<!DOCTYPE html>
                 t: 'صيد القوائم',
                 d: 'كرّر عبر قائمة من أهداف الحرائق ونفّذ عند كل واحد — جوهر معالجة بيانات الذكاء الاصطناعي!',
                 i: 'أنظمة الذكاء الاصطناعي تعمل بتخزين البيانات في قوائم والدوران خلالها لاتخاذ القرارات. نظام كشف الحرائق يخزّن إحداثيات الحرائق المكتشفة في قائمة، ثم يكرّر خلالها: لكل موقع نار ← تنقّل إليه ← رُش الماء. النمط نفسه يعالج نتائج الفحوص الطبية، ويتحكم في روبوتات المستودعات، ويقود طائرات التوصيل. هذا الدرس يعلّم أهم مفهوم في علوم الحاسوب: التكرار — تكرار عمل لكل عنصر في قائمة. مكعب واحد. ثلاث نيران. لنبدأ!',
-                hint: 'قائمة نقاط الطريق محمّلة مسبقًا بمواقع الحرائق الثلاثة كلها. لكل نقطة طريق ← رُش الماء هو الحل بأكمله — مكعب مركّب واحد يتولّى التنقّل + الفعل لكل عنصر في القائمة. إذا نفد ماؤك (يبدأ بـ 5)، اضغط إعادة الضبط وحاول مجددًا.',
+                hint: 'قائمة نقاط الطريق محمّلة مسبقًا بمواقع الحرائق الثلاثة كلها. لكل نقطة طريق ← رُش الماء هو الحل بأكمله — مكعب مركّب واحد يتولّى التنقّل + الفعل لكل عنصر في القائمة. يبدأ التحدي بـ 10 وحدات ماء، وهي تكفي للحرائق الثلاثة كلها.',
                 hw: 'صمّم برنامج القوائم الأمثل: ضع عناصر من اختيارك (معادن، نيران، أهداف). ابنِ قائمة نقاط طريق يدويًا باستخدام أضف نقطة طريق. ثم اكتب برنامج لكل يتعامل مع كل عنصر بشكل مناسب. اعرض برنامجك على الصف!',
                 tasks: [
                     'اسحب مكعب 🔂 لكل نقطة طريق. داخل قسم نفّذ، أضف 💧 رُش الماء. شغّل — يتنقّل ستيمو إلى النار 1، يرش، النار 2، يرش، النار 3، يرش. تمّ كل شيء!',
                     'أضف 📍 أظهر موقعي داخل لكل — يعلن ستيمو موقعه عند كل نار. يسمى هذا التسجيل، والأنظمة الحقيقية تفعله لتصحيح الأخطاء!',
                     'عدّل: أضف 🌡️ افحص الحرارة داخل لكل قبل رُش الماء — شاهد ارتفاع الحرارة عند كل نار قبل الإطفاء مباشرة!',
-                    'امسح نقاط الطريق (🗑️). ضع نارين يدويًا. حرّك ستيمو قرب كل واحدة وأضف نقاط طريق يدويًا. ثم شغّل لكل ← رُش الماء. قائمة حرائقك الخاصة!',
-                    'تحدي الخبراء: امسح الكل. أضف 3 معادن ونارين. استخدم إعادتَي تشغيل مسار منفصلتين (أعد التحميل بنقاط طريق مختلفة بينهما) لجمع المعادن أولًا ثم إطفاء الحرائق.'
+                    'اضغط إعادة الضبط، ثم امسح نقاط الطريق. حرّك ستيمو قرب نارين من حرائق التحدي وأضف نقطة طريق عند كل واحدة. شغّل لكل ← رُش الماء لاستخدام قائمة حرائقك الصغيرة الخاصة!',
+                    'تحدي الخبراء: بعد إعادة الضبط، امسح نقاط الطريق وسجّل مواقع حرائق التحدي الثلاث كلها بمكعب أضف نقطة طريق. شغّل لكل نقطة طريق ← افحص الحرارة ← رُش الماء للتعامل مع قائمتك الخاصة!'
                 ]
             },
             'lesson-19': {
@@ -7798,9 +7798,9 @@ const htmlContent = `<!DOCTYPE html>
                 hint: 'عرّف الدوال أولًا (في الأعلى أو الجانب)، ثم استدعِها بالأسفل. يجب أن يطابق الاسم في عرّف دالة الاسم في استدعِ دالة بالضبط — الإملاء مهم! drawSquare ليست DrawSquare.',
                 hw: 'صمّم عملك الفني الهندسي الخاص: أنشئ 3 دوال على الأقل (مثل drawTriangle، drawStar، drawSpiral). اجمعها بزوايا دوران مختلفة لإنشاء نمط فريد. احفظه وشاركه مع الصف!',
                 tasks: [
-                    'اسحب مكعب 🔧 عرّف دالة. سمّه drawSquare. بداخله، أضف: انزال القلم ← كرّر 4 مرات (تحرّك 3 خطوات، دُر يمينًا 90°). اضغط تشغيل — يظهر مربع!',
-                    'اسحب مكعب 🔧 عرّف دالة آخر. سمّه bigSquare. بداخله، أضف: كرّر 4 مرات ← (▶ استدعِ دالة: drawSquare، دُر يمينًا 90°). اضغط تشغيل — أربعة مربعات متداخلة!',
-                    'تحت كلا التعريفين أضف: ▶ استدعِ دالة: bigSquare ← دُر يمينًا 45° ← ▶ استدعِ دالة: bigSquare. اضغط تشغيل — تظهر النجمة!',
+                    'اسحب مكعب 🔧 عرّف دالة. سمّه drawSquare. بداخله، أضف: انزال القلم ← كرّر 4 مرات (تحرّك 3 خطوات، دُر يمينًا 90°). تحت التعريف أضف ▶ استدعِ دالة: drawSquare، ثم اضغط تشغيل — يظهر مربع!',
+                    'اسحب مكعب 🔧 عرّف دالة آخر. سمّه bigSquare. بداخله، أضف: كرّر 4 مرات ← (▶ استدعِ دالة: drawSquare، دُر يمينًا 90°). التعريفات تحفظ وصفة؛ لا تعمل إلا عند استدعائها.',
+                    'استبدل استدعِ دالة: drawSquare تحت التعريفات بهذا: ▶ استدعِ دالة: bigSquare ← دُر يمينًا 45° ← ▶ استدعِ دالة: bigSquare. اضغط تشغيل — تظهر النجمة!',
                     'غيّر حجم الخطوة داخل drawSquare من 3 إلى 5. اضغط تشغيل — تكبر النجمة كلها. تلك قوة الدوال: غيّر رقمًا واحدًا يتحدّث كل شيء!',
                     'أنشئ دالة ثالثة اسمها starBurst. بداخلها: استدعِ bigSquare ← دُر يمينًا 30° ← استدعِ bigSquare ← دُر يمينًا 30° ← استدعِ bigSquare. أي شكل تحصل عليه؟'
                 ]
@@ -7808,16 +7808,16 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-14': {
                 t: 'المبرمج الخبير',
                 d: 'المهمة الذاتية النهائية — تخرّج كمبرمج خبير! 🎓',
-                i: '🎓 تهانينا — وصلت إلى الدرس الأخير في أكاديمية ستيمو! عبر رحلتك كلها تعلّمت: التسلسل، الحلقات، الهندسة، المستشعرات (فوق الصوتي + الحراري)، اتخاذ القرار (إذا/وإلا)، المغناطيس الكهربائي، الاستخدام الفعّال للموارد، المتغيّرات، المواقع المحفوظة، القوائم، والدوال. هذه هي المهارات نفسها بالضبط التي يستخدمها مهندسو الروبوتات الحقيقيون كل يوم. مهمتك الأخيرة هي الاختبار النهائي: جهّز لوحًا فيه جدران ومعادن ونيران مختلطة معًا، ثم اكتب برنامجًا ذاتيًا واحدًا يتعامل مع كل شيء — يتنقّل حول الجدران، يجمع كل المعادن، ويطفئ كل الحرائق — دون أي مساعدة منك. أنت المهندس. ستيمو روبوتك. لنتخرّج!',
-                hint: 'قسّم المهمة إلى مراحل (مسح ← جمع ← إطفاء ← عودة) وابنِ كل مرحلة على حدة أولًا، ثم اربطها. استخدم الحلقات حيثما تتكرر الأفعال. افحص مستوى الماء قبل كل رشة. نهج التصميم من الأعلى للأسفل هذا هو طريقة بناء البرمجيات الحقيقية!',
+                i: '🎓 تهانينا — وصلت إلى الدرس الأخير في أكاديمية ستيمو! عبر رحلتك كلها تعلّمت: التسلسل، الحلقات، الهندسة، المستشعرات (فوق الصوتي + الحراري)، اتخاذ القرار (إذا/وإلا)، المغناطيس الكهربائي، الاستخدام الفعّال للموارد، المتغيّرات، المواقع المحفوظة، القوائم، والدوال. هذه هي المهارات نفسها بالضبط التي يستخدمها مهندسو الروبوتات الحقيقيون كل يوم. مهمتك الأخيرة هي الاختبار النهائي: لوح التحدي مجهّز بجدران وقطع معدنية وحرائق وهدف. اكتب برنامجًا واحدًا يتنقّل حول العوائق، ويجمع معدنًا واحدًا على الأقل، ويطفئ كل الحرائق، ويصل إلى الهدف. أنت المهندس. ستيمو روبوتك. لنتخرّج!',
+                hint: 'قسّم المهمة إلى مراحل (مسح ← جمع ← إطفاء ← هدف) وابنِ كل مرحلة على حدة أولًا، ثم اربطها. استخدم الحلقات حيثما تتكرر الأفعال وراقب مؤشر الخزان أثناء إطفاء الحرائق. نهج التصميم من الأعلى للأسفل هذا هو طريقة بناء البرمجيات الحقيقية!',
                 hw: 'أنت الآن مبرمج خبير! 🎓 تحدّيك: صمّم سيناريو مهمة جديدًا تمامًا واكتب البرنامج الذاتي له. أفكار: روبوت توصيل (يلتقط الطرود، يتجنّب النيران، يُسقط في الوجهة)، روبوت إنقاذ (يجد أشخاصًا عالقين خلف جدران)، أو روبوت فنان (يرسم شكلًا أثناء جمع المعادن). شارك إبداعك!',
                 tasks: [
-                    'جهّز المشهد: ضع جدارين، وقطعتين معدنيتين (🔩)، ونارين (🔥) عشوائيًا على اللوح',
+                    'افتح تحدي المهمة النهائية. اللوح مجهّز بالفعل بجدران وقطع معدنية وحرائق وهدف.',
                     'المرحلة 1 — المسح: أضف مسح أمامي في الاتجاهات الأربعة كلها في البداية لأعرف أين العوائق',
-                    'المرحلة 2 — الجمع: تنقّل إلى القطعتين المعدنيتين، التقطهما (تشغيل المغناطيس)، وأسقطهما في البيت (إطفاء المغناطيس)',
-                    'المرحلة 3 — الإطفاء: تنقّل إلى النارين ورُش الماء على كل واحدة (افحص مستوى الماء أولًا!)',
-                    'المرحلة 4 — العودة: أضف مكعب البيت في النهاية تمامًا — انتهت المهمة، يعود الروبوت إلى القاعدة! 🏠',
-                    'اجمع المراحل الأربع كلها في برنامج واحد وشغّله من البداية للنهاية — يجب أن يُنظّف اللوح! 🏆🎉',
+                    'المرحلة 2 — الجمع: تنقّل إلى القطع المعدنية مع تشغيل المغناطيس. اجمع معدنًا واحدًا على الأقل لإكمال هدف الجمع.',
+                    'المرحلة 3 — الإطفاء: تنقّل إلى النارين ورُش الماء على كل واحدة. راقب مؤشر الخزان أثناء العمل.',
+                    'المرحلة 4 — الإنهاء: تنقّل إلى الهدف بعد جمع المعدن وإطفاء الحرائق.',
+                    'اجمع المراحل الأربع كلها في برنامج واحد وشغّله من البداية للنهاية — أكمل أهداف المعدن والحريق والهدف! 🏆🎉',
                     'مكافأة: عُدّ إجمالي مكعباتك المستخدمة. هل تستطيع تقليلها بنسبة 20% باستخدام الحلقات والتوجيه الأذكى؟ أفضل المهندسين يحسّنون! ✨'
                 ]
             },
@@ -9967,7 +9967,7 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
             'lesson-11': { id: 'lesson-11', title: 'Smart Explorer',    description: 'Use If/Else logic to find the correct path.',         hint: 'Check which direction is clear before moving. If wall is close, go another way!',           icon: '🧠', xpReward: 350, nextLesson: 'lesson-12' },
             'lesson-12': { id: 'lesson-12', title: 'Fire Watch',        description: 'Detect heat sources with your temperature sensor.',   hint: 'Scan in each direction — when temperature rises, you are near a fire!',                     icon: '🔥', xpReward: 400, nextLesson: 'lesson-13' },
-            'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water when close to a fire. Watch your water level — refill at home base!',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-15' },
+            'lesson-13': { id: 'lesson-13', title: 'Firefighter Hero',  description: 'Extinguish all fires before your water runs out!',    hint: 'Spray water only when close to a fire. Watch the tank meter and reset the challenge to try a new route.',           icon: '🚒', xpReward: 500, nextLesson: 'lesson-15' },
             'lesson-14': { id: 'lesson-14', title: 'Master Coder',      description: 'The final challenge — use everything you have learned!', hint: 'Collect metals, extinguish fires, and reach the target. Plan your route carefully!',      icon: '🏆', xpReward: 1000, nextLesson: null },
             'lesson-15': { id: 'lesson-15', title: 'Variable Vault',    description: 'Store values in variables and use them to control STEMO.',  hint: 'Set speed=4, count=4, angle=90. Then: Pen Down → Repeat count → Move speed steps, Turn angle degrees. One number controls everything!', icon: '🔢', xpReward: 400, nextLesson: 'lesson-16' },
             'lesson-16': { id: 'lesson-16', title: 'Position Memory',   description: 'Save your coordinates and navigate back home like GPS.',     hint: 'First block: Save Position A (records start). Navigate to target. Last block: Go to Position A (returns home via shortest path)!',            icon: '📍', xpReward: 450, nextLesson: 'lesson-17' },
