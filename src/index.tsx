@@ -11498,6 +11498,7 @@ const teacherDashboard = `<!DOCTYPE html>
         <button onclick="showTab('pending')" id="tab-pending" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">⏳ Pending <span id="pendingBadge" class="bg-orange-500 text-white rounded-full px-2 ml-1 text-xs hidden">0</span></button>
         <button onclick="showTab('leaderboard')" id="tab-leaderboard" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🏆 Leaderboard</button>
         <button onclick="showTab('videos')" id="tab-videos" class="tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm">🎬 Video Training</button>
+        <button onclick="showTab('interactive')" id="tab-interactive" class="tab-btn bg-gray-200 text-gray-600 rounded-full font-bold text-sm px-5 py-2">💻 Interactive Lessons</button>
     </div>
     <!-- My Classes Tab -->
     <div id="section-classes">
@@ -11551,6 +11552,21 @@ const teacherDashboard = `<!DOCTYPE html>
             <!-- Video list -->
             <div id="teacherVideoList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-video text-4xl mb-3 block opacity-40"></i>Click a video to watch</div>
+            </div>
+        </div>
+    </div>
+    <!-- Interactive Lessons Tab -->
+    <div id="section-interactive" class="hidden">
+        <div class="bg-white rounded-2xl shadow p-6">
+            <div class="flex items-center justify-between mb-5 gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-purple-700">💻 Interactive Lessons</h2>
+                    <p class="text-gray-500 text-sm mt-1">Open the same published interactive activities available to your students.</p>
+                </div>
+                <button onclick="loadTeacherInteractiveLessons()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold transition-all">🔄 Refresh</button>
+            </div>
+            <div id="teacherInteractiveLessonList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-laptop-code text-4xl mb-3 block opacity-40"></i>Click the tab to load interactive lessons.</div>
             </div>
         </div>
     </div>
@@ -11625,16 +11641,17 @@ function escHtml(str) {
 let pwResetStudentId = null;
 
 function showTab(tab) {
-    ['classes','curriculum','pending','leaderboard','videos'].forEach(t => {
+    ['classes','curriculum','pending','leaderboard','videos','interactive'].forEach(t => {
         document.getElementById('section-'+t).classList.add('hidden');
         const btn = document.getElementById('tab-'+t);
         if(btn) btn.className = 'tab-btn bg-gray-200 text-gray-600 px-5 py-2 rounded-full font-bold text-sm';
     });
     document.getElementById('section-'+tab).classList.remove('hidden');
-    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500',leaderboard:'bg-yellow-500',videos:'bg-red-500'};
+    const active = {classes:'bg-blue-600',curriculum:'bg-indigo-600',pending:'bg-orange-500',leaderboard:'bg-yellow-500',videos:'bg-red-500',interactive:'bg-purple-600'};
     document.getElementById('tab-'+tab).className = \`tab-btn \${active[tab]||'bg-indigo-600'} text-white px-5 py-2 rounded-full font-bold text-sm\`;
     if (tab === 'leaderboard') loadTeacherLeaderboard();
     if (tab === 'videos') loadTeacherVideos();
+    if (tab === 'interactive') loadTeacherInteractiveLessons();
 }
 
 function teacherYtEmbedUrl(url) {
@@ -11676,6 +11693,40 @@ async function loadTeacherVideos() {
         }).join('');
     } catch(e) {
         list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load videos. Please try again.</div>';
+    }
+}
+
+function openTeacherInteractiveLesson(id, lessonNumber) {
+    const target = Number(lessonNumber) > 0
+        ? '/interactive-lessons/lesson/' + Number(lessonNumber)
+        : '/interactive-lessons/' + Number(id);
+    window.open(target, '_blank', 'noopener');
+}
+
+async function loadTeacherInteractiveLessons() {
+    const list = document.getElementById('teacherInteractiveLessonList');
+    if (!list) return;
+    list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-spinner fa-spin text-3xl mb-2 block"></i>Loading interactive lessons...</div>';
+    try {
+        const response = await fetch('/api/interactive-lessons');
+        const lessons = await response.json();
+        if (!response.ok || !Array.isArray(lessons)) throw new Error('Could not load interactive lessons');
+        if (!lessons.length) {
+            list.innerHTML = '<div class="text-gray-400 text-center py-12 col-span-3"><i class="fas fa-laptop-code text-5xl mb-3 block opacity-40"></i><p class="font-semibold">No published interactive lessons yet.</p><p class="text-sm mt-1">Published lessons will appear here for you and your students.</p></div>';
+            return;
+        }
+        list.innerHTML = lessons.map(function(lesson) {
+            const lessonNumber = Number(lesson.lesson_number);
+            return '<div class="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-5 hover:shadow-md transition-all">' +
+                '<div class="bg-purple-500 text-white rounded-xl w-10 h-10 flex items-center justify-center text-lg mb-3"><i class="fas fa-laptop-code"></i></div>' +
+                '<h3 class="font-bold text-gray-800 leading-tight">' + escHtml(lesson.title) + '</h3>' +
+                '<p class="text-gray-500 text-sm mt-1">HTML interactive activity</p>' +
+                (lessonNumber > 0 ? '<p class="text-purple-600 text-xs font-bold mt-2">Lesson ' + lessonNumber + '</p>' : '') +
+                '<button onclick="openTeacherInteractiveLesson(' + Number(lesson.id) + ',' + lessonNumber + ')" class="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-xl text-sm font-bold transition-all">▶ Open Lesson</button>' +
+                '</div>';
+        }).join('');
+    } catch (error) {
+        list.innerHTML = '<div class="text-red-400 text-center py-8 col-span-3">⚠️ Could not load interactive lessons. Please try again.</div>';
     }
 }
 
