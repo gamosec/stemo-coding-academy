@@ -2890,7 +2890,7 @@ const htmlContent = `<!DOCTYPE html>
                 <button onclick="startChallengeMode()" class="group flex flex-col items-center gap-3 p-6 border-2 border-orange-200 hover:border-orange-500 hover:bg-orange-50 rounded-2xl transition-all cursor-pointer">
                     <div class="text-4xl group-hover:scale-110 transition-transform">🏆</div>
                     <div class="font-bold text-gray-800 text-lg">Challenge</div>
-                    <div class="text-gray-500 text-xs text-center">A pre-set mission loads. Complete the objective to win XP!</div>
+                    <div id="challengeModeDescription" class="text-gray-500 text-xs text-center">A pre-set mission loads. Complete the objective to win XP!</div>
                     <div class="bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1 rounded-full" id="modePickerXP">+XP Challenge</div>
                 </button>
             </div>
@@ -3835,6 +3835,7 @@ const htmlContent = `<!DOCTYPE html>
 
         // true when a teacher/admin visits /academy — suppresses all XP, progress, and saves
         var isTeacherDemo = false;
+        var teacherPreviewCompletedLessons = [];
 
         // Lesson assigned by teacher (lesson ID string, e.g. 'lesson-3')
         var assignedLessonId = null;
@@ -3855,6 +3856,11 @@ const htmlContent = `<!DOCTYPE html>
             if (isTeacherDemo) {
                 // Teacher/admin preview mode — reset any stale localStorage data so it shows clean
                 stemo.xp = 0; stemo.level = 1; stemo.completedLessons = []; stemo.badges = []; stemo.streak = 1;
+                teacherPreviewCompletedLessons = [];
+                // Teacher preview has no reward system: hide the XP counter entirely.
+                if (xpEl.parentElement) xpEl.parentElement.classList.add('hidden');
+                var challengeDesc = document.getElementById('challengeModeDescription');
+                if (challengeDesc) challengeDesc.textContent = 'Load the pre-set mission and preview its objective.';
                 // Show the teacher/admin's actual name and role
                 if (userData) {
                     var displayName = userData.full_name || userData.username || 'Teacher';
@@ -4170,7 +4176,9 @@ const htmlContent = `<!DOCTYPE html>
                 document.getElementById('modePickerIcon').textContent = currentLesson.icon || '🤖';
                 document.getElementById('modePickerTitle').textContent = trL(currentLesson, 'title');
                 document.getElementById('modePickerDesc').textContent = trL(currentLesson, 'description');
-                document.getElementById('modePickerXP').textContent = '+' + currentLesson.xpReward + ' XP · ' + (currentLang === 'ar' ? 'تحدٍّ' : 'Challenge');
+                document.getElementById('modePickerXP').textContent = isTeacherDemo
+                    ? (currentLang === 'ar' ? 'معاينة التحدي' : 'Challenge Preview')
+                    : '+' + currentLesson.xpReward + ' XP · ' + (currentLang === 'ar' ? 'تحدٍّ' : 'Challenge');
                 document.getElementById('modePickerModal').classList.remove('hidden');
                 return;
             }
@@ -8309,10 +8317,13 @@ const htmlContent = `<!DOCTYPE html>
             var robotDrew = robot.trails.length > 0;
             
             if (robotMoved || robotDrew) {
-                if (!stemo.completedLessons.includes(currentLesson.id)) {
+                var alreadyComplete = isTeacherDemo
+                    ? teacherPreviewCompletedLessons.indexOf(currentLesson.id) !== -1
+                    : stemo.completedLessons.includes(currentLesson.id);
+                if (!alreadyComplete) {
                     completeLesson(currentLesson);
                     // Encourage challenge mode for mission lessons
-                    if (MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
+                    if (!isTeacherDemo && MISSION_LESSON_IDS.indexOf(currentLesson.id) !== -1) {
                         setTimeout(function() {
                             addChatMessage('stemo', '🏆 Nice work! You earned base XP. Want to earn <b>2× bonus XP</b>? Try <b>Challenge Mode</b> to complete the real mission!');
                         }, 2000);
@@ -8322,6 +8333,11 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         function completeLesson(lesson) {
+            if (isTeacherDemo) {
+                teacherPreviewCompletedLessons.push(lesson.id);
+                showSuccessModal(0, false, computeStars(lesson));
+                return;
+            }
             stemo.completedLessons.push(lesson.id);
             stemo.xp += lesson.xpReward;
             
@@ -8343,6 +8359,10 @@ const htmlContent = `<!DOCTYPE html>
 
         // Completes a lesson via challenge mode: awards base XP (if not yet earned) + 2× challenge bonus
         function completeChallengeLesson(lesson) {
+            if (isTeacherDemo) {
+                showSuccessModal(0, true, 3);
+                return;
+            }
             var totalXp = 0;
             // Award base lesson XP if the student hasn't done free build yet
             if (!stemo.completedLessons.includes(lesson.id)) {
@@ -8391,22 +8411,23 @@ const htmlContent = `<!DOCTYPE html>
             }
             var nextBtn = document.getElementById('nextLessonBtn');
 
-            // Teacher preview: always show "preview" banner, never XP
+            var xpBanner = document.getElementById('xpBanner');
+            // Teacher preview has no XP panel or reward message.
             if (isTeacherDemo) {
-                document.getElementById('xpBannerLabel').textContent = '🎓 Teacher Preview';
-                document.getElementById('xpEarned').textContent = 'XP not saved for teachers';
-                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-blue-400 to-indigo-500 rounded-2xl p-4 mb-6';
+                xpBanner.classList.add('hidden');
             // XP banner: show points for first completion, "Already completed" for replays
             } else if (xp > 0) {
+                xpBanner.classList.remove('hidden');
                 document.getElementById('xpBannerLabel').textContent = isChallenge ? '🏆 Challenge Bonus!' : 'You earned';
                 document.getElementById('xpEarned').textContent = '+' + xp + ' XP';
-                document.getElementById('xpBanner').className = isChallenge
+                xpBanner.className = isChallenge
                     ? 'bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-4 mb-6'
                     : 'bg-gradient-to-r from-yellow-400 to-amber-500 rounded-2xl p-4 mb-6';
             } else {
+                xpBanner.classList.remove('hidden');
                 document.getElementById('xpBannerLabel').textContent = isChallenge ? 'Challenge Complete! 🏆' : 'Great practice!';
                 document.getElementById('xpEarned').textContent = 'Already completed ✓';
-                document.getElementById('xpBanner').className = 'bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl p-4 mb-6';
+                xpBanner.className = 'bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl p-4 mb-6';
             }
             
             // Show/hide next lesson button based on whether there's a next lesson
@@ -12902,7 +12923,7 @@ app.get('/academy', async (c) => {
     const backUrl = payload.role === 'admin' ? '/dashboard/admin' : '/dashboard/teacher'
     // Show academy in demo mode for teachers/admins (no progress saved)
     const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
-        🎓 Preview Mode — You are viewing the academy as a ${payload.role}. XP and progress are <u>not saved</u>. <a href="${backUrl}" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
+        🎓 Preview Mode — You are viewing the academy as a ${payload.role}. <a href="${backUrl}" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
     </div>`
     const userJson = JSON.stringify({ id: payload.id, role: payload.role, username: payload.username, full_name: payload.full_name || payload.username })
     const page = htmlContent
