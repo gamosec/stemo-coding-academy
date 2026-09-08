@@ -4066,22 +4066,24 @@ const htmlContent = `<!DOCTYPE html>
                         data[level.key].forEach(function(lesson, index) {
                             var isCompleted = stemo.completedLessons.includes(lesson.id);
                             
-                            // Unlocking logic: first lesson of basic is open. 
-                            // Others need the previous lesson (in same or previous level) to be done.
+                            // Teacher/admin academy mode previews every lesson without prerequisites.
+                            // Students still unlock lessons in curriculum order.
                             var isLocked = false;
-                            if (level.key === 'basic' && index > 0) {
-                                isLocked = !stemo.completedLessons.includes(data.basic[index-1].id);
-                            } else if (level.key === 'intermediate') {
-                                if (index === 0) {
-                                    isLocked = !stemo.completedLessons.includes(data.basic[data.basic.length-1].id);
-                                } else {
-                                    isLocked = !stemo.completedLessons.includes(data.intermediate[index-1].id);
-                                }
-                            } else if (level.key === 'advanced') {
-                                if (index === 0) {
-                                    isLocked = !stemo.completedLessons.includes(data.intermediate[data.intermediate.length-1].id);
-                                } else {
-                                    isLocked = !stemo.completedLessons.includes(data.advanced[index-1].id);
+                            if (!isTeacherDemo) {
+                                if (level.key === 'basic' && index > 0) {
+                                    isLocked = !stemo.completedLessons.includes(data.basic[index-1].id);
+                                } else if (level.key === 'intermediate') {
+                                    if (index === 0) {
+                                        isLocked = !stemo.completedLessons.includes(data.basic[data.basic.length-1].id);
+                                    } else {
+                                        isLocked = !stemo.completedLessons.includes(data.intermediate[index-1].id);
+                                    }
+                                } else if (level.key === 'advanced') {
+                                    if (index === 0) {
+                                        isLocked = !stemo.completedLessons.includes(data.intermediate[data.intermediate.length-1].id);
+                                    } else {
+                                        isLocked = !stemo.completedLessons.includes(data.advanced[index-1].id);
+                                    }
                                 }
                             }
 
