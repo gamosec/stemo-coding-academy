@@ -6478,43 +6478,47 @@ const htmlContent = `<!DOCTYPE html>
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw grid with step numbers (each grid = 2 steps = 40px, 1 step = 20px)
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 1;
-            for (var i = 0; i < canvas.width; i += 40) {
+            // One 20px grid square equals one STEMO movement step.
+            for (var i = 0; i < canvas.width; i += 20) {
+                var xStep = i / 20;
+                ctx.strokeStyle = xStep % 5 === 0 ? '#cbd5e1' : '#e5e7eb';
+                ctx.lineWidth = xStep % 5 === 0 ? 1.4 : 1;
                 ctx.beginPath();
                 ctx.moveTo(i, 0);
                 ctx.lineTo(i, canvas.height);
                 ctx.stroke();
                 
-                // Add step numbers on top (every 2 steps)
+                // Label every one-step grid line along the top.
                 if (i > 0 && i < canvas.width) {
                     ctx.fillStyle = '#9ca3af';
-                    ctx.font = '10px Arial';
+                    ctx.font = '9px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText((i / 20).toString(), i, 12);
+                    ctx.fillText(xStep.toString(), i, 11);
                 }
             }
-            for (var j = 0; j < canvas.height; j += 40) {
+            for (var j = 0; j < canvas.height; j += 20) {
+                var yStep = j / 20;
+                ctx.strokeStyle = yStep % 5 === 0 ? '#cbd5e1' : '#e5e7eb';
+                ctx.lineWidth = yStep % 5 === 0 ? 1.4 : 1;
                 ctx.beginPath();
                 ctx.moveTo(0, j);
                 ctx.lineTo(canvas.width, j);
                 ctx.stroke();
                 
-                // Add step numbers on left side
+                // Label every one-step grid line along the left.
                 if (j > 0 && j < canvas.height) {
                     ctx.fillStyle = '#9ca3af';
-                    ctx.font = '10px Arial';
+                    ctx.font = '9px Arial';
                     ctx.textAlign = 'left';
-                    ctx.fillText((j / 20).toString(), 3, j + 4);
+                    ctx.fillText(yStep.toString(), 3, j + 3);
                 }
             }
             
-            // Draw "1 step = 20px" indicator in corner
+            // Keep the scale visible for learners.
             ctx.fillStyle = '#6b7280';
             ctx.font = '9px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText('1 step = 1 grid line', canvas.width - 5, canvas.height - 5);
+            ctx.fillText('1 square = 1 step', canvas.width - 5, canvas.height - 5);
             
             // Draw ghost target pattern (faded reference lines for drawing challenges)
             if (targetTrails.length > 0) {
