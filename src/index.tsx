@@ -6487,8 +6487,8 @@ const htmlContent = `<!DOCTYPE html>
             for (var i = firstGridX; i < canvas.width; i += 20) {
                 var xStep = (i - gridOriginX) / 20;
                 var xMajor = xStep % 5 === 0;
-                ctx.strokeStyle = xStep === 0 ? '#94a3b8' : (xMajor ? '#cbd5e1' : '#e5e7eb');
-                ctx.lineWidth = xStep === 0 ? 1.8 : (xMajor ? 1.4 : 1);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(i, 0);
                 ctx.lineTo(i, canvas.height);
@@ -6505,8 +6505,8 @@ const htmlContent = `<!DOCTYPE html>
             for (var j = firstGridY; j < canvas.height; j += 20) {
                 var yStep = (gridOriginY - j) / 20;
                 var yMajor = yStep % 5 === 0;
-                ctx.strokeStyle = yStep === 0 ? '#94a3b8' : (yMajor ? '#cbd5e1' : '#e5e7eb');
-                ctx.lineWidth = yStep === 0 ? 1.8 : (yMajor ? 1.4 : 1);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(0, j);
                 ctx.lineTo(canvas.width, j);
