@@ -9099,7 +9099,7 @@ const htmlContent = `<!DOCTYPE html>
             var posSlot = (document.getElementById('posSlotSelect') || {}).value || 'A';
             var modeText = {
                 'metal':    'Click to place: 🔩 Metal  (click again to stop)',
-                'wall':     'Click & drag to place: 🧱 Wall  (click again to stop)',
+                'wall':     'Click to place: 🧱 Long Wall (6 steps)  (click again to stop)',
                 'fire':     'Click to place: 🔥 Fire  (click again to stop)',
                 'target':   'Click to place: 🎯 Target  (click again to stop)',
                 'position': 'Click to place: 📍 Position ' + posSlot + ' marker  (click 📍 again to stop)'
@@ -9267,17 +9267,24 @@ const htmlContent = `<!DOCTYPE html>
         
         function addWallAt(x, y) {
             saveBoardState();
-            // Create a wall (40x40 default, can be expanded later with drag)
+            // Manual walls span 6 steps and snap to the one-step grid so adjacent
+            // pieces meet cleanly without small gaps.
+            var wallWidth = 120;
+            var wallHeight = 40;
+            var snappedCenterX = 275 + Math.round((x - 275) / 20) * 20;
+            var snappedCenterY = 275 + Math.round((y - 275) / 20) * 20;
+            snappedCenterX = Math.max(75, Math.min(475, snappedCenterX));
+            snappedCenterY = Math.max(35, Math.min(515, snappedCenterY));
             wallObjects.push({
                 id: wallIdCounter++,
-                x: x - 20,
-                y: y - 20,
-                width: 40,
-                height: 40
+                x: snappedCenterX - wallWidth / 2,
+                y: snappedCenterY - wallHeight / 2,
+                width: wallWidth,
+                height: wallHeight
             });
             
             drawRobot();
-            addChatMessage('stemo', "🤖 🧱 Wall placed! Use Auto Move or If Wall blocks to avoid it!");
+            addChatMessage('stemo', "🤖 🧱 Long wall placed! It is 6 steps wide and snapped to the grid.");
         }
         
         function addTargetAt(x, y) {
