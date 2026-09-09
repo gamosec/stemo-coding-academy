@@ -2307,8 +2307,8 @@ const htmlContent = `<!DOCTYPE html>
                     <button onclick="runCode()" class="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-full font-bold transition-all transform hover:scale-105 flex items-center gap-2 text-base">
                         <i class="fas fa-play"></i> <span data-i18n="btn_run">Run</span>
                     </button>
-                    <button onclick="resetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Reset robot position">
-                        <i class="fas fa-undo"></i>
+                    <button onclick="stopAndResetRobot()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Stop the program and return STEMO to the starting point">
+                        <i class="fas fa-stop"></i> <span data-i18n="btn_stop_reset">Stop &amp; Reset</span>
                     </button>
                     <div class="flex items-center gap-0.5 bg-gray-100 rounded-full px-1 py-0.5" title="Where STEMO starts">
                         <button onclick="setStartPoint('center')" id="startCenterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from center (home)">🏠</button>
@@ -3195,6 +3195,8 @@ const htmlContent = `<!DOCTYPE html>
         var challengeCompleted = false;
         // True while executeCommands is running; used to suppress premature objective checks on drawing lessons
         var robotExecuting = false;
+        // Incrementing this invalidates every delayed callback from an older run.
+        var executionGeneration = 0;
         // Drawing lessons whose objectives should only be evaluated after execution finishes
         var DRAWING_LESSON_IDS = ['lesson-4','lesson-5','lesson-6','lesson-7'];
 
@@ -5153,11 +5155,13 @@ const htmlContent = `<!DOCTYPE html>
             // Pre-scan all define_function blocks first
             scanUserFunctions();
 
-            // Reset robot before running
+            // Start a fresh execution and invalidate callbacks from any older run.
+            executionGeneration++;
             robotExecuting = true;
-            robot.x = 275;
-            robot.y = 275;
-            robot.angle = -90;
+            var sp = getStemoStart();
+            robot.x = sp.x;
+            robot.y = sp.y;
+            robot.angle = sp.angle;
             robot.penDown = false;
             robot.penSize = 4;
             robot.visible = true;
@@ -5175,6 +5179,7 @@ const htmlContent = `<!DOCTYPE html>
             console.log('Commands to execute:', commands);
             
             if (commands.length === 0) {
+                robotExecuting = false;
                 addChatMessage('stemo', "🤖 I see your blocks! Make sure they're connected properly. Try dragging a Move Forward block into the workspace.");
                 return;
             }
@@ -5337,11 +5342,13 @@ const htmlContent = `<!DOCTYPE html>
             }
         }
 
-        function executeCommands(commands, onComplete) {
+        function executeCommands(commands, onComplete, runGeneration) {
             var index = 0;
             var isTopLevel = !onComplete; // Track if this is the main execution
+            if (runGeneration === undefined) runGeneration = executionGeneration;
             
             function executeNext() {
+                if (!robotExecuting || runGeneration !== executionGeneration) return;
                 if (index >= commands.length) {
                     console.log('Execution batch complete!');
                     if (isTopLevel) {
@@ -5370,7 +5377,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeCommands(nestedCommands, function() {
                             drawRobot();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     } else {
                         drawRobot();
                         setTimeout(executeNext, 200);
@@ -5387,7 +5394,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeGoToTarget(function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -5401,7 +5408,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeSmartNavigate(function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -5426,7 +5433,7 @@ const htmlContent = `<!DOCTYPE html>
                     executeCommands(vMoves, function() {
                         if (challengeMode) checkChallengeObjectives();
                         setTimeout(executeNext, 150);
-                    });
+                    }, runGeneration);
                     return;
                 }
                 if (cmd.action === 'turn_var_degrees') {
@@ -5446,7 +5453,7 @@ const htmlContent = `<!DOCTYPE html>
                     executeCommands(vLoop, function() {
                         if (challengeMode) checkChallengeObjectives();
                         setTimeout(executeNext, 150);
-                    });
+                    }, runGeneration);
                     return;
                 }
 
@@ -5461,7 +5468,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeCommands(fnBody, function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 150);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -5532,7 +5539,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeNavigateToPoint(sp.x, sp.y, "🔙 Navigating to saved position " + cmd.slot + "…", function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -5552,7 +5559,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeReplayWaypoints(waypointList.slice(), 0, function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -5572,7 +5579,7 @@ const htmlContent = `<!DOCTYPE html>
                     executeForeachWaypoint(ptsToUse, 0, cmd.doCommands, function() {
                         if (challengeMode) checkChallengeObjectives();
                         setTimeout(executeNext, 200);
-                    });
+                    }, runGeneration);
                     return;
                 }
                 if (cmd.action === 'clear_waypoints') {
@@ -5593,7 +5600,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeCommands(nestedCommands, function() {
                             drawRobot();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     } else {
                         drawRobot();
                         setTimeout(executeNext, 200);
@@ -5610,7 +5617,7 @@ const htmlContent = `<!DOCTYPE html>
                         executeFirefighterMode(function() {
                             if (challengeMode) checkChallengeObjectives();
                             setTimeout(executeNext, 200);
-                        });
+                        }, runGeneration);
                     }
                     return;
                 }
@@ -6106,11 +6113,13 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         // Firefighter mode - auto-navigate and extinguish all fires
-        function executeFirefighterMode(onComplete) {
+        function executeFirefighterMode(onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
             var maxSteps = 200; // Safety limit
             var stepCount = 0;
             
             function firefightStep() {
+                if (!robotExecuting || runGeneration !== executionGeneration) return;
                 if (stepCount >= maxSteps) {
                     addChatMessage('stemo', "🚒 Reached step limit. Some fires may remain.");
                     if (onComplete) onComplete();
@@ -6276,11 +6285,13 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // Greedy Go To Target — steers toward target angle each step, turns when wall detected
-        function executeGoToTarget(onComplete) {
+        function executeGoToTarget(onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
             if (!targetPoint) { if (onComplete) onComplete(); return; }
             var maxSteps = 300;
             var stepCount = 0;
             function moveStep() {
+                if (!robotExecuting || runGeneration !== executionGeneration) return;
                 if (stepCount >= maxSteps) {
                     addChatMessage('stemo', "🎯 Couldn't reach target after " + maxSteps + " steps. Try Smart Navigate for complex mazes!");
                     if (onComplete) onComplete();
@@ -6323,7 +6334,8 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // Smart Navigate — BFS pathfinder guarantees shortest route through any maze
-        function executeSmartNavigate(onComplete) {
+        function executeSmartNavigate(onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
             if (!targetPoint) { if (onComplete) onComplete(); return; }
 
             var path = bfsPath(robot.x, robot.y, targetPoint.x, targetPoint.y);
@@ -6339,6 +6351,7 @@ const htmlContent = `<!DOCTYPE html>
             var stepIndex = 1;
 
             function followPath() {
+                if (!robotExecuting || runGeneration !== executionGeneration) return;
                 if (stepIndex >= path.length) {
                     robot.x = targetPoint.x;
                     robot.y = targetPoint.y;
@@ -6379,7 +6392,8 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // Navigate to any arbitrary {x,y} point using BFS
-        function executeNavigateToPoint(tx, ty, msg, onComplete) {
+        function executeNavigateToPoint(tx, ty, msg, onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
             var savedTarget = targetPoint;
             targetPoint = { x: tx, y: ty };
             if (msg) addChatMessage('stemo', msg);
@@ -6391,6 +6405,7 @@ const htmlContent = `<!DOCTYPE html>
             }
             var si = 1;
             function step() {
+                if (!robotExecuting || runGeneration !== executionGeneration) return;
                 if (si >= path.length) {
                     robot.x = tx; robot.y = ty;
                     drawRobot();
@@ -6415,7 +6430,9 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // Replay all waypoints in sequence
-        function executeReplayWaypoints(pts, idx, onComplete) {
+        function executeReplayWaypoints(pts, idx, onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
+            if (!robotExecuting || runGeneration !== executionGeneration) return;
             if (idx >= pts.length) {
                 addChatMessage('stemo', "✅ Replayed all " + pts.length + " waypoints!");
                 if (onComplete) onComplete();
@@ -6424,12 +6441,14 @@ const htmlContent = `<!DOCTYPE html>
             var pt = pts[idx];
             executeNavigateToPoint(pt.x, pt.y, null, function() {
                 if (challengeMode) checkChallengeObjectives();
-                setTimeout(function() { executeReplayWaypoints(pts, idx + 1, onComplete); }, 200);
-            });
+                setTimeout(function() { executeReplayWaypoints(pts, idx + 1, onComplete, runGeneration); }, 200);
+            }, runGeneration);
         }
 
         // For each waypoint: navigate there, then run doCommands
-        function executeForeachWaypoint(pts, idx, doCommands, onComplete) {
+        function executeForeachWaypoint(pts, idx, doCommands, onComplete, runGeneration) {
+            if (runGeneration === undefined) runGeneration = executionGeneration;
+            if (!robotExecuting || runGeneration !== executionGeneration) return;
             if (idx >= pts.length) {
                 addChatMessage('stemo', "✅ Visited all " + pts.length + " waypoints!");
                 if (onComplete) onComplete();
@@ -6441,12 +6460,12 @@ const htmlContent = `<!DOCTYPE html>
                 if (doCommands && doCommands.length > 0) {
                     executeCommands(doCommands, function() {
                         if (challengeMode) checkChallengeObjectives();
-                        setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete); }, 200);
-                    });
+                        setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete, runGeneration); }, 200);
+                    }, runGeneration);
                 } else {
-                    setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete); }, 200);
+                    setTimeout(function() { executeForeachWaypoint(pts, idx + 1, doCommands, onComplete, runGeneration); }, 200);
                 }
-            });
+            }, runGeneration);
         }
 
         // ============================================
@@ -7366,7 +7385,17 @@ const htmlContent = `<!DOCTYPE html>
             
         }
 
-        function resetRobot() {
+        function stopAndResetRobot() {
+            resetRobot("🛑 Program stopped. I am back at the starting point and your code is still here!");
+        }
+
+        function resetRobot(message) {
+            executionGeneration++;
+            robotExecuting = false;
+            if (danceRAF) {
+                cancelAnimationFrame(danceRAF);
+                danceRAF = null;
+            }
             var sp = getStemoStart();
             robot = {
                 x: sp.x,
@@ -7387,7 +7416,7 @@ const htmlContent = `<!DOCTYPE html>
                 dancing: false
             };
             drawRobot();
-            addChatMessage('stemo', "🤖 Ready! Use Pen Down to start drawing!");
+            addChatMessage('stemo', message || "🤖 Ready! Use Pen Down to start drawing!");
         }
 
         // Animate STEMO's dance wiggle for a short duration, then settle
@@ -7448,7 +7477,7 @@ const htmlContent = `<!DOCTYPE html>
                 tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training', tab_interactive: 'Interactive Lessons',
                 interactive_title: 'Interactive Lessons', interactive_subtitle: 'Explore interactive activities prepared by your academy.',
                 interactive_loading: 'Loading interactive lessons...', interactive_empty: 'No interactive lessons available yet.', interactive_open: 'Open Lesson', btn_refresh: 'Refresh',
-                btn_run: 'Run',
+                btn_run: 'Run', btn_stop_reset: 'Stop & Reset',
                 cat_move: '🚶 Move', cat_draw: '🎨 Draw', cat_fun: '🎉 Fun', cat_loop: '🔁 Loop',
                 welcome_title: 'Welcome to STEMO Academy!',
                 welcome_sub: 'Learn to code by programming your robot friend. Ready for an adventure?',
@@ -7467,7 +7496,7 @@ const htmlContent = `<!DOCTYPE html>
                 tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو', tab_interactive: 'دروس تفاعلية',
                 interactive_title: 'دروس تفاعلية', interactive_subtitle: 'اكتشف أنشطة تفاعلية أعدّتها أكاديميتك.',
                 interactive_loading: 'جارٍ تحميل الدروس التفاعلية...', interactive_empty: 'لا توجد دروس تفاعلية متاحة بعد.', interactive_open: 'فتح الدرس', btn_refresh: 'تحديث',
-                btn_run: 'تشغيل',
+                btn_run: 'تشغيل', btn_stop_reset: 'إيقاف وإعادة',
                 cat_move: '🚶 حركة', cat_draw: '🎨 رسم', cat_fun: '🎉 مرح', cat_loop: '🔁 تكرار',
                 welcome_title: 'أهلاً بك في أكاديمية ستيمو!',
                 welcome_sub: 'تعلّم البرمجة عن طريق برمجة صديقك الروبوت. هل أنت مستعد للمغامرة؟',
@@ -7486,7 +7515,7 @@ const htmlContent = `<!DOCTYPE html>
                 tab_profile: 'Mi Perfil', tab_leaderboard: 'Clasificación', tab_videos: 'Videos', tab_interactive: 'Lecciones interactivas',
                 interactive_title: 'Lecciones interactivas', interactive_subtitle: 'Explora actividades preparadas por tu academia.',
                 interactive_loading: 'Cargando lecciones interactivas...', interactive_empty: 'Aún no hay lecciones interactivas.', interactive_open: 'Abrir lección', btn_refresh: 'Actualizar',
-                btn_run: 'Ejecutar',
+                btn_run: 'Ejecutar', btn_stop_reset: 'Detener y reiniciar',
                 cat_move: '🚶 Mover', cat_draw: '🎨 Dibujar', cat_fun: '🎉 Diversión', cat_loop: '🔁 Repetir'
             },
             fr: {
@@ -7494,7 +7523,7 @@ const htmlContent = `<!DOCTYPE html>
                 tab_profile: 'Mon Profil', tab_leaderboard: 'Classement', tab_videos: 'Vidéos', tab_interactive: 'Leçons interactives',
                 interactive_title: 'Leçons interactives', interactive_subtitle: 'Découvrez les activités préparées par votre académie.',
                 interactive_loading: 'Chargement des leçons interactives...', interactive_empty: 'Aucune leçon interactive disponible.', interactive_open: 'Ouvrir la leçon', btn_refresh: 'Actualiser',
-                btn_run: 'Lancer',
+                btn_run: 'Lancer', btn_stop_reset: 'Arrêter et réinitialiser',
                 cat_move: '🚶 Bouger', cat_draw: '🎨 Dessiner', cat_fun: '🎉 Amusant', cat_loop: '🔁 Répéter'
             }
         };
