@@ -3277,44 +3277,39 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-6': {
-                title: 'Draw the Spin Star! ⭐',
-                description: 'Copy the star pattern shown in ghost lines on the board. Use 3 colours, draw 4-sided shapes with loops, and rotate them!',
+                title: 'Draw the Spinning Boxes! 🟦',
+                description: 'Copy the full pattern of 8 rotated boxes shown in ghost lines. Choose one pen colour and use that same colour for the entire drawing!',
                 setup: function() {
                     // Simulate the target pattern and store as ghost trails for canvas reference.
-                    // Pattern: Repeat 8 → (Repeat 4 → Color red, Move 2, Color blue, Move 2,
-                    //           Color black, Move 2, Right 90°) → Right 45°
-                    // Each Move 2 = 40 px (2 × 20 px/step).  Robot starts at (275, 275).
+                    // Pattern: Color blue → Repeat 8 → (Repeat 4 → Move 6, Right 90°) → Right 45°.
+                    // Each box has 4 × 120 px sides and returns to the center before rotating.
                     var simX = 275, simY = 275, simAngle = 0;
-                    var cols = ['#ef4444', '#6366f1', '#1e293b']; // red, blue, black
                     targetTrails = [];
-                    var step = 40;
+                    var step = 120;
                     for (var i = 0; i < 8; i++) {
                         for (var j = 0; j < 4; j++) {
-                            for (var c = 0; c < 3; c++) {
-                                var rad = simAngle * Math.PI / 180;
-                                var nx = simX + Math.cos(rad) * step;
-                                var ny = simY + Math.sin(rad) * step;
-                                targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: cols[c] });
-                                simX = nx; simY = ny;
-                            }
+                            var rad = simAngle * Math.PI / 180;
+                            var nx = simX + Math.cos(rad) * step;
+                            var ny = simY + Math.sin(rad) * step;
+                            targetTrails.push({ x1: simX, y1: simY, x2: nx, y2: ny, color: '#6366f1' });
+                            simX = nx; simY = ny;
                             simAngle += 90;
                         }
                         simAngle += 45;
                     }
                 },
                 objectives: [
-                    { id: 'loop', label: '🔁 Use a Repeat block', check: function() {
+                    { id: 'nested', label: '🔁 Use 2 Repeat blocks for boxes and rotation', check: function() {
                         if (!workspace) return false;
-                        return workspace.getAllBlocks().some(function(b) { return b.type === 'repeat_times'; });
+                        return workspace.getAllBlocks().filter(function(b) { return b.type === 'repeat_times'; }).length >= 2;
                     }},
-                    { id: 'segments', label: '✏️ Draw 12+ line segments', check: function() {
-                        return robot.trails.length >= 12;
+                    { id: 'boxes', label: '🟦 Draw all 8 boxes (32 sides)', check: function() {
+                        return robot.trails.length >= 32;
                     }},
-                    { id: 'turns', label: '📐 Use Right or Left turns', check: function() {
-                        if (!workspace) return false;
-                        return workspace.getAllBlocks().some(function(b) {
-                            return b.type === 'turn_right' || b.type === 'turn_left';
-                        });
+                    { id: 'same-color', label: '🎨 Use the same pen colour for the full drawing', check: function() {
+                        var seen = {};
+                        robot.trails.forEach(function(t) { seen[t.color] = true; });
+                        return robot.trails.length >= 32 && Object.keys(seen).length === 1;
                     }}
                 ]
             },

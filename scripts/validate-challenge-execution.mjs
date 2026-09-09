@@ -20,8 +20,9 @@ const fixtures = {
   'lesson-5': { blocks: ['repeat_times'], commands: [
     ['pen', true], ['repeat', 4, [['move', 2], ['turn', 90], ['move', 2], ['turn', -90]]],
   ] },
-  'lesson-6': { blocks: ['repeat_times', 'turn_right'], commands: [
-    ['pen', true], ['repeat', 12, [['move', 1], ['turn', 90]]], ['turn', 45],
+  'lesson-6': { blocks: ['repeat_times', 'repeat_times', 'turn_right', 'set_color'], commands: [
+    ['pen', true], ['color', 'blue'],
+    ['repeat', 8, [['repeat', 4, [['move', 6], ['turn', 90]]], ['turn', 45]]],
   ] },
   'lesson-7': { blocks: ['repeat_times', 'turn_right'], commands: [
     ['pen', true], ['repeat', 8, [['move', 2], ['turn', 135]]],
@@ -139,6 +140,7 @@ function satisfies(id, world, fixture) {
     color: fixture.blocks.includes('set_color'), spiral: world.trails.length >= 15, bands: world.trails.length >= 18,
     penup: fixture.blocks.includes('pen_control'), strokes: world.trails.length >= 3, flair: fixture.blocks.includes('stemo_emotion'),
     nested: fixture.blocks.filter((block) => block === 'repeat_times').length >= 2, mandala: world.trails.length >= 16,
+    boxes: world.trails.length >= 32, 'same-color': world.trails.length >= 32 && world.colors.size === 1,
   }[id]
 }
 
