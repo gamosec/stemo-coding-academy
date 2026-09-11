@@ -9968,6 +9968,10 @@ const htmlContent = `<!DOCTYPE html>
                      // Walls are defined by top-left corner in 2D, so center them for 3D
                      // Stack height: base 15 + index * 32 (offset > height)
                      mesh.position.set(w.x + w.width/2, 15 + (index * 32), w.y + w.height/2);
+                      // 2D uses clockwise-positive angles because canvas Y points
+                      // downward. Negate that angle around Three.js's Y axis so the
+                      // 3D wall has exactly the same horizontal/vertical direction.
+                      mesh.rotation.y = -(w.angle || 0) * Math.PI / 180;
                      mesh.castShadow = true;
                      mesh.receiveShadow = true;
                      if (selectedObject === w) {
