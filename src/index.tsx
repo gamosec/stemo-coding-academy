@@ -4717,8 +4717,7 @@ const htmlContent = `<!DOCTYPE html>
             init: function() {
                 this.appendDummyInput()
                     .appendField("🧱 If Wall Within")
-                    .appendField(new Blockly.FieldNumber(2, 1, 10, 1), "DISTANCE")
-                    .appendField("steps");
+                    .appendField("1 step");
                 this.appendStatementInput("DO")
                     .appendField("then");
                 this.appendStatementInput("ELSE")
@@ -4726,7 +4725,7 @@ const htmlContent = `<!DOCTYPE html>
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(45);
-                this.setTooltip("Check if wall is within distance, do something");
+                this.setTooltip("Check if a wall is within 1 step, then do something");
             }
         };
         
@@ -5271,12 +5270,11 @@ const htmlContent = `<!DOCTYPE html>
                 } else if (type === 'smart_navigate') {
                     commands.push({ action: 'smart_navigate' });
                 } else if (type === 'if_wall_ahead') {
-                    var distance = parseInt(block.getFieldValue('DISTANCE'));
                     var doBlock = block.getInputTargetBlock('DO');
                     var elseBlock = block.getInputTargetBlock('ELSE');
                     commands.push({ 
                         action: 'if_wall', 
-                        distance: distance,
+                        distance: 1,
                         doCommands: [],
                         elseCommands: []
                     });
