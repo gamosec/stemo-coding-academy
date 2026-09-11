@@ -6,6 +6,7 @@
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "validate:curriculum": "node scripts/validate-curriculum.mjs",
     "test:curriculum": "node scripts/test-curriculum-validator.mjs",
+    "test:progress": "node scripts/test-progress-reset-api.mjs",
     "build": "npm run validate:curriculum && vite build",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy dist",
