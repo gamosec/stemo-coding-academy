@@ -7288,11 +7288,7 @@ const htmlContent = `<!DOCTYPE html>
                 if (robot.dancing) {
                     ctx.rotate(Math.sin(Date.now() / 120) * 0.25);
                 }
-                if (safetyAlert.active) {
-                    ctx.shadowColor = '#ef4444';
-                    ctx.shadowBlur = 12 + safetyPulse * 12;
-                }
-                ctx.fillStyle = safetyAlert.active ? '#dc2626' : (robot.magnetOn ? '#ef4444' : stemoBodyColor);
+                ctx.fillStyle = robot.magnetOn ? '#ef4444' : stemoBodyColor;
                 ctx.beginPath();
                 ctx.roundRect(-14, -18, 28, 36, 6);
                 ctx.fill();
@@ -7333,7 +7329,7 @@ const htmlContent = `<!DOCTYPE html>
                 }
             
                 // Head
-                ctx.fillStyle = safetyAlert.active ? '#f87171' : (robot.magnetOn ? '#f87171' : lightenColor(stemoBodyColor, 0.3));
+                ctx.fillStyle = robot.magnetOn ? '#f87171' : lightenColor(stemoBodyColor, 0.3);
                 ctx.beginPath();
                 ctx.arc(0, -11, 11, 0, Math.PI * 2);
                 ctx.fill();
@@ -7404,10 +7400,13 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.stroke();
                 
                 if (safetyAlert.active) {
+                    ctx.shadowColor = '#ef4444';
+                    ctx.shadowBlur = 12 + safetyPulse * 12;
                     ctx.fillStyle = safetyPulse > 0.65 ? '#ef4444' : '#fecaca';
                     ctx.beginPath();
                     ctx.arc(0, -33, 5, 0, Math.PI * 2);
                     ctx.fill();
+                    ctx.shadowBlur = 0;
                 } else if (robot.magnetOn) {
                     ctx.fillStyle = '#ef4444';
                     ctx.beginPath();
@@ -9734,6 +9733,9 @@ const htmlContent = `<!DOCTYPE html>
             var antennaBall = new THREE.Mesh(ballGeo, ballMat);
             antennaBall.position.set(0, 80, 0);
             threeRobot.add(antennaBall);
+            var warningLight = new THREE.PointLight(0xef4444, 0, 90, 2);
+            warningLight.position.set(0, 80, 0);
+            threeRobot.add(warningLight);
 
             // 7. ARMS — two floating mitten-style hands beside the body
             var armGeo = new THREE.SphereGeometry(5, 16, 16);
@@ -9782,7 +9784,8 @@ const htmlContent = `<!DOCTYPE html>
                 armL: armL,
                 armR: armR,
                 pupils: [pupilL, pupilR],
-                sparkles: sparkles
+                sparkles: sparkles,
+                warningLight: warningLight
             };
 
             // 4. Shadow (Separate from robot so it stays on floor)
@@ -9897,7 +9900,22 @@ const htmlContent = `<!DOCTYPE html>
             if (ud.antennaBall) {
                 ud.antennaBall.position.y = 80 + Math.sin(time * 2) * 2.5;
                 if (ud.antennaBall.material) {
-                    ud.antennaBall.material.emissiveIntensity = 0.6 + (Math.sin(time * 4) + 1) * 0.3;
+                    var safetyLightActive = Date.now() < safetyAlertUntil;
+                    if (safetyLightActive) {
+                        ud.antennaBall.material.color.setHex(0xef4444);
+                        ud.antennaBall.material.emissive.setHex(0xef4444);
+                        ud.antennaBall.material.emissiveIntensity = 1.8 + (Math.sin(time * 12) + 1) * 0.8;
+                    } else {
+                        ud.antennaBall.material.color.setHex(0xfde047);
+                        ud.antennaBall.material.emissive.setHex(0xfacc15);
+                        ud.antennaBall.material.emissiveIntensity = 0.6 + (Math.sin(time * 4) + 1) * 0.3;
+                    }
+                    if (ud.warningLight) {
+                        ud.warningLight.position.y = ud.antennaBall.position.y;
+                        ud.warningLight.intensity = safetyLightActive
+                            ? 2.2 + (Math.sin(time * 12) + 1) * 1.2
+                            : 0;
+                    }
                 }
             }
 
