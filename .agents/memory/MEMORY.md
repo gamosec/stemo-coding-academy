@@ -8,3 +8,4 @@
 - [Curriculum capability validation](curriculum-capability-validation.md) — build gate traces taught controls through palette, parser, and executor without evaluating source.
 - [Challenge execution validation](challenge-execution-validation.md) — deterministic representative programs must satisfy every challenge objective, including intermediate progress.
 - [Public leaderboard privacy](public-leaderboard.md) — landing-page rankings expose only approved students' first name/last initial, XP, and level.
+- [STEMO world scaling](stemo-world-scaling.md) — enlarge or fit the world visually without changing its logical simulation coordinates; 2D, 3D, and HUD must share one stage.

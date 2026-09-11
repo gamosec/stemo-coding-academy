@@ -2246,6 +2246,18 @@ const htmlContent = `<!DOCTYPE html>
         #robotCanvas {
             border-radius: 16px;
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #robotWorldViewport { min-width: 0; min-height: 0; }
+        #robotWorldStage {
+            position: relative;
+            flex: 0 0 auto;
+            width: 550px;
+            height: 550px;
+            max-width: 100%;
+            max-height: 100%;
         }
         
         .chat-bubble {
@@ -2262,7 +2274,6 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         /* ============ TABLET / TOUCH SUPPORT ============ */
-        #robotCanvas { max-width: 100%; height: auto; }
         .block-item { touch-action: manipulation; }
         .block-item:active { transform: scale(0.95); }
         @media (hover: none) {
@@ -2276,10 +2287,14 @@ const htmlContent = `<!DOCTYPE html>
         /* Desktop keeps the full-height side-by-side layout */
         @media (min-width: 1024px) {
             #codeLayout { height: calc(100vh - 153px); min-height: 560px; }
+            #robotPanel {
+                width: clamp(590px, 48vw, 700px);
+                flex: 0 0 auto;
+            }
         }
-        /* Mid-size tablets (landscape): narrower robot panel */
+        /* Mid-size tablets (landscape): keep the world large without starving Blockly */
         @media (min-width: 1024px) and (max-width: 1279px) {
-            #robotPanel { width: 430px; }
+            #robotPanel { width: min(52vw, 590px); }
         }
         /* Tablets portrait & small screens: stack the workspace vertically */
         @media (max-width: 1023px) {
@@ -2293,7 +2308,6 @@ const htmlContent = `<!DOCTYPE html>
             #blockPalette > div { flex-shrink: 0; margin-bottom: 0 !important; }
             #blocklyDiv { flex: none; width: 100%; height: 46vh; min-height: 300px; }
             #robotPanel { width: 100%; border-left: 0; border-top: 2px solid #e5e7eb; }
-            #robotCanvas { max-width: min(92vw, 550px); }
         }
         
         .tab-active {
@@ -2780,19 +2794,21 @@ const htmlContent = `<!DOCTYPE html>
                             <button onclick="exitChallengeMode()" class="bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow px-3 py-0.5 text-xs font-bold transition-colors">✕ Exit Challenge</button>
                         </div>
                     </div>
-                    <div class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
-                        <canvas id="robotCanvas" width="550" height="550" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
-                        <div id="threeCanvasContainer" class="absolute top-2 left-2 right-2 bottom-2 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
-                        <!-- Mission Toast -->
-                        <div id="missionHUD" class="hidden absolute top-4 left-4 right-4 z-30 pointer-events-none">
-                            <div class="bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl shadow-xl px-4 py-3">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-base">🏆</span>
-                                    <span class="text-xs font-bold uppercase tracking-widest opacity-90">Challenge Mission</span>
+                    <div id="robotWorldViewport" class="flex-1 p-2 flex items-center justify-center overflow-hidden relative">
+                        <div id="robotWorldStage">
+                            <canvas id="robotCanvas" width="550" height="550" class="rounded-xl shadow-lg cursor-crosshair relative z-10" onclick="handleCanvasClick(event)"></canvas>
+                            <div id="threeCanvasContainer" class="absolute inset-0 rounded-xl overflow-hidden hidden z-20 pointer-events-auto"></div>
+                            <!-- Mission Toast -->
+                            <div id="missionHUD" class="hidden absolute top-2 left-2 right-2 z-30 pointer-events-none">
+                                <div class="bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl shadow-xl px-4 py-3">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-base">🏆</span>
+                                        <span class="text-xs font-bold uppercase tracking-widest opacity-90">Challenge Mission</span>
+                                    </div>
+                                    <div class="font-bold text-sm mb-1" id="missionTitle">Complete the mission!</div>
+                                    <div class="text-xs opacity-90 mb-2 leading-snug" id="missionDesc" style="display:none;"></div>
+                                    <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
                                 </div>
-                                <div class="font-bold text-sm mb-1" id="missionTitle">Complete the mission!</div>
-                                <div class="text-xs opacity-90 mb-2 leading-snug" id="missionDesc" style="display:none;"></div>
-                                <div id="missionObjectivesList" class="flex gap-2 flex-wrap"></div>
                             </div>
                         </div>
                         <style>
@@ -3160,6 +3176,7 @@ const htmlContent = `<!DOCTYPE html>
             streak: parseInt(localStorage.getItem('stemo_streak') || '1')
         };
 
+        var WORLD_VIEW_SCALE = 0.86;
         var robot = {
             x: 275,
             y: 275,
@@ -6842,8 +6859,15 @@ const htmlContent = `<!DOCTYPE html>
             var ctx = canvas.getContext('2d');
             var safetyAlert = getAutomaticSafetyAlert();
             
-            // Clear canvas
+            // Clear at native canvas size, then zoom the logical 550×550 world
+            // out slightly so complex drawings stay comfortably inside view.
+            // Simulation coordinates remain unchanged.
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            var worldViewScale = WORLD_VIEW_SCALE;
+            var worldViewOffsetX = (canvas.width - canvas.width * worldViewScale) / 2;
+            var worldViewOffsetY = (canvas.height - canvas.height * worldViewScale) / 2;
+            ctx.setTransform(worldViewScale, 0, 0, worldViewScale, worldViewOffsetX, worldViewOffsetY);
             
             // One 20px grid square equals one STEMO movement step.
             // Anchor the grid at STEMO's center home (275,275), not the canvas edge.
@@ -9537,6 +9561,14 @@ const htmlContent = `<!DOCTYPE html>
             var rect = canvas.getBoundingClientRect();
             var x = (event.clientX - rect.left) * (canvas.width / rect.width);
             var y = (event.clientY - rect.top) * (canvas.height / rect.height);
+            // Reverse the display-only fit transform used by drawRobot so
+            // placement, selection, and saved coordinates remain unchanged.
+            var worldViewScale = WORLD_VIEW_SCALE;
+            var worldViewOffsetX = (canvas.width - canvas.width * worldViewScale) / 2;
+            var worldViewOffsetY = (canvas.height - canvas.height * worldViewScale) / 2;
+            x = (x - worldViewOffsetX) / worldViewScale;
+            y = (y - worldViewOffsetY) / worldViewScale;
+            if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) return;
             
             // Keep within bounds (canvas is 550×550)
             x = Math.max(25, Math.min(525, x));
@@ -10353,6 +10385,7 @@ const htmlContent = `<!DOCTYPE html>
                 // Show Three.js container
                 threeContainer.classList.remove('hidden');
                 initThreeJS();
+                requestAnimationFrame(resizeRobotWorldStage);
                 animateThreeJS();
             } else {
                 btn.classList.remove('bg-green-500', 'hover:bg-green-600');
@@ -10660,7 +10693,7 @@ const htmlContent = `<!DOCTYPE html>
             var stacked = window.innerWidth < 1024; // tablet/portrait layout stacks panels vertically
             if (robotPanelVisible) {
                 panel.style.display = '';
-                // Clear inline width so CSS breakpoints (590px desktop / 430px small-landscape / 100% stacked) control sizing
+                // Clear inline width so CSS breakpoints control sizing.
                 panel.style.width = '';
                 panel.classList.remove('overflow-hidden', 'border-l-0');
                 panel.classList.add('border-l-2');
@@ -10682,9 +10715,42 @@ const htmlContent = `<!DOCTYPE html>
             if (workspace) {
                 setTimeout(function() {
                     Blockly.svgResize(workspace);
+                    resizeRobotWorldStage();
                 }, 350);
             }
         }
+
+        function resizeRobotWorldStage() {
+            var viewport = document.getElementById('robotWorldViewport');
+            var stage = document.getElementById('robotWorldStage');
+            if (!viewport || !stage || viewport.clientWidth <= 0 || viewport.clientHeight <= 0) return;
+            var availableWidth = Math.max(0, viewport.clientWidth - 16);
+            var availableHeight = Math.max(0, viewport.clientHeight - 16);
+            var size = Math.min(660, availableWidth, availableHeight);
+            if (size <= 0) return;
+            stage.style.width = size + 'px';
+            stage.style.height = size + 'px';
+
+            var threeContainer = document.getElementById('threeCanvasContainer');
+            if (renderer && camera && threeContainer && !threeContainer.classList.contains('hidden')) {
+                var w = threeContainer.clientWidth;
+                var h = threeContainer.clientHeight;
+                if (w > 0 && h > 0) {
+                    renderer.setSize(w, h);
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                }
+            }
+        }
+
+        if (typeof ResizeObserver !== 'undefined') {
+            var robotWorldResizeObserver = new ResizeObserver(function() {
+                resizeRobotWorldStage();
+            });
+            var robotWorldViewport = document.getElementById('robotWorldViewport');
+            if (robotWorldViewport) robotWorldResizeObserver.observe(robotWorldViewport);
+        }
+        setTimeout(resizeRobotWorldStage, 0);
 
         // Keep Blockly + robot panel in sync on orientation change / window resize (tablet support)
         var _stemoResizeTimer = null;
@@ -10698,16 +10764,7 @@ const htmlContent = `<!DOCTYPE html>
                     panel.style.display = '';
                     panel.style.width = '';
                 }
-                // Keep the 3D view in sync with its container after layout changes
-                var threeContainer = document.getElementById('threeCanvasContainer');
-                if (renderer && camera && threeContainer && !threeContainer.classList.contains('hidden')) {
-                    var w = threeContainer.clientWidth, h = threeContainer.clientHeight;
-                    if (w > 0 && h > 0) {
-                        renderer.setSize(w, h);
-                        camera.aspect = w / h;
-                        camera.updateProjectionMatrix();
-                    }
-                }
+                resizeRobotWorldStage();
             }, 200);
         });
     </script>
