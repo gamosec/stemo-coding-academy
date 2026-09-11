@@ -28,7 +28,9 @@ const fixtures = {
     ['pen', true], ['repeat', 8, [['move', 2], ['turn', 135]]],
   ] },
   'lesson-8': { blocks: ['magnet_on', 'magnet_off'], commands: [['magnet', true], ['go_to', 130, 130], ['go_to', 420, 130], ['go_to', 420, 420], ['go_home'], ['magnet', false]] },
-  'lesson-9': { blocks: ['if_wall_ahead', 'repeat_times'], commands: [['smart_navigate']] },
+  'lesson-9': { blocks: ['sensor_scan', 'if_wall_ahead', 'repeat_times'], commands: [
+    ['scan'], ['repeat', 20, [['if_wall']]], ['go_to', 395, 395],
+  ] },
   'lesson-10': { blocks: ['smart_navigate'], commands: [['smart_navigate']] },
   'lesson-11': { blocks: ['smart_navigate'], commands: [['smart_navigate']] },
   'lesson-12': { blocks: ['check_temp', 'repeat_times'], commands: [['go_to', 135, 135], ['detect', 0], ['go_to', 415, 415], ['detect', 1]] },
@@ -63,7 +65,7 @@ function makeWorld(id) {
     functions: 0, replayed: false, foreach: false, reachedTarget: false,
   }
   if (id === 'lesson-8') world.metals = [[130, 130], [420, 130], [420, 420]]
-  if (id === 'lesson-9') world.target = [375, 395]
+  if (id === 'lesson-9') world.target = [395, 395]
   if (id === 'lesson-10') world.target = [440, 440]
   if (id === 'lesson-11') world.target = [415, 415]
   if (id === 'lesson-12') world.fires = [[135, 135], [415, 415]]
@@ -113,6 +115,8 @@ function runCommands(world, commands) {
     if (action === 'go_to') moveTo(world, args[0], args[1])
     if (action === 'go_home' || action === 'home') moveTo(world, 275, 275)
     if (action === 'smart_navigate') { if (world.target) moveTo(world, ...world.target) }
+    if (action === 'scan') world.scans = (world.scans || 0) + 1
+    if (action === 'if_wall') world.wallChecks = (world.wallChecks || 0) + 1
     if (action === 'detect') world.detected.add(args[0])
     if (action === 'spray') { world.extinguished += args[0] }
     if (action === 'save') world.saved = true
@@ -141,6 +145,9 @@ function satisfies(id, world, fixture) {
     penup: fixture.blocks.includes('pen_control'), strokes: world.trails.length >= 3, flair: fixture.blocks.includes('stemo_emotion'),
     nested: fixture.blocks.filter((block) => block === 'repeat_times').length >= 2, mandala: world.trails.length >= 16,
     boxes: world.trails.length >= 32, 'same-color': world.trails.length >= 32 && world.colors.size === 1,
+    'sensor-logic': (world.scans || 0) >= 1 && (world.wallChecks || 0) >= 2 &&
+      fixture.blocks.includes('sensor_scan') && fixture.blocks.includes('if_wall_ahead') &&
+      fixture.blocks.includes('repeat_times') && !fixture.blocks.includes('smart_navigate'),
   }[id]
 }
 

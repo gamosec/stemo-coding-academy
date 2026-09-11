@@ -3208,6 +3208,8 @@ const htmlContent = `<!DOCTYPE html>
         var challengeActiveLessonId = null; // locked at launch; never changes when "Next Lesson" is clicked
         var missionObjectives = null;
         var challengeCompleted = false;
+        var challengeSensorScanCount = 0;
+        var challengeWallConditionCount = 0;
         // True while executeCommands is running; used to suppress premature objective checks on drawing lessons
         var robotExecuting = false;
         // Incrementing this invalidates every delayed callback from an older run.
@@ -3391,23 +3393,47 @@ const htmlContent = `<!DOCTYPE html>
                 ]
             },
             'lesson-9': {
-                title: 'Two walls, two turns — reach the target!',
-                description: 'STEMO starts facing UP (north). Use Repeat loops with "If Wall Within 2 steps → Turn Right, else Move 1" to navigate: turn right at the top wall (now facing east), keep going until the right wall triggers a second right turn (now facing south), then drive straight down to the target!',
+                title: 'Ultrasonic corridor — sense, decide, and turn!',
+                description: 'Use Scan Ahead, then a Repeat loop containing "If Wall Within 1 step → Smart Turn, else Move 1". STEMO must sense and react to both walls before reaching the target. Smart Navigate, Go to Target, and Auto Move are not allowed shortcuts.',
                 setup: function() {
                     wallObjects = [
                         // Top-left horizontal wall — STEMO hits this going north
-                        // Bottom face at y=195 → STEMO at y=235 is exactly 2 steps away → Turn Right (faces east)
+                        // Bottom face at y=195 → STEMO at y=215 is exactly 1 step away → Turn Right (faces east)
                         { id: wallIdCounter++, x: 115, y: 155, width: 180, height: 40 },
                         // Right vertical wall — STEMO hits this going east
-                        // Left face at x=415 → STEMO at x=375 is exactly 2 steps away → Turn Right (faces south)
+                        // Left face at x=415 → STEMO at x=395 is exactly 1 step away → Turn Right (faces south)
                         { id: wallIdCounter++, x: 415, y: 155, width: 40, height: 300 },
                         // Bottom horizontal — completes the L-shape visually (below the target)
                         { id: wallIdCounter++, x: 295, y: 455, width: 160, height: 40 }
                     ];
-                    // Target is directly south after the two turns — 8 steps south from (375, 235)
-                    targetPoint = { x: 375, y: 395 };
+                    // Target is directly south after the two one-step sensor turns.
+                    targetPoint = { x: 395, y: 395 };
                 },
                 objectives: [
+                    { id: 'sensor-logic', label: '📡 Run Scan Ahead + If Wall twice inside a Repeat loop', check: function() {
+                        if (!workspace) return false;
+                        var blocks = workspace.getAllBlocks(false);
+                        var hasScan = blocks.some(function(b) { return b.type === 'sensor_scan'; });
+                        var hasShortcut = blocks.some(function(b) {
+                            return b.type === 'smart_navigate' || b.type === 'go_to_target' || b.type === 'auto_move';
+                        });
+                        var hasValidLoopedCondition = blocks.some(function(b) {
+                            if (b.type !== 'if_wall_ahead') return false;
+                            var parent = b.getParent();
+                            var insideRepeat = false;
+                            while (parent) {
+                                if (parent.type === 'repeat_times') insideRepeat = true;
+                                parent = parent.getParent();
+                            }
+                            var thenBlock = b.getInputTargetBlock('DO');
+                            var elseBlock = b.getInputTargetBlock('ELSE');
+                            var validTurn = thenBlock && (thenBlock.type === 'smart_turn' || thenBlock.type === 'turn_right' || thenBlock.type === 'turn_left');
+                            var validMove = elseBlock && elseBlock.type === 'move_forward' && parseInt(elseBlock.getFieldValue('STEPS')) === 1;
+                            return insideRepeat && validTurn && validMove;
+                        });
+                        return hasScan && !hasShortcut && hasValidLoopedCondition &&
+                            challengeSensorScanCount >= 1 && challengeWallConditionCount >= 2;
+                    }},
                     { id: 'reach', label: '🎯 Navigate both walls and reach the target!', check: function() {
                         if (!targetPoint) return false;
                         var dx = robot.x - targetPoint.x, dy = robot.y - targetPoint.y;
@@ -4256,6 +4282,8 @@ const htmlContent = `<!DOCTYPE html>
             
             challengeMode = withChallenge;
             challengeCompleted = false;
+            challengeSensorScanCount = 0;
+            challengeWallConditionCount = 0;
 
             // Set up the code view header
             document.getElementById('currentLessonTitle').textContent = trL(currentLesson, 'title');
@@ -5172,6 +5200,10 @@ const htmlContent = `<!DOCTYPE html>
             // Start a fresh execution and invalidate callbacks from any older run.
             executionGeneration++;
             robotExecuting = true;
+            if (challengeMode && challengeActiveLessonId === 'lesson-9') {
+                challengeSensorScanCount = 0;
+                challengeWallConditionCount = 0;
+            }
             var sp = getStemoStart();
             robot.x = sp.x;
             robot.y = sp.y;
@@ -5381,6 +5413,9 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Handle if_wall specially - it needs to execute nested commands
                 if (cmd.action === 'if_wall') {
+                    if (challengeMode && challengeActiveLessonId === 'lesson-9') {
+                        challengeWallConditionCount++;
+                    }
                     var wallDist = detectWallAhead();
                     var wallSteps = wallDist / 20;
                     var nestedCommands = wallSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
@@ -5822,6 +5857,9 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 }
             } else if (cmd.action === 'scan') {
+                if (challengeMode && challengeActiveLessonId === 'lesson-9') {
+                    challengeSensorScanCount++;
+                }
                 // Scan for walls ahead
                 var wallDist = detectWallAhead();
                 robot.lastScan = wallDist;
@@ -8106,9 +8144,10 @@ const htmlContent = `<!DOCTYPE html>
                 }
             },
             'lesson-9': {
-                title: 'جداران، دورانان — صِل إلى الهدف!',
-                desc: 'يبدأ ستيمو مواجهًا لأعلى (شمالًا). استخدم حلقات تكرار مع إذا جدار ضمن خطوتين ← دُر يمينًا، وإلا تحرّك 1 للتنقّل: دُر يمينًا عند الجدار العلوي (تواجه الآن الشرق)، استمر حتى يطلق الجدار الأيمن دورانًا ثانيًا لليمين (تواجه الآن الجنوب)، ثم انزل مستقيمًا إلى الهدف!',
+                title: 'ممر الموجات فوق الصوتية — استشعر وقرّر ودُر!',
+                desc: 'استخدم المسح للأمام، ثم حلقة تكرار تحتوي على: إذا كان الجدار ضمن خطوة واحدة ← دوران ذكي، وإلا تحرّك خطوة واحدة. يجب أن يستشعر ستيمو الجدارين ويتفاعل معهما قبل الوصول إلى الهدف. لا تُقبل اختصارات التنقل الذكي أو الذهاب إلى الهدف أو الحركة التلقائية.',
                 obj: {
+                    'sensor-logic': '📡 شغّل المسح للأمام + شرط الجدار مرتين داخل حلقة تكرار',
                     'reach': '🎯 تنقّل عبر الجدارين وصِل إلى الهدف!'
                 }
             },
