@@ -730,6 +730,24 @@ app.get('/api/public/classes', async (c) => {
 // PROGRESS ROUTES
 // ============================================
 
+function progressPayload(progress: any, studentId: string | number) {
+    const completedLessons = JSON.parse(progress?.completed_lessons || '[]')
+    const earnedBadges = JSON.parse(progress?.earned_badges || '[]')
+    return {
+        student_id: studentId,
+        xp: Number(progress?.xp || 0),
+        level: Number(progress?.level || 1),
+        completed_lessons: completedLessons,
+        earned_badges: earnedBadges,
+        streak: Number(progress?.streak || 0),
+        progress_revision: String(progress?.updated_at || ''),
+    }
+}
+
+function newProgressRevision(): string {
+    return `${new Date().toISOString()}|${crypto.randomUUID()}`
+}
+
 // Get student progress
 app.get('/api/progress/:studentId', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -742,17 +760,7 @@ app.get('/api/progress/:studentId', authMiddleware, async (c) => {
         if (!link) return c.json({ error: 'Forbidden' }, 403)
     }
     const progress = await c.env.DB.prepare('SELECT * FROM student_progress WHERE student_id = ?').bind(studentId).first()
-    // A student who opens/reloads the academy after a teacher reset acknowledges
-    // the reset. Until then, stale tabs are blocked from restoring old lessons.
-    if (me.role === 'student') {
-        try {
-            await c.env.DB.prepare('DELETE FROM progress_resets WHERE student_id = ?').bind(studentId).run()
-        } catch (_) {
-            // The marker table is created by the reset endpoint; older databases
-            // simply have no reset markers yet.
-        }
-    }
-    return c.json(progress || { student_id: studentId, xp: 0, level: 1, completed_lessons: '[]', earned_badges: '[]', streak: 0 })
+    return c.json(progressPayload(progress, studentId))
 })
 
 // Save student progress — server-authoritative validation
@@ -771,23 +779,19 @@ app.post('/api/progress', authMiddleware, async (c) => {
 
     // ── Load current stored progress (prevents rollback attacks) ───────────
     const stored = await c.env.DB.prepare(
-        'SELECT completed_lessons, earned_badges, streak, updated_at FROM student_progress WHERE student_id = ?'
+        'SELECT xp, level, completed_lessons, earned_badges, streak, updated_at FROM student_progress WHERE student_id = ?'
     ).bind(me.id).first() as any
+    const storedRevision = String(stored?.updated_at || '')
+    const clientRevision = typeof body.progress_revision === 'string' ? body.progress_revision : ''
+    if (clientRevision !== storedRevision) {
+        return c.json({
+            success: false,
+            error: 'stale_progress',
+            ...progressPayload(stored, me.id),
+        }, 409)
+    }
     const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
     const storedBadges: string[]  = JSON.parse(stored?.earned_badges   || '[]')
-    let resetMarkers = new Set<string>()
-    try {
-        const markerRows = await c.env.DB.prepare(
-            'SELECT lesson_id FROM progress_resets WHERE student_id = ?'
-        ).bind(me.id).all() as any
-        resetMarkers = new Set((markerRows?.results || []).map((row: any) => String(row.lesson_id)))
-    } catch (_) {
-        // No reset has been issued on databases created before this feature.
-    }
-    const wasReset = (id: string): boolean => {
-        if (resetMarkers.has('*') || resetMarkers.has(id)) return true
-        return id.endsWith('-challenge') && resetMarkers.has(id.slice(0, -'-challenge'.length))
-    }
 
     // ── Sanitize completed_lessons ─────────────────────────────────────────
     // Merge with stored (completions can never shrink). NEW completions are
@@ -795,10 +799,8 @@ app.post('/api/progress', authMiddleware, async (c) => {
     // main path completed; creative lessons always unlocked; a -challenge ID
     // requires its base lesson in the set). Prevents claiming many lessons in
     // one forged request.
-    // If a student tab was open during a reset, do not let its stale local
-    // progress restore the reset lesson(s). A fresh GET acknowledges the reset.
     const incomingLessons = Array.isArray(body.completed_lessons)
-        ? body.completed_lessons.filter((id: any) => typeof id !== 'string' || !wasReset(id))
+        ? body.completed_lessons
         : []
     const currentSet = new Set(storedLessons.filter((id: string) => validLessonIds.has(id)))
     const mainPath: string[] = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced].map((l: any) => l.id)
@@ -824,7 +826,10 @@ app.post('/api/progress', authMiddleware, async (c) => {
     newIds.sort((a, b) => (a.endsWith('-challenge') ? 1 : 0) - (b.endsWith('-challenge') ? 1 : 0))
     // Cooldown: if the last save was < 20s ago, accept at most 1 new completion
     // (slows down scripted rapid-fire requests without blocking real students)
-    const lastSaveMs = stored?.updated_at ? Date.parse(String(stored.updated_at).replace(' ', 'T') + 'Z') : 0
+    const storedTimestamp = stored?.updated_at ? String(stored.updated_at).split('|')[0] : ''
+    const lastSaveMs = storedTimestamp
+        ? Date.parse(storedTimestamp.includes('T') ? storedTimestamp : storedTimestamp.replace(' ', 'T') + 'Z')
+        : 0
     const maxNew = (lastSaveMs && Date.now() - lastSaveMs < 20000) ? 1 : 3
     let added = 0
     for (const id of newIds) {
@@ -868,15 +873,46 @@ app.post('/api/progress', authMiddleware, async (c) => {
         ...earnedNow
     ])]
 
-    await c.env.DB.prepare(`
-        INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(student_id) DO UPDATE SET xp=excluded.xp, level=excluded.level,
-        completed_lessons=excluded.completed_lessons, earned_badges=excluded.earned_badges,
-        streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
-    `).bind(me.id, xp, level, JSON.stringify(safeLessons), JSON.stringify(safeBadges), safeStreak).run()
+    const nextRevision = newProgressRevision()
+    const saveResult = stored
+        ? await c.env.DB.prepare(`
+            UPDATE student_progress
+            SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=?,
+                updated_at=?
+            WHERE student_id=? AND updated_at=?
+        `).bind(
+            xp, level, JSON.stringify(safeLessons), JSON.stringify(safeBadges),
+            safeStreak, nextRevision, me.id, storedRevision
+        ).run()
+        : await c.env.DB.prepare(`
+            INSERT OR IGNORE INTO student_progress
+                (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            me.id, xp, level, JSON.stringify(safeLessons),
+            JSON.stringify(safeBadges), safeStreak, nextRevision
+        ).run()
 
-    return c.json({ success: true, xp, level, streak: safeStreak, earned_badges: safeBadges })
+    if (!saveResult.meta.changes) {
+        const fresh = await c.env.DB.prepare(
+            'SELECT * FROM student_progress WHERE student_id = ?'
+        ).bind(me.id).first()
+        return c.json({
+            success: false,
+            error: 'stale_progress',
+            ...progressPayload(fresh, me.id),
+        }, 409)
+    }
+
+    return c.json({
+        success: true,
+        xp,
+        level,
+        streak: safeStreak,
+        completed_lessons: safeLessons,
+        earned_badges: safeBadges,
+        progress_revision: nextRevision,
+    })
 })
 
 // Admin: sanitize a student's stored progress to match server-computed values
@@ -947,80 +983,72 @@ app.post('/api/teacher/students/:id/reset-progress', authMiddleware, async (c) =
         return c.json({ error: 'Unknown lesson' }, 400)
     }
 
-    const stored = await c.env.DB.prepare(
-        'SELECT completed_lessons, streak FROM student_progress WHERE student_id = ?'
-    ).bind(studentId).first() as any
-    const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
-    const currentStreak = Math.min(365, Math.max(0, Number(stored?.streak || 0)))
-    let remainingLessons: string[]
-    let resetScope: string
-    if (requestedLesson === 'all') {
-        remainingLessons = []
-        resetScope = 'all'
-    } else {
-        remainingLessons = storedLessons.filter((id: string) =>
-            id !== baseLessonId && id !== `${baseLessonId}-challenge`
-        )
-        resetScope = baseLessonId
-    }
-
     const lessonXpMap: Record<string, number> = {}
     allLessons.forEach((lesson: any) => { lessonXpMap[lesson.id] = lesson.xpReward || 0 })
-    const xp = remainingLessons.reduce((sum: number, id: string) => sum + (lessonXpMap[id] || 0), 0)
-    const level = Math.floor(xp / 500) + 1
-    const streak = requestedLesson === 'all' ? 0 : currentStreak
     const validBadgeIds = new Set((badges as any[]).map((badge: any) => badge.id))
-    const safeBadges = requestedLesson === 'all' ? [] : (badges as any[])
-        .filter((badge: any) => {
-            if (badge.type === 'lessons') return remainingLessons.length >= badge.threshold
-            if (badge.type === 'streak') return streak >= badge.threshold
-            if (badge.type === 'level') return level >= badge.threshold
-            return xp >= badge.threshold
-        })
-        .map((badge: any) => badge.id)
-        .filter((id: string) => validBadgeIds.has(id))
 
-    await c.env.DB.prepare(`
-        INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(student_id) DO UPDATE SET xp=excluded.xp, level=excluded.level,
-        completed_lessons=excluded.completed_lessons, earned_badges=excluded.earned_badges,
-        streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
-    `).bind(
-        studentId, xp, level, JSON.stringify(remainingLessons),
-        JSON.stringify(safeBadges), streak
-    ).run()
+    // Compare-and-swap prevents a student save and a reset from overwriting
+    // one another. If another request wins, recalculate from the fresh row.
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const stored = await c.env.DB.prepare(
+            'SELECT completed_lessons, streak, updated_at FROM student_progress WHERE student_id = ?'
+        ).bind(studentId).first() as any
+        const storedRevision = String(stored?.updated_at || '')
+        const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
+        const currentStreak = Math.min(365, Math.max(0, Number(stored?.streak || 0)))
+        const remainingLessons = requestedLesson === 'all'
+            ? []
+            : storedLessons.filter((id: string) =>
+                id !== baseLessonId && id !== `${baseLessonId}-challenge`
+            )
+        const resetScope = requestedLesson === 'all' ? 'all' : baseLessonId
+        const xp = remainingLessons.reduce((sum: number, id: string) => sum + (lessonXpMap[id] || 0), 0)
+        const level = Math.floor(xp / 500) + 1
+        const streak = requestedLesson === 'all' ? 0 : currentStreak
+        const safeBadges = requestedLesson === 'all' ? [] : (badges as any[])
+            .filter((badge: any) => {
+                if (badge.type === 'lessons') return remainingLessons.length >= badge.threshold
+                if (badge.type === 'streak') return streak >= badge.threshold
+                if (badge.type === 'level') return level >= badge.threshold
+                return xp >= badge.threshold
+            })
+            .map((badge: any) => badge.id)
+            .filter((id: string) => validBadgeIds.has(id))
+        const nextRevision = newProgressRevision()
+        const resetResult = stored
+            ? await c.env.DB.prepare(`
+                UPDATE student_progress
+                SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=?,
+                    updated_at=?
+                WHERE student_id=? AND updated_at=?
+            `).bind(
+                xp, level, JSON.stringify(remainingLessons), JSON.stringify(safeBadges),
+                streak, nextRevision, studentId, storedRevision
+            ).run()
+            : await c.env.DB.prepare(`
+                INSERT OR IGNORE INTO student_progress
+                    (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                studentId, xp, level, JSON.stringify(remainingLessons),
+                JSON.stringify(safeBadges), streak, nextRevision
+            ).run()
 
-    // Create the marker table lazily so this feature works with existing D1
-    // databases without requiring a destructive schema migration.
-    await c.env.DB.prepare(`
-        CREATE TABLE IF NOT EXISTS progress_resets (
-            student_id INTEGER NOT NULL,
-            lesson_id TEXT NOT NULL,
-            reset_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (student_id, lesson_id)
-        )
-    `).run()
-    if (requestedLesson === 'all') {
-        await c.env.DB.prepare('DELETE FROM progress_resets WHERE student_id = ?').bind(studentId).run()
-        await c.env.DB.prepare(
-            'INSERT INTO progress_resets (student_id, lesson_id) VALUES (?, ?)'
-        ).bind(studentId, '*').run()
-    } else {
-        await c.env.DB.prepare(
-            'INSERT OR REPLACE INTO progress_resets (student_id, lesson_id) VALUES (?, ?)'
-        ).bind(studentId, baseLessonId).run()
+        if (resetResult.meta.changes) {
+            return c.json({
+                success: true,
+                lesson_id: resetScope,
+                xp,
+                level,
+                streak,
+                completed_lessons: remainingLessons,
+                earned_badges: safeBadges,
+                progress_revision: nextRevision,
+            })
+        }
     }
 
-    return c.json({
-        success: true,
-        lesson_id: resetScope,
-        xp,
-        level,
-        streak,
-        completed_lessons: remainingLessons,
-        earned_badges: safeBadges,
-    })
+    return c.json({ error: 'Progress changed during reset. Please try again.' }, 409)
 })
 
 // Admin resets any user's password (no current password needed — admin authority)
@@ -4006,6 +4034,7 @@ const htmlContent = `<!DOCTYPE html>
 
         // Current logged-in student (populated on init)
         var currentUser = null;
+        var progressRevision = null;
 
         // true when a teacher/admin visits /academy — suppresses all XP, progress, and saves
         var isTeacherDemo = false;
@@ -4119,9 +4148,38 @@ const htmlContent = `<!DOCTYPE html>
             document.getElementById('badgesEarned').textContent = stemo.badges.length;
         }
 
+        function applyAuthoritativeProgress(data) {
+            if (!data || data.xp === undefined) return false;
+            var serverLessons = Array.isArray(data.completed_lessons)
+                ? data.completed_lessons
+                : JSON.parse(data.completed_lessons || '[]');
+            var serverBadges = Array.isArray(data.earned_badges)
+                ? data.earned_badges
+                : JSON.parse(data.earned_badges || '[]');
+            var changed = data.xp !== stemo.xp ||
+                data.level !== stemo.level ||
+                Number(data.streak || 0) !== stemo.streak ||
+                JSON.stringify(serverLessons) !== JSON.stringify(stemo.completedLessons) ||
+                JSON.stringify(serverBadges) !== JSON.stringify(stemo.badges);
+            stemo.xp = Number(data.xp || 0);
+            stemo.level = Number(data.level || 1);
+            stemo.completedLessons = serverLessons;
+            stemo.badges = serverBadges;
+            stemo.streak = Number(data.streak || 0);
+            progressRevision = String(data.progress_revision || '');
+            localStorage.setItem('stemo_xp', stemo.xp);
+            localStorage.setItem('stemo_level', stemo.level);
+            localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
+            localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
+            localStorage.setItem('stemo_streak', stemo.streak);
+            if (changed) updateUI();
+            return changed;
+        }
+
         // Save progress to D1 (and localStorage as fallback)
         async function saveProgress() {
             if (isTeacherDemo) return; // Teachers never earn or save XP
+            if (progressRevision === null) return;
             localStorage.setItem('stemo_xp', stemo.xp);
             localStorage.setItem('stemo_level', stemo.level);
             localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
@@ -4136,28 +4194,21 @@ const htmlContent = `<!DOCTYPE html>
                         level: stemo.level,
                         completed_lessons: stemo.completedLessons,
                         earned_badges: stemo.badges,
-                        streak: stemo.streak
+                        streak: stemo.streak,
+                        progress_revision: progressRevision
                     })
                 });
                 // Sync with server-authoritative values (server recomputes XP/level/streak/badges)
                 const saved = await res.json();
-                if (saved && saved.success && typeof saved.xp === 'number') {
-                    var changed = saved.xp !== stemo.xp || saved.level !== stemo.level;
-                    stemo.xp = saved.xp;
-                    stemo.level = saved.level;
-                    if (typeof saved.streak === 'number') {
-                        if (saved.streak !== stemo.streak) changed = true;
-                        stemo.streak = saved.streak;
+                if (saved && saved.xp !== undefined && (saved.success || res.status === 409)) {
+                    var changed = applyAuthoritativeProgress(saved);
+                    if (res.status === 409) {
+                        loadLessons();
+                        loadBadges();
+                        updateProfileStats();
+                    } else if (changed) {
+                        updateProfileStats();
                     }
-                    if (Array.isArray(saved.earned_badges)) {
-                        if (saved.earned_badges.length !== stemo.badges.length) changed = true;
-                        stemo.badges = saved.earned_badges;
-                    }
-                    localStorage.setItem('stemo_xp', stemo.xp);
-                    localStorage.setItem('stemo_level', stemo.level);
-                    localStorage.setItem('stemo_streak', stemo.streak);
-                    localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
-                    if (changed) updateUI();
                 }
             } catch(e) { console.log('Progress saved locally only'); }
         }
@@ -4168,12 +4219,7 @@ const htmlContent = `<!DOCTYPE html>
                 const res = await fetch('/api/progress/' + userId);
                 const data = await res.json();
                 if (data && data.xp !== undefined) {
-                    stemo.xp = data.xp || 0;
-                    stemo.level = data.level || 1;
-                    stemo.completedLessons = JSON.parse(data.completed_lessons || '[]');
-                    stemo.badges = JSON.parse(data.earned_badges || '[]');
-                    stemo.streak = data.streak || 0;
-                    updateUI();
+                    applyAuthoritativeProgress(data);
                     loadLessons();
                     loadBadges();
                     updateProfileStats();
@@ -10930,8 +10976,30 @@ const adminDashboard = `<!DOCTYPE html>
         </div>
     </div>
 </div>
+
+<!-- Admin Reset Student Progress Modal -->
+<div id="adminProgressResetModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">↺ Reset Student Progress</h3>
+        <p class="text-gray-500 text-sm mb-4">Choose what to reset for <strong id="adminProgressResetName"></strong>. The student will need to complete it again.</p>
+        <label class="block text-sm font-bold text-gray-700 mb-1">Reset scope</label>
+        <select id="adminProgressResetLesson" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400 mb-3">
+            <option value="all">⚠️ All progress — lessons, XP, badges and streak</option>
+        </select>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-3">
+            A single lesson reset also removes that lesson's challenge score and recalculates XP, level and badges.
+        </div>
+        <div id="adminProgressResetMsg" class="text-sm mb-3 hidden"></div>
+        <div class="flex gap-2">
+            <button onclick="confirmAdminProgressReset()" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700">Confirm Reset</button>
+            <button onclick="document.getElementById('adminProgressResetModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2.5 rounded-xl font-bold">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let allUsers = [];
+let adminProgressResetStudentId = null;
 const roleColors = {admin:'bg-red-100 text-red-700',teacher:'bg-blue-100 text-blue-700',student:'bg-green-100 text-green-700',parent:'bg-yellow-100 text-yellow-700'};
 const roleEmoji = {admin:'🛡️',teacher:'📚',student:'🎓',parent:'👨‍👩‍👧'};
 
@@ -11364,7 +11432,7 @@ async function loadUsers() {
         <td class="py-2"><span class="px-2 py-1 rounded-full text-xs font-bold \${u.status==='pending'?'bg-orange-100 text-orange-700':u.status==='rejected'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">\${escHtml(u.status||'approved')}</span></td>
         <td class="py-2 text-gray-400">\${u.created_at?.slice(0,10) || '-'}</td>
         <td class="py-2 flex gap-2 items-center flex-wrap">
-            \${u.role === 'student' ? \`<button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : \`<button onclick="cleanProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-purple-400 hover:text-purple-600 text-xs font-bold" title="Remove any leftover student progress/class data">🧹 Clean DB</button>\`}
+            \${u.role === 'student' ? \`<button onclick="openAdminProgressReset(\${u.id})" class="text-red-500 hover:text-red-700 text-xs font-bold" title="Reset one lesson or all progress">↺ Reset Progress</button><button onclick="sanitizeProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-orange-400 hover:text-orange-600 text-xs font-bold" title="Recalculate XP from real lesson data">🔄 Sanitize</button>\` : \`<button onclick="cleanProgress(\${u.id}, '\${escHtml(u.username)}')" class="text-purple-400 hover:text-purple-600 text-xs font-bold" title="Remove any leftover student progress/class data">🧹 Clean DB</button>\`}
             <select onchange="changeRole(\${u.id}, this)" class="border rounded px-1 py-0.5 text-xs bg-white focus:outline-none focus:border-indigo-400" title="Change role">
                 \${['student','teacher','parent','admin'].map(function(r){ return '<option value="'+r+'" '+(r===u.role?'selected':'')+'>'+r+'</option>'; }).join('')}
             </select>
@@ -11372,6 +11440,69 @@ async function loadUsers() {
             <button onclick="deleteUser(\${u.id}, '\${escHtml(u.username)}')" class="text-red-400 hover:text-red-600 text-xs">🗑️ Delete</button>
         </td>
     </tr>\`).join('');
+}
+
+async function populateAdminProgressLessons() {
+    const select = document.getElementById('adminProgressResetLesson');
+    if (select.options.length > 1) return;
+    try {
+        const data = await fetch('/api/curriculum').then(r => r.json());
+        const seen = new Set();
+        const lessons = [];
+        Object.values(data || {}).forEach(group => {
+            if (!Array.isArray(group)) return;
+            group.forEach(lesson => {
+                if (!lesson || !lesson.id || lesson.id.endsWith('-challenge') || seen.has(lesson.id)) return;
+                seen.add(lesson.id);
+                lessons.push(lesson);
+            });
+        });
+        lessons.forEach(lesson => {
+            const option = document.createElement('option');
+            option.value = lesson.id;
+            option.textContent = (lesson.icon || '📖') + ' ' + lesson.title;
+            select.appendChild(option);
+        });
+    } catch (_) {}
+}
+
+async function openAdminProgressReset(studentId) {
+    adminProgressResetStudentId = studentId;
+    const student = allUsers.find(user => Number(user.id) === Number(studentId));
+    document.getElementById('adminProgressResetName').textContent = student ? (student.full_name || student.username) : 'this student';
+    document.getElementById('adminProgressResetLesson').value = 'all';
+    const msg = document.getElementById('adminProgressResetMsg');
+    msg.classList.add('hidden');
+    await populateAdminProgressLessons();
+    document.getElementById('adminProgressResetModal').classList.remove('hidden');
+    document.getElementById('adminProgressResetModal').classList.add('flex');
+}
+
+async function confirmAdminProgressReset() {
+    if (!adminProgressResetStudentId) return;
+    const select = document.getElementById('adminProgressResetLesson');
+    const scope = select.value;
+    const scopeLabel = scope === 'all' ? 'ALL progress' : select.options[select.selectedIndex].textContent;
+    if (!confirm('Reset ' + scopeLabel + '? This student will have to complete it again.')) return;
+    const msg = document.getElementById('adminProgressResetMsg');
+    msg.className = 'text-sm mb-3 text-gray-500';
+    msg.textContent = 'Resetting...';
+    msg.classList.remove('hidden');
+    const response = await fetch('/api/teacher/students/' + adminProgressResetStudentId + '/reset-progress', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({lesson_id: scope})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        msg.className = 'text-sm mb-3 text-red-600';
+        msg.textContent = '❌ ' + (data.error || 'Could not reset progress.');
+        return;
+    }
+    msg.className = 'text-sm mb-3 text-green-600';
+    msg.textContent = '✅ Progress reset. New XP: ' + data.xp;
+    await Promise.all([loadUsers(), loadSchools()]);
+    setTimeout(() => document.getElementById('adminProgressResetModal').classList.add('hidden'), 900);
 }
 
 // ── Schools + Classes admin functions ──────────────────────────────────────
@@ -12035,6 +12166,24 @@ const teacherDashboard = `<!DOCTYPE html>
     </div>
 </div>
 
+<!-- Teacher Reset Student Progress Modal -->
+<div id="teacherProgressResetModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onclick="event.stopPropagation()">
+        <h3 class="text-lg font-bold mb-1">↺ Reset Student Progress</h3>
+        <p class="text-gray-500 text-sm mb-4">Choose what to reset for <strong id="teacherProgressResetName"></strong>. The student will need to complete it again.</p>
+        <label class="block text-sm font-bold text-gray-700 mb-1">Reset scope</label>
+        <select id="teacherProgressResetLesson" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400 mb-3"></select>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-3">
+            A single lesson reset also removes that lesson's challenge score and recalculates XP, level and badges.
+        </div>
+        <div id="teacherProgressResetMsg" class="text-sm mb-3 hidden"></div>
+        <div class="flex gap-2">
+            <button onclick="confirmTeacherProgressReset()" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700">Confirm Reset</button>
+            <button onclick="document.getElementById('teacherProgressResetModal').classList.add('hidden')" class="flex-1 bg-gray-200 py-2.5 rounded-xl font-bold">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const CURRICULUM = [
     {id:'lesson-1',title:'Meet STEMO!',icon:'👋',desc:'Discover coding blocks and understand the concept',diff:'easy',xp:50,group:'🟢 Basic'},
@@ -12063,6 +12212,7 @@ const CURRICULUM = [
 ];
 
 let allClasses = [];
+let teacherProgressResetStudentId = null;
 
 function escHtml(str) {
     if (str === null || str === undefined) return '';
@@ -12304,6 +12454,7 @@ async function loadClasses() {
                 <td class="py-2.5 text-sm">\${s.streak||0} 🔥</td>
                 <td class="py-2.5">
                     <div class="flex gap-1.5">
+                        <button onclick="openTeacherProgressReset(\${s.id}, decodeURIComponent('\${encodeURIComponent(s.full_name || s.username)}'))" class="bg-red-100 text-red-700 hover:bg-red-200 text-xs px-2 py-1 rounded-lg font-bold" title="Reset one lesson or all progress">↺</button>
                         <button onclick="togglePwForm(\${s.id})" class="bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs px-2 py-1 rounded-lg font-bold" title="Reset password">🔑</button>
                         <button onclick="removeStudent(\${cls.id},\${s.id})" class="bg-red-100 text-red-600 hover:bg-red-200 text-xs px-2 py-1 rounded-lg font-bold" title="Remove from class">✕</button>
                     </div>
@@ -12382,6 +12533,46 @@ async function loadClasses() {
         \`;
         container.appendChild(banner);
     }
+}
+
+function openTeacherProgressReset(studentId, studentName) {
+    teacherProgressResetStudentId = studentId;
+    document.getElementById('teacherProgressResetName').textContent = studentName || 'this student';
+    const select = document.getElementById('teacherProgressResetLesson');
+    select.innerHTML = '<option value="all">⚠️ All progress — lessons, XP, badges and streak</option>' +
+        CURRICULUM.map(lesson => '<option value="' + lesson.id + '">' + lesson.icon + ' ' + escHtml(lesson.title) + '</option>').join('');
+    select.value = 'all';
+    document.getElementById('teacherProgressResetMsg').classList.add('hidden');
+    const modal = document.getElementById('teacherProgressResetModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+async function confirmTeacherProgressReset() {
+    if (!teacherProgressResetStudentId) return;
+    const select = document.getElementById('teacherProgressResetLesson');
+    const scope = select.value;
+    const scopeLabel = scope === 'all' ? 'ALL progress' : select.options[select.selectedIndex].textContent;
+    if (!confirm('Reset ' + scopeLabel + '? This student will have to complete it again.')) return;
+    const msg = document.getElementById('teacherProgressResetMsg');
+    msg.className = 'text-sm mb-3 text-gray-500';
+    msg.textContent = 'Resetting...';
+    msg.classList.remove('hidden');
+    const response = await fetch('/api/teacher/students/' + teacherProgressResetStudentId + '/reset-progress', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({lesson_id: scope})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        msg.className = 'text-sm mb-3 text-red-600';
+        msg.textContent = '❌ ' + (data.error || 'Could not reset progress.');
+        return;
+    }
+    msg.className = 'text-sm mb-3 text-green-600';
+    msg.textContent = '✅ Progress reset. New XP: ' + data.xp;
+    await loadClasses();
+    setTimeout(() => document.getElementById('teacherProgressResetModal').classList.add('hidden'), 900);
 }
 
 function renderCurriculum() {

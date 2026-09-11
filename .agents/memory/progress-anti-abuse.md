@@ -17,3 +17,14 @@ The progress-save route trusts NOTHING from the client except which lesson IDs i
 **Accepted limit:** a determined attacker scripting sequential in-order requests (with the cooldown) can still progress without executing lessons — full prevention would need server-verified completion events. Deemed out of threat model for a kids' academy.
 
 **How to apply:** any new lesson section or badge type must be reflected in the unlock logic and isBadgeEarnedServer, or legit completions/badges get silently stripped.
+
+Teacher/admin resets and student saves must compare the revision loaded by the
+client with the current durable revision and update it using compare-and-swap.
+Never clear a shared "reset acknowledged" marker when one tab reloads.
+
+**Why:** a student can have multiple academy tabs open, and a save started before
+a reset must not be able to restore removed completions after the reset wins.
+
+**How to apply:** every progress GET returns the current revision, every student
+save sends it, and both saves and resets only update the row when that revision
+still matches. A stale save receives and applies the current server state.

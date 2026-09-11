@@ -3,7 +3,7 @@
 - [Curriculum ordering](curriculum-ordering.md) — display/unlock follow array order (not nextLesson); IDs immutable (D1-keyed); reorder/add must mirror curriculum + CHALLENGE_LESSON_META + teacher CURRICULUM.
 - [Drawing challenge timing](drawing-challenge-timing.md) — use `robotExecuting` flag to suppress objective checks mid-execution for drawing lessons (4–7); action lessons (8–14) check during execution.
 - [Curriculum/progress validation sync](curriculum-progress-validation.md) — new curriculum sections must be added to allLessons whitelist in progress-save routes or completions get silently stripped.
-- [Progress anti-abuse](progress-anti-abuse.md) — save route recomputes XP/streak/badges server-side and gates new completions by unlock order + cooldown; new sections/badges must be mirrored there.
+- [Progress anti-abuse](progress-anti-abuse.md) — saves are server-authoritative; reset/save races use durable revision tokens so stale tabs cannot restore reset work.
 - [Student academy Arabic i18n](student-i18n.md) — all student-facing strings must route through I18N/tr* helpers; secondary render paths (restore, banners) are the usual leak points.
 - [Curriculum capability validation](curriculum-capability-validation.md) — build gate traces taught controls through palette, parser, and executor without evaluating source.
 - [Challenge execution validation](challenge-execution-validation.md) — deterministic representative programs must satisfy every challenge objective, including intermediate progress.
