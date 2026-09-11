@@ -6076,19 +6076,38 @@ const htmlContent = `<!DOCTYPE html>
 
         function getAutomaticSafetyAlert() {
             var threshold = 40; // Two movement steps
+            var headingRad = robot.angle * Math.PI / 180;
+            var headingDx = Math.cos(headingRad);
+            var headingDy = Math.sin(headingRad);
             var nearestWall = 999;
+            var nearestWallIndex = -1;
             for (var i = 0; i < wallObjects.length; i++) {
-                nearestWall = Math.min(nearestWall, distanceToWall(robot.x, robot.y, wallObjects[i]));
+                var wallDistance = rayWallIntersection(
+                    robot.x, robot.y, headingDx, headingDy, wallObjects[i]
+                );
+                if (wallDistance > 0 && wallDistance < nearestWall) {
+                    nearestWall = wallDistance;
+                    nearestWallIndex = i;
+                }
             }
 
             var nearestFire = 999;
+            var nearestFireIndex = -1;
             for (var f = 0; f < fireObjects.length; f++) {
                 var fdx = fireObjects[f].x - robot.x;
                 var fdy = fireObjects[f].y - robot.y;
-                nearestFire = Math.min(nearestFire, Math.sqrt(fdx * fdx + fdy * fdy));
+                var fireDistance = Math.sqrt(fdx * fdx + fdy * fdy);
+                if (fireDistance < nearestFire) {
+                    nearestFire = fireDistance;
+                    nearestFireIndex = f;
+                }
             }
 
             var hazardType = nearestFire <= threshold ? 'fire' : (nearestWall <= threshold ? 'wall' : null);
+            var normalizedHeading = ((Math.round(robot.angle) % 360) + 360) % 360;
+            var hazardKey = hazardType === 'fire'
+                ? 'fire:' + nearestFireIndex
+                : (hazardType === 'wall' ? 'wall:' + nearestWallIndex + ':heading:' + normalizedHeading : null);
 
             if (!hazardType) {
                 activeSafetyHazard = null;
@@ -6098,8 +6117,8 @@ const htmlContent = `<!DOCTYPE html>
 
             // Trigger once when STEMO enters a danger zone. The visual warning lasts
             // only 650ms and does not repeat until STEMO first leaves the zone.
-            if (hazardType !== activeSafetyHazard) {
-                activeSafetyHazard = hazardType;
+            if (hazardKey !== activeSafetyHazard) {
+                activeSafetyHazard = hazardKey;
                 safetyAlertUntil = Date.now() + 650;
                 playSound(hazardType === 'fire' ? 'fire_alarm' : 'safety_alert');
                 if (safetyAlertTimer) clearTimeout(safetyAlertTimer);
