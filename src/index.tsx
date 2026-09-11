@@ -3210,6 +3210,7 @@ const htmlContent = `<!DOCTYPE html>
         var challengeCompleted = false;
         var challengeSensorScanCount = 0;
         var challengeWallConditionCount = 0;
+        var challengeWallConditionTrueCount = 0;
         // True while executeCommands is running; used to suppress premature objective checks on drawing lessons
         var robotExecuting = false;
         // Incrementing this invalidates every delayed callback from an older run.
@@ -3394,7 +3395,7 @@ const htmlContent = `<!DOCTYPE html>
             },
             'lesson-9': {
                 title: 'Ultrasonic corridor — sense, decide, and turn!',
-                description: 'Use Scan Ahead, then a Repeat loop containing "If Wall Within 1 step → Smart Turn, else Move 1". STEMO must sense and react to both walls before reaching the target. Smart Navigate, Go to Target, and Auto Move are not allowed shortcuts.',
+                description: 'Use a Repeat loop containing "If Wall Within 1 step" and react when STEMO senses both walls. Scan Ahead is a valid extra sensor tool, but equivalent programs using the wall condition are also accepted. Smart Navigate, Go to Target, and Auto Move are not allowed shortcuts.',
                 setup: function() {
                     wallObjects = [
                         // Top-left horizontal wall — STEMO hits this going north
@@ -3410,10 +3411,9 @@ const htmlContent = `<!DOCTYPE html>
                     targetPoint = { x: 395, y: 395 };
                 },
                 objectives: [
-                    { id: 'sensor-logic', label: '📡 Run Scan Ahead + If Wall twice inside a Repeat loop', check: function() {
+                    { id: 'sensor-logic', label: '📡 Use If Wall twice inside a Repeat loop', check: function() {
                         if (!workspace) return false;
                         var blocks = workspace.getAllBlocks(false);
-                        var hasScan = blocks.some(function(b) { return b.type === 'sensor_scan'; });
                         var hasShortcut = blocks.some(function(b) {
                             return b.type === 'smart_navigate' || b.type === 'go_to_target' || b.type === 'auto_move';
                         });
@@ -3426,13 +3426,11 @@ const htmlContent = `<!DOCTYPE html>
                                 parent = parent.getParent();
                             }
                             var thenBlock = b.getInputTargetBlock('DO');
-                            var elseBlock = b.getInputTargetBlock('ELSE');
                             var validTurn = thenBlock && (thenBlock.type === 'smart_turn' || thenBlock.type === 'turn_right' || thenBlock.type === 'turn_left');
-                            var validMove = elseBlock && elseBlock.type === 'move_forward' && parseInt(elseBlock.getFieldValue('STEPS')) === 1;
-                            return insideRepeat && validTurn && validMove;
+                            return insideRepeat && validTurn;
                         });
-                        return hasScan && !hasShortcut && hasValidLoopedCondition &&
-                            challengeSensorScanCount >= 1 && challengeWallConditionCount >= 2;
+                        return !hasShortcut && hasValidLoopedCondition &&
+                            challengeWallConditionCount >= 2 && challengeWallConditionTrueCount >= 2;
                     }},
                     { id: 'reach', label: '🎯 Navigate both walls and reach the target!', check: function() {
                         if (!targetPoint) return false;
@@ -4284,6 +4282,7 @@ const htmlContent = `<!DOCTYPE html>
             challengeCompleted = false;
             challengeSensorScanCount = 0;
             challengeWallConditionCount = 0;
+            challengeWallConditionTrueCount = 0;
 
             // Set up the code view header
             document.getElementById('currentLessonTitle').textContent = trL(currentLesson, 'title');
@@ -5418,6 +5417,9 @@ const htmlContent = `<!DOCTYPE html>
                     }
                     var wallDist = detectWallAhead();
                     var wallSteps = wallDist / 20;
+                    if (challengeMode && challengeActiveLessonId === 'lesson-9' && wallSteps <= cmd.distance) {
+                        challengeWallConditionTrueCount++;
+                    }
                     var nestedCommands = wallSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
                     
                     if (nestedCommands && nestedCommands.length > 0) {
@@ -8147,7 +8149,7 @@ const htmlContent = `<!DOCTYPE html>
                 title: 'ممر الموجات فوق الصوتية — استشعر وقرّر ودُر!',
                 desc: 'استخدم المسح للأمام، ثم حلقة تكرار تحتوي على: إذا كان الجدار ضمن خطوة واحدة ← دوران ذكي، وإلا تحرّك خطوة واحدة. يجب أن يستشعر ستيمو الجدارين ويتفاعل معهما قبل الوصول إلى الهدف. لا تُقبل اختصارات التنقل الذكي أو الذهاب إلى الهدف أو الحركة التلقائية.',
                 obj: {
-                    'sensor-logic': '📡 شغّل المسح للأمام + شرط الجدار مرتين داخل حلقة تكرار',
+                    'sensor-logic': '📡 استخدم شرط الجدار مرتين داخل حلقة تكرار',
                     'reach': '🎯 تنقّل عبر الجدارين وصِل إلى الهدف!'
                 }
             },
