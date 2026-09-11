@@ -1406,6 +1406,43 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
     return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
 })
 
+// Public landing-page leaderboard. Only approved students' display names,
+// XP, and level are exposed; usernames, classes, and schools stay private.
+app.get('/api/public/leaderboard', async (c) => {
+    try {
+        const totalRow = await c.env.DB.prepare(`
+            SELECT COUNT(*) as total
+            FROM users
+            WHERE role = 'student' AND (status = 'approved' OR status IS NULL)
+        `).first() as any
+        const { results } = await c.env.DB.prepare(`
+            SELECT u.full_name,
+                   COALESCE(sp.xp, 0) as xp,
+                   COALESCE(sp.level, 1) as level
+            FROM users u
+            LEFT JOIN student_progress sp ON sp.student_id = u.id
+            WHERE u.role = 'student' AND (u.status = 'approved' OR u.status IS NULL)
+            ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
+            LIMIT 8
+        `).all()
+        const safeResults = (results || []).map((student: any, index: number) => {
+            const parts = String(student.full_name || 'STEMO Student').trim().split(/\s+/).filter(Boolean)
+            const firstName = parts[0] || 'STEMO Student'
+            const lastInitial = parts.length > 1 ? ` ${parts[parts.length - 1].charAt(0)}.` : ''
+            return {
+                rank: index + 1,
+                display_name: firstName + lastInitial,
+                xp: Number(student.xp || 0),
+                level: Number(student.level || 1)
+            }
+        })
+        return c.json({ results: safeResults, total: Number(totalRow?.total || 0) })
+    } catch (e) {
+        console.error('Public leaderboard error:', e)
+        return c.json({ error: 'Unable to load leaderboard' }, 500)
+    }
+})
+
 // Leaderboard — student's own class
 app.get('/api/leaderboard/class', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -13040,6 +13077,11 @@ const landingPage = `<!DOCTYPE html>
         .section-divider { background: linear-gradient(90deg, transparent, #7c3aed, transparent); height: 2px; }
         .glow { box-shadow: 0 0 30px rgba(139,92,246,0.4); }
         .badge-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(139,92,246,0.12); color: #6d28d9; border: 1px solid rgba(139,92,246,0.3); border-radius: 999px; padding: 4px 14px; font-size: 13px; font-weight: 700; }
+         .landing-lang-toggle { min-width: 76px; }
+         .landing-leader-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+         .landing-leader-card:hover { transform: translateY(-4px); box-shadow: 0 16px 28px rgba(109,40,217,0.14); }
+         [dir="rtl"] .landing-rtl-text { text-align: right; }
+         [dir="rtl"] .landing-hero-copy { direction: rtl; }
         @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .float-anim { animation: float 3.5s ease-in-out infinite; }
         @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
@@ -13056,9 +13098,10 @@ const landingPage = `<!DOCTYPE html>
             <img src="/static/steam-logo.png" alt="STEMO Coding" class="h-10 object-contain">
             <span class="fredoka text-2xl text-purple-700 tracking-wide">STEMO Coding</span>
         </a>
-        <div class="flex items-center gap-3">
-            <a href="/login" class="px-5 py-2 rounded-full border-2 border-purple-600 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm">Login</a>
-            <a href="/register" class="px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register as Student</a>
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button id="landingLangToggle" onclick="toggleLandingLanguage()" class="landing-lang-toggle px-3 py-2 rounded-full border-2 border-purple-200 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm" aria-label="Switch language">العربية</button>
+            <a href="/login" data-landing-i18n="Login" class="px-4 sm:px-5 py-2 rounded-full border-2 border-purple-600 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm">Login</a>
+            <a href="/register" data-landing-i18n="Register as Student" class="hidden sm:inline-block px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register as Student</a>
         </div>
     </div>
 </nav>
@@ -13074,35 +13117,35 @@ const landingPage = `<!DOCTYPE html>
     </div>
     <div class="max-w-7xl mx-auto px-6 relative z-10">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div class="text-white fade-in">
+            <div class="text-white fade-in landing-hero-copy">
                 <div class="badge-pill mb-6" style="background:rgba(255,255,255,0.15);color:#e9d5ff;border-color:rgba(255,255,255,0.3);">
-                    <span>🏆</span> Trusted by schools across the region
+                    <span>🏆</span> <span data-landing-i18n="Trusted by schools across the region">Trusted by schools across the region</span>
                 </div>
                 <h1 class="fredoka text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
-                    Where Kids Learn<br>
-                    <span style="color:#fbbf24;">Coding & Robotics</span><br>
-                    Through Play!
+                    <span data-landing-i18n="Where Kids Learn">Where Kids Learn</span><br>
+                    <span style="color:#fbbf24;" data-landing-i18n="Coding & Robotics">Coding & Robotics</span><br>
+                    <span data-landing-i18n="Through Play!">Through Play!</span>
                 </h1>
-                <p class="text-xl text-purple-200 mb-8 leading-relaxed max-w-lg">
+                <p class="text-xl text-purple-200 mb-8 leading-relaxed max-w-lg" data-landing-i18n="STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.">
                     STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a href="/register" class="px-8 py-4 rounded-full bg-yellow-400 text-gray-900 font-extrabold text-lg hover:bg-yellow-300 transition-all shadow-xl glow hover:scale-105">
+                    <a href="/register" data-landing-i18n="🚀 Start for Free" class="px-8 py-4 rounded-full bg-yellow-400 text-gray-900 font-extrabold text-lg hover:bg-yellow-300 transition-all shadow-xl glow hover:scale-105">
                         🚀 Start for Free
                     </a>
-                    <a href="/login" class="px-8 py-4 rounded-full bg-white/20 text-white font-bold text-lg hover:bg-white/30 transition-all border border-white/30">
+                    <a href="/login" data-landing-i18n="🔐 Login to Platform" class="px-8 py-4 rounded-full bg-white/20 text-white font-bold text-lg hover:bg-white/30 transition-all border border-white/30">
                         🔐 Login to Platform
                     </a>
                 </div>
                 <div class="mt-10 flex flex-wrap gap-6">
                     <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> No credit card required
+                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="No credit card required">No credit card required</span>
                     </div>
                     <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> Free for students
+                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="Free for students">Free for students</span>
                     </div>
                     <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> Teacher-approved content
+                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="Teacher-approved content">Teacher-approved content</span>
                     </div>
                 </div>
             </div>
@@ -13126,25 +13169,40 @@ const landingPage = `<!DOCTYPE html>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
             <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">19</div>
-                <div class="text-purple-200 text-sm font-semibold">Lessons</div>
+                <div class="text-purple-200 text-sm font-semibold" data-landing-i18n="Lessons">Lessons</div>
             </div>
             <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">4</div>
-                <div class="text-purple-200 text-sm font-semibold">Difficulty Levels</div>
+                <div class="text-purple-200 text-sm font-semibold" data-landing-i18n="Difficulty Levels">Difficulty Levels</div>
             </div>
             <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">50+</div>
-                <div class="text-purple-200 text-sm font-semibold">Block Types</div>
+                <div class="text-purple-200 text-sm font-semibold" data-landing-i18n="Block Types">Block Types</div>
             </div>
             <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">4</div>
-                <div class="text-purple-200 text-sm font-semibold">User Roles</div>
+                <div class="text-purple-200 text-sm font-semibold" data-landing-i18n="User Roles">User Roles</div>
             </div>
             <div class="stat-card rounded-2xl p-5">
                 <div class="fredoka text-4xl text-white mb-1">AI</div>
-                <div class="text-purple-200 text-sm font-semibold">Powered Tutor</div>
+                <div class="text-purple-200 text-sm font-semibold" data-landing-i18n="Powered Tutor">Powered Tutor</div>
             </div>
         </div>
+    </div>
+</section>
+
+<!-- ========== PUBLIC LEADERBOARD ========== -->
+<section id="landing-leaderboard" class="py-24 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-12">
+            <span class="badge-pill mb-4">🏆 <span data-landing-i18n="Student Spotlight">Student Spotlight</span></span>
+            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4" data-landing-i18n="Top STEMO Coders">Top STEMO Coders</h2>
+            <p class="text-gray-500 text-lg max-w-2xl mx-auto" data-landing-i18n="See who is leading the STEMO learning journey.">See who is leading the STEMO learning journey.</p>
+        </div>
+        <div id="landingLeaderboardList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-live="polite">
+            <div class="sm:col-span-2 lg:col-span-4 text-center text-gray-400 py-10" data-landing-i18n="Loading leaderboard...">Loading leaderboard...</div>
+        </div>
+        <p id="landingLeaderboardNote" class="text-center text-gray-400 text-xs mt-6" data-landing-i18n="Names are shown with limited detail for student privacy.">Names are shown with limited detail for student privacy.</p>
     </div>
 </section>
 
@@ -13152,9 +13210,9 @@ const landingPage = `<!DOCTYPE html>
 <section class="py-24 bg-gray-50">
     <div class="max-w-6xl mx-auto px-6">
         <div class="text-center mb-16">
-            <span class="badge-pill mb-4">⚡ Simple & Powerful</span>
-            <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4">How STEMO Coding Works</h2>
-            <p class="text-gray-500 text-lg max-w-2xl mx-auto">From registration to mastering robotics — it's a smooth, guided journey for every child.</p>
+                <span class="badge-pill mb-4">⚡ <span data-landing-i18n="Simple & Powerful">Simple & Powerful</span></span>
+                <h2 class="fredoka text-4xl md:text-5xl text-gray-900 mb-4" data-landing-i18n="How STEMO Coding Works">How STEMO Coding Works</h2>
+                <p class="text-gray-500 text-lg max-w-2xl mx-auto" data-landing-i18n="From registration to mastering robotics — it's a smooth, guided journey for every child.">From registration to mastering robotics — it's a smooth, guided journey for every child.</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="bg-white rounded-3xl p-8 text-center shadow-lg feature-card relative">
