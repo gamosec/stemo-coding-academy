@@ -13538,7 +13538,7 @@ const landingPage = `<!DOCTYPE html>
             </div>
             <div class="text-sm text-center">
                 <div>© 2026 STEMO Coding · Science Games</div>
-                <div class="text-xs mt-1">أكاديمية ستيم لألعاب العلوم</div>
+                <div class="text-xs mt-1" data-landing-i18n="STEM Science Games Academy">STEM Science Games Academy</div>
             </div>
         </div>
     </div>
@@ -13615,6 +13615,7 @@ const landingPage = `<!DOCTYPE html>
             'Register for free and start your coding journey with STEMO today!': 'سجّل مجاناً وابدأ رحلة البرمجة مع ستيمو اليوم!',
             '🎉 Register as Student': '🎉 التسجيل كطالب',
             'AI-Powered Coding & Robotics for Kids': 'برمجة وروبوتات للأطفال بالذكاء الاصطناعي',
+            'STEM Science Games Academy': 'أكاديمية ستيم لألعاب العلوم',
             'Register': 'التسجيل'
         };
         var landingEnglish = {};
@@ -13644,11 +13645,11 @@ const landingPage = `<!DOCTYPE html>
                 var original = node.__landingOriginal || node.nodeValue;
                 node.__landingOriginal = original;
                 var trimmed = original.trim();
-                var translated = isArabic ? landingArabic[trimmed] : landingEnglish[trimmed];
-                if (translated) {
+                var translated = isArabic ? landingArabic[trimmed] : trimmed;
+                if (isArabic && landingArabic[trimmed]) {
                     var start = original.indexOf(trimmed);
                     node.nodeValue = original.slice(0, start) + translated + original.slice(start + trimmed.length);
-                } else if (!isArabic && landingEnglish[trimmed]) {
+                } else if (!isArabic) {
                     node.nodeValue = original;
                 }
             });
