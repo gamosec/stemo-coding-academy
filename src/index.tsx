@@ -742,6 +742,16 @@ app.get('/api/progress/:studentId', authMiddleware, async (c) => {
         if (!link) return c.json({ error: 'Forbidden' }, 403)
     }
     const progress = await c.env.DB.prepare('SELECT * FROM student_progress WHERE student_id = ?').bind(studentId).first()
+    // A student who opens/reloads the academy after a teacher reset acknowledges
+    // the reset. Until then, stale tabs are blocked from restoring old lessons.
+    if (me.role === 'student') {
+        try {
+            await c.env.DB.prepare('DELETE FROM progress_resets WHERE student_id = ?').bind(studentId).run()
+        } catch (_) {
+            // The marker table is created by the reset endpoint; older databases
+            // simply have no reset markers yet.
+        }
+    }
     return c.json(progress || { student_id: studentId, xp: 0, level: 1, completed_lessons: '[]', earned_badges: '[]', streak: 0 })
 })
 
@@ -765,6 +775,19 @@ app.post('/api/progress', authMiddleware, async (c) => {
     ).bind(me.id).first() as any
     const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
     const storedBadges: string[]  = JSON.parse(stored?.earned_badges   || '[]')
+    let resetMarkers = new Set<string>()
+    try {
+        const markerRows = await c.env.DB.prepare(
+            'SELECT lesson_id FROM progress_resets WHERE student_id = ?'
+        ).bind(me.id).all() as any
+        resetMarkers = new Set((markerRows?.results || []).map((row: any) => String(row.lesson_id)))
+    } catch (_) {
+        // No reset has been issued on databases created before this feature.
+    }
+    const wasReset = (id: string): boolean => {
+        if (resetMarkers.has('*') || resetMarkers.has(id)) return true
+        return id.endsWith('-challenge') && resetMarkers.has(id.slice(0, -'-challenge'.length))
+    }
 
     // ── Sanitize completed_lessons ─────────────────────────────────────────
     // Merge with stored (completions can never shrink). NEW completions are
@@ -772,7 +795,11 @@ app.post('/api/progress', authMiddleware, async (c) => {
     // main path completed; creative lessons always unlocked; a -challenge ID
     // requires its base lesson in the set). Prevents claiming many lessons in
     // one forged request.
-    const incomingLessons = Array.isArray(body.completed_lessons) ? body.completed_lessons : []
+    // If a student tab was open during a reset, do not let its stale local
+    // progress restore the reset lesson(s). A fresh GET acknowledges the reset.
+    const incomingLessons = Array.isArray(body.completed_lessons)
+        ? body.completed_lessons.filter((id: any) => typeof id !== 'string' || !wasReset(id))
+        : []
     const currentSet = new Set(storedLessons.filter((id: string) => validLessonIds.has(id)))
     const mainPath: string[] = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced].map((l: any) => l.id)
     const creativeIds = new Set(curriculum.creative.map((l: any) => l.id))
@@ -883,6 +910,117 @@ app.post('/api/admin/sanitize-progress/:studentId', authMiddleware, async (c) =>
     ).bind(xp, level, JSON.stringify(cleanLessons), JSON.stringify(cleanBadges), streak, studentId).run()
 
     return c.json({ ok: true, xp, level, lessons: cleanLessons.length })
+})
+
+// Teacher/admin reset of one student's progress. A lesson reset removes the
+// base lesson and its optional challenge completion, then recalculates rewards.
+// "all" clears every completion and reward so the student starts from zero.
+app.post('/api/teacher/students/:id/reset-progress', authMiddleware, async (c) => {
+    const me = c.get('user')
+    if (me.role !== 'teacher' && me.role !== 'admin') return c.json({ error: 'Forbidden' }, 403)
+
+    const studentId = c.req.param('id')
+    const body = await c.req.json().catch(() => ({}))
+    const requestedLesson = typeof body.lesson_id === 'string' ? body.lesson_id.trim() : 'all'
+    const allLessons = [...curriculum.basic, ...curriculum.intermediate, ...curriculum.advanced, ...curriculum.creative, ...curriculum.challenges] as any[]
+    const validLessonIds = new Set(allLessons.map((lesson: any) => lesson.id))
+    const baseLessonId = requestedLesson.endsWith('-challenge')
+        ? requestedLesson.slice(0, -'-challenge'.length)
+        : requestedLesson
+
+    const student = await c.env.DB.prepare(
+        "SELECT id FROM users WHERE id = ? AND role = 'student'"
+    ).bind(studentId).first()
+    if (!student) return c.json({ error: 'Student not found' }, 404)
+
+    if (me.role === 'teacher') {
+        const inClass = await c.env.DB.prepare(`
+            SELECT cs.student_id FROM class_students cs
+            JOIN classes cl ON cs.class_id = cl.id
+            WHERE cs.student_id = ? AND cl.teacher_id = ?
+            LIMIT 1
+        `).bind(studentId, me.id).first()
+        if (!inClass) return c.json({ error: 'Student not in your class' }, 403)
+    }
+
+    if (requestedLesson !== 'all' && !validLessonIds.has(baseLessonId)) {
+        return c.json({ error: 'Unknown lesson' }, 400)
+    }
+
+    const stored = await c.env.DB.prepare(
+        'SELECT completed_lessons, streak FROM student_progress WHERE student_id = ?'
+    ).bind(studentId).first() as any
+    const storedLessons: string[] = JSON.parse(stored?.completed_lessons || '[]')
+    const currentStreak = Math.min(365, Math.max(0, Number(stored?.streak || 0)))
+    let remainingLessons: string[]
+    let resetScope: string
+    if (requestedLesson === 'all') {
+        remainingLessons = []
+        resetScope = 'all'
+    } else {
+        remainingLessons = storedLessons.filter((id: string) =>
+            id !== baseLessonId && id !== `${baseLessonId}-challenge`
+        )
+        resetScope = baseLessonId
+    }
+
+    const lessonXpMap: Record<string, number> = {}
+    allLessons.forEach((lesson: any) => { lessonXpMap[lesson.id] = lesson.xpReward || 0 })
+    const xp = remainingLessons.reduce((sum: number, id: string) => sum + (lessonXpMap[id] || 0), 0)
+    const level = Math.floor(xp / 500) + 1
+    const streak = requestedLesson === 'all' ? 0 : currentStreak
+    const validBadgeIds = new Set((badges as any[]).map((badge: any) => badge.id))
+    const safeBadges = requestedLesson === 'all' ? [] : (badges as any[])
+        .filter((badge: any) => {
+            if (badge.type === 'lessons') return remainingLessons.length >= badge.threshold
+            if (badge.type === 'streak') return streak >= badge.threshold
+            if (badge.type === 'level') return level >= badge.threshold
+            return xp >= badge.threshold
+        })
+        .map((badge: any) => badge.id)
+        .filter((id: string) => validBadgeIds.has(id))
+
+    await c.env.DB.prepare(`
+        INSERT INTO student_progress (student_id, xp, level, completed_lessons, earned_badges, streak, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(student_id) DO UPDATE SET xp=excluded.xp, level=excluded.level,
+        completed_lessons=excluded.completed_lessons, earned_badges=excluded.earned_badges,
+        streak=excluded.streak, updated_at=CURRENT_TIMESTAMP
+    `).bind(
+        studentId, xp, level, JSON.stringify(remainingLessons),
+        JSON.stringify(safeBadges), streak
+    ).run()
+
+    // Create the marker table lazily so this feature works with existing D1
+    // databases without requiring a destructive schema migration.
+    await c.env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS progress_resets (
+            student_id INTEGER NOT NULL,
+            lesson_id TEXT NOT NULL,
+            reset_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (student_id, lesson_id)
+        )
+    `).run()
+    if (requestedLesson === 'all') {
+        await c.env.DB.prepare('DELETE FROM progress_resets WHERE student_id = ?').bind(studentId).run()
+        await c.env.DB.prepare(
+            'INSERT INTO progress_resets (student_id, lesson_id) VALUES (?, ?)'
+        ).bind(studentId, '*').run()
+    } else {
+        await c.env.DB.prepare(
+            'INSERT OR REPLACE INTO progress_resets (student_id, lesson_id) VALUES (?, ?)'
+        ).bind(studentId, baseLessonId).run()
+    }
+
+    return c.json({
+        success: true,
+        lesson_id: resetScope,
+        xp,
+        level,
+        streak,
+        completed_lessons: remainingLessons,
+        earned_badges: safeBadges,
+    })
 })
 
 // Admin resets any user's password (no current password needed — admin authority)
