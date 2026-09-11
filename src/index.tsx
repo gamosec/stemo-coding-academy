@@ -3018,7 +3018,7 @@ const htmlContent = `<!DOCTYPE html>
         var audioUnlocked = false;
         // Throttle repetitive SFX so long programs don't stack hundreds of nodes.
         var lastSoundAt = {};
-        var SOUND_COOLDOWN = { move: 80, turn: 80, spray: 120, click: 30 };
+        var SOUND_COOLDOWN = { move: 80, turn: 80, spray: 120, click: 30, safety_alert: 900, fire_alarm: 700 };
         function getAudioCtx() {
             if (!soundEnabled) return null;
             if (!audioCtx) {
@@ -3116,6 +3116,10 @@ const htmlContent = `<!DOCTYPE html>
                                                               setTimeout(function(){ tone(1320, 0.15, 'sine', 0.10); }, 90); }, 300); break;
                     case 'bonk':       tone(120, 0.12, 'square', 0.18, 60);
                                        noiseBurst(0.08, 0.12, 400); break;
+                    case 'safety_alert': tone(880, 0.12, 'square', 0.12);
+                                         setTimeout(function(){ tone(660, 0.14, 'square', 0.12); }, 140); break;
+                    case 'fire_alarm':  tone(1040, 0.13, 'square', 0.13);
+                                         setTimeout(function(){ tone(1040, 0.13, 'square', 0.13); }, 190); break;
                     case 'success':    tone(523, 0.10, 'triangle', 0.13);
                                        setTimeout(function(){ tone(659, 0.10, 'triangle', 0.13); }, 100);
                                        setTimeout(function(){ tone(784, 0.10, 'triangle', 0.13); }, 200);
@@ -6053,6 +6057,38 @@ const htmlContent = `<!DOCTYPE html>
                 -wall.width / 2, -wall.height / 2, wall.width, wall.height
             );
         }
+
+        function distanceToWall(px, py, wall) {
+            var cx = wall.x + wall.width / 2;
+            var cy = wall.y + wall.height / 2;
+            var rad = -(wall.angle || 0) * Math.PI / 180;
+            var cos = Math.cos(rad);
+            var sin = Math.sin(rad);
+            var localX = (px - cx) * cos - (py - cy) * sin;
+            var localY = (px - cx) * sin + (py - cy) * cos;
+            var dx = Math.max(Math.abs(localX) - wall.width / 2, 0);
+            var dy = Math.max(Math.abs(localY) - wall.height / 2, 0);
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getAutomaticSafetyAlert() {
+            var threshold = 40; // Two movement steps
+            var nearestWall = 999;
+            for (var i = 0; i < wallObjects.length; i++) {
+                nearestWall = Math.min(nearestWall, distanceToWall(robot.x, robot.y, wallObjects[i]));
+            }
+
+            var nearestFire = 999;
+            for (var f = 0; f < fireObjects.length; f++) {
+                var fdx = fireObjects[f].x - robot.x;
+                var fdy = fireObjects[f].y - robot.y;
+                nearestFire = Math.min(nearestFire, Math.sqrt(fdx * fdx + fdy * fdy));
+            }
+
+            if (nearestFire <= threshold) return { active: true, type: 'fire', label: '🔥 FIRE ALERT' };
+            if (nearestWall <= threshold) return { active: true, type: 'wall', label: '⚠️ WALL ALERT' };
+            return { active: false, type: null, label: '' };
+        }
         
         function rayBoundaryIntersection(rx, ry, dx, dy) {
             // Canvas is 550×550 with a 25px play-area padding (active area: 25..525)
@@ -6496,6 +6532,10 @@ const htmlContent = `<!DOCTYPE html>
         function drawRobot() {
             var canvas = document.getElementById('robotCanvas');
             var ctx = canvas.getContext('2d');
+            var safetyAlert = getAutomaticSafetyAlert();
+            if (safetyAlert.active) {
+                playSound(safetyAlert.type === 'fire' ? 'fire_alarm' : 'safety_alert');
+            }
             
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -7200,13 +7240,18 @@ const htmlContent = `<!DOCTYPE html>
                 ctx.save();
                 ctx.translate(robot.x, robot.y);
                 ctx.rotate((robot.angle + 90) * Math.PI / 180);
+                var safetyPulse = safetyAlert.active ? 0.65 + Math.sin(Date.now() / 90) * 0.35 : 0;
                 
                 // Body - change color if magnet is on; otherwise use kid's chosen color
                 // Dance wiggle — gentle rock so STEMO looks alive when celebrating
                 if (robot.dancing) {
                     ctx.rotate(Math.sin(Date.now() / 120) * 0.25);
                 }
-                ctx.fillStyle = robot.magnetOn ? '#ef4444' : stemoBodyColor;
+                if (safetyAlert.active) {
+                    ctx.shadowColor = '#ef4444';
+                    ctx.shadowBlur = 12 + safetyPulse * 12;
+                }
+                ctx.fillStyle = safetyAlert.active ? '#dc2626' : (robot.magnetOn ? '#ef4444' : stemoBodyColor);
                 ctx.beginPath();
                 ctx.roundRect(-14, -18, 28, 36, 6);
                 ctx.fill();
@@ -7247,7 +7292,7 @@ const htmlContent = `<!DOCTYPE html>
                 }
             
                 // Head
-                ctx.fillStyle = robot.magnetOn ? '#f87171' : lightenColor(stemoBodyColor, 0.3);
+                ctx.fillStyle = safetyAlert.active ? '#f87171' : (robot.magnetOn ? '#f87171' : lightenColor(stemoBodyColor, 0.3));
                 ctx.beginPath();
                 ctx.arc(0, -11, 11, 0, Math.PI * 2);
                 ctx.fill();
@@ -7310,14 +7355,19 @@ const htmlContent = `<!DOCTYPE html>
                 }
                 
                 // Antenna
-                ctx.strokeStyle = robot.magnetOn ? '#ef4444' : '#fbbf24';
+                ctx.strokeStyle = safetyAlert.active ? '#ef4444' : (robot.magnetOn ? '#ef4444' : '#fbbf24');
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(0, -21);
                 ctx.lineTo(0, -29);
                 ctx.stroke();
                 
-                if (robot.magnetOn) {
+                if (safetyAlert.active) {
+                    ctx.fillStyle = safetyPulse > 0.65 ? '#ef4444' : '#fecaca';
+                    ctx.beginPath();
+                    ctx.arc(0, -33, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (robot.magnetOn) {
                     ctx.fillStyle = '#ef4444';
                     ctx.beginPath();
                     ctx.arc(0, -33, 4, 0, Math.PI * 2);
@@ -7386,6 +7436,23 @@ const htmlContent = `<!DOCTYPE html>
                 }
                 
                 ctx.restore();
+
+                if (safetyAlert.active) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(220,38,38,0.92)';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    var labelWidth = ctx.measureText(safetyAlert.label).width + 16;
+                    ctx.beginPath();
+                    ctx.roundRect(robot.x - labelWidth / 2, robot.y - 58, labelWidth, 22, 8);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(safetyAlert.label, robot.x, robot.y - 43);
+                    ctx.restore();
+                }
 
                 // Speech bubble — drawn in screen space (not rotated) above STEMO
                 if (robot.sayText) {
