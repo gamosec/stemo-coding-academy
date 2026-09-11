@@ -3177,6 +3177,9 @@ const htmlContent = `<!DOCTYPE html>
         // Fire objects for temperature sensor
         var fireObjects = [];
         var fireIdCounter = 0;
+        var activeSafetyHazard = null;
+        var safetyAlertUntil = 0;
+        var safetyAlertTimer = null;
         
         // Target point for navigation
         var targetPoint = null;
@@ -6085,9 +6088,33 @@ const htmlContent = `<!DOCTYPE html>
                 nearestFire = Math.min(nearestFire, Math.sqrt(fdx * fdx + fdy * fdy));
             }
 
-            if (nearestFire <= threshold) return { active: true, type: 'fire', label: '🔥 FIRE ALERT' };
-            if (nearestWall <= threshold) return { active: true, type: 'wall', label: '⚠️ WALL ALERT' };
-            return { active: false, type: null, label: '' };
+            var hazardType = nearestFire <= threshold ? 'fire' : (nearestWall <= threshold ? 'wall' : null);
+
+            if (!hazardType) {
+                activeSafetyHazard = null;
+                safetyAlertUntil = 0;
+                return { active: false, type: null, label: '' };
+            }
+
+            // Trigger once when STEMO enters a danger zone. The visual warning lasts
+            // only 650ms and does not repeat until STEMO first leaves the zone.
+            if (hazardType !== activeSafetyHazard) {
+                activeSafetyHazard = hazardType;
+                safetyAlertUntil = Date.now() + 650;
+                playSound(hazardType === 'fire' ? 'fire_alarm' : 'safety_alert');
+                if (safetyAlertTimer) clearTimeout(safetyAlertTimer);
+                safetyAlertTimer = setTimeout(function() {
+                    safetyAlertTimer = null;
+                    drawRobot();
+                }, 675);
+            }
+
+            var visible = Date.now() < safetyAlertUntil;
+            return {
+                active: visible,
+                type: hazardType,
+                label: hazardType === 'fire' ? '🔥 FIRE ALERT' : '⚠️ WALL ALERT'
+            };
         }
         
         function rayBoundaryIntersection(rx, ry, dx, dy) {
@@ -6533,9 +6560,6 @@ const htmlContent = `<!DOCTYPE html>
             var canvas = document.getElementById('robotCanvas');
             var ctx = canvas.getContext('2d');
             var safetyAlert = getAutomaticSafetyAlert();
-            if (safetyAlert.active) {
-                playSound(safetyAlert.type === 'fire' ? 'fire_alarm' : 'safety_alert');
-            }
             
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
