@@ -2259,6 +2259,14 @@ const htmlContent = `<!DOCTYPE html>
             max-width: 100%;
             max-height: 100%;
         }
+        /* Keep the lower controls usable without letting them shrink the world. */
+        #panelChat { padding: 8px; }
+        #chatMessages { height: 38px; margin-bottom: 4px; }
+        #chatInput { padding-top: 4px; padding-bottom: 4px; }
+        #panelChat button { width: 32px; height: 32px; }
+        #panelCC #ccMessages { height: 64px !important; }
+        #panelCC > div:first-child { padding-top: 5px !important; padding-bottom: 5px !important; }
+        #panelCC > div:last-child { padding-top: 4px !important; padding-bottom: 4px !important; }
         
         .chat-bubble {
             position: relative;
