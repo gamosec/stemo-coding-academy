@@ -1410,6 +1410,9 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
 // XP, and level are exposed; usernames, classes, and schools stay private.
 app.get('/api/public/leaderboard', async (c) => {
     try {
+        // The Vite preview does not provide Cloudflare bindings; keep the
+        // public landing page usable there while production uses D1.
+        if (!c.env.DB) return c.json({ results: [], total: 0 })
         const totalRow = await c.env.DB.prepare(`
             SELECT COUNT(*) as total
             FROM users
@@ -13540,6 +13543,175 @@ const landingPage = `<!DOCTYPE html>
         </div>
     </div>
 </footer>
+
+<script>
+    (function () {
+        var landingArabic = {
+            'Login': 'تسجيل الدخول',
+            'Register as Student': 'التسجيل كطالب',
+            'Trusted by schools across the region': 'موثوق به لدى المدارس في المنطقة',
+            'Where Kids Learn': 'حيث يتعلّم الأطفال',
+            'Coding & Robotics': 'البرمجة والروبوتات',
+            'Through Play!': 'من خلال اللعب!',
+            'STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.': 'ستيمو كودينغ منصة تفاعلية مدعومة بالذكاء الاصطناعي تعلّم الأطفال البرمجة والروبوتات من خلال الألعاب والتحديات ومرشد روبوت ودود — ولا تحتاج إلى خبرة سابقة.',
+            '🚀 Start for Free': '🚀 ابدأ مجاناً',
+            '🔐 Login to Platform': '🔐 الدخول إلى المنصة',
+            'No credit card required': 'لا تحتاج إلى بطاقة ائتمان',
+            'Free for students': 'مجاني للطلاب',
+            'Teacher-approved content': 'محتوى معتمد من المعلمين',
+            'Lessons': 'درساً',
+            'Difficulty Levels': 'مستويات صعوبة',
+            'Block Types': 'نوعاً من اللبنات',
+            'User Roles': 'أدوار للمستخدمين',
+            'Powered Tutor': 'معلّم ذكي',
+            'Student Spotlight': 'نجوم الطلاب',
+            'Top STEMO Coders': 'أفضل مبرمجي ستيمو',
+            'See who is leading the STEMO learning journey.': 'تعرّف على الطلاب المتصدرين في رحلة التعلم مع ستيمو.',
+            'Names are shown with limited detail for student privacy.': 'تُعرض الأسماء بتفاصيل محدودة حفاظاً على خصوصية الطلاب.',
+            'Loading leaderboard...': 'جارٍ تحميل لوحة المتصدرين...',
+            'Unable to load leaderboard.': 'تعذر تحميل لوحة المتصدرين.',
+            'No students have earned XP yet.': 'لم يحصل أي طالب على نقاط خبرة بعد.',
+            'XP': 'نقطة خبرة',
+            'Level': 'المستوى',
+            'Simple & Powerful': 'بسيط وقوي',
+            'How STEMO Coding Works': 'كيف يعمل ستيمو كودينغ',
+            'From registration to mastering robotics — it\\'s a smooth, guided journey for every child.': 'من التسجيل إلى إتقان الروبوتات — رحلة تعليمية سهلة وموجهة لكل طفل.',
+            'Register & Join a Class': 'سجّل وانضم إلى فصل',
+            'Students sign up, get approved by their teacher, and are placed in a class. Parents can also create accounts to monitor progress.': 'يسجّل الطلاب، ثم يوافق عليهم المعلم ويضعهم في فصل. ويمكن للوالدين إنشاء حسابات لمتابعة التقدم.',
+            'Learn with STEMO Robot': 'تعلّم مع روبوت ستيمو',
+            'Drag and drop colorful coding blocks to control the STEMO robot. Complete missions, earn XP, and unlock badges as you progress.': 'اسحب وأفلت لبنات البرمجة الملونة للتحكم في روبوت ستيمو. أنجز المهام واكسب نقاط الخبرة وافتح الشارات.',
+            'Grow & Get Recognized': 'تطوّر واحصل على التقدير',
+            'Climb the leaderboard, complete homework challenges, and receive certificates. Teachers track progress and assign custom lessons.': 'تقدّم في لوحة المتصدرين وأنجز تحديات الواجبات واحصل على الشهادات. ويتابع المعلمون تقدم الطلاب ويخصصون الدروس.',
+            'Full Curriculum': 'منهج متكامل',
+            '19 Lessons. Real Skills. Real Fun.': '19 درساً. مهارات حقيقية. متعة حقيقية.',
+            'A complete learning journey from "what is code?" to writing reusable functions — designed for ages 7 to 16.': 'رحلة تعليمية كاملة تبدأ من سؤال "ما هي البرمجة؟" وتصل إلى كتابة الدوال القابلة لإعادة الاستخدام — مصممة للأعمار من 7 إلى 16 عاماً.',
+            'Beginner': 'مبتدئ',
+            'Intermediate': 'متوسط',
+            'Advanced': 'متقدم',
+            'Expert': 'خبير',
+            'Real Programming Skills, Taught Visually': 'مهارات برمجة حقيقية تُدرّس بصرياً',
+            'By the end of STEMO Coding, every student understands these core concepts — the same ones professional developers use every day.': 'بنهاية ستيمو كودينغ، يفهم كل طالب هذه المفاهيم الأساسية — وهي نفسها التي يستخدمها المطورون المحترفون يومياً.',
+            'Loops': 'التكرار',
+            'Conditions': 'الشروط',
+            'Variables': 'المتغيرات',
+            'Functions': 'الدوال',
+            'Lists & Data': 'القوائم والبيانات',
+            'Sensors & I/O': 'الحساسات والمدخلات والمخرجات',
+            'Platform Features': 'مزايا المنصة',
+            'Everything Kids Need to Thrive': 'كل ما يحتاجه الأطفال للنجاح',
+            'A complete ecosystem built for modern STEAM education — engaging, measurable, and fun.': 'منظومة متكاملة للتعليم الحديث في مجالات العلوم والتقنية والهندسة والفنون والرياضيات — ممتعة وقابلة للقياس.',
+            'For Schools & Teachers': 'للمدارس والمعلمين',
+            'Give Your Students a': 'امنح طلابك',
+            'Coding Superpower': 'قوة البرمجة الخارقة',
+            'For Parents': 'للوالدين',
+            'Stay Connected to Your Child\\'s Learning': 'تابع تعلم طفلك باستمرار',
+            'Ready to Start the': 'هل أنت مستعد لبدء',
+            'Adventure?': 'المغامرة؟',
+            'Join STEMO Coding today — it\\'s free for students and takes less than 2 minutes to get started.': 'انضم إلى ستيمو كودينغ اليوم — التسجيل مجاني للطلاب ويستغرق أقل من دقيقتين.',
+            'Already a Member?': 'هل أنت عضو بالفعل؟',
+            'Students, teachers, parents and admins — log in to your dashboard.': 'الطلاب والمعلمون والوالدان والمديرون — سجّل الدخول إلى لوحة التحكم.',
+            '🚀 Login Now': '🚀 سجّل الدخول الآن',
+            'New Student?': 'طالب جديد؟',
+            'Register for free and start your coding journey with STEMO today!': 'سجّل مجاناً وابدأ رحلة البرمجة مع ستيمو اليوم!',
+            '🎉 Register as Student': '🎉 التسجيل كطالب',
+            'AI-Powered Coding & Robotics for Kids': 'برمجة وروبوتات للأطفال بالذكاء الاصطناعي',
+            'Register': 'التسجيل'
+        };
+        var landingEnglish = {};
+        Object.keys(landingArabic).forEach(function (key) { landingEnglish[landingArabic[key]] = key; });
+
+        function landingTextNodes() {
+            var nodes = [];
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            var node;
+            while ((node = walker.nextNode())) {
+                if (node.parentElement && !['SCRIPT', 'STYLE'].includes(node.parentElement.tagName)) nodes.push(node);
+            }
+            return nodes;
+        }
+
+        window.applyLandingLanguage = function (lang) {
+            var isArabic = lang === 'ar';
+            document.documentElement.lang = isArabic ? 'ar' : 'en';
+            document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+            document.body.dir = isArabic ? 'rtl' : 'ltr';
+            document.querySelectorAll('[data-landing-i18n]').forEach(function (element) {
+                var key = element.getAttribute('data-landing-i18n') || '';
+                element.textContent = isArabic ? (landingArabic[key] || key) : key;
+            });
+            landingTextNodes().forEach(function (node) {
+                if (node.parentElement && node.parentElement.hasAttribute('data-landing-i18n')) return;
+                var original = node.__landingOriginal || node.nodeValue;
+                node.__landingOriginal = original;
+                var trimmed = original.trim();
+                var translated = isArabic ? landingArabic[trimmed] : landingEnglish[trimmed];
+                if (translated) {
+                    var start = original.indexOf(trimmed);
+                    node.nodeValue = original.slice(0, start) + translated + original.slice(start + trimmed.length);
+                } else if (!isArabic && landingEnglish[trimmed]) {
+                    node.nodeValue = original;
+                }
+            });
+            var toggle = document.getElementById('landingLangToggle');
+            if (toggle) {
+                toggle.textContent = isArabic ? 'English' : 'العربية';
+                toggle.setAttribute('aria-label', isArabic ? 'Switch to English' : 'التبديل إلى العربية');
+            }
+            try { localStorage.setItem('landingLang', lang); } catch (_) {}
+        };
+
+        window.toggleLandingLanguage = function () {
+            var next = (document.documentElement.lang || 'en') === 'ar' ? 'en' : 'ar';
+            window.applyLandingLanguage(next);
+            window.loadPublicLeaderboard();
+        };
+
+        function landingEscape(value) {
+            return String(value || '').replace(/[&<>"']/g, function (char) {
+                return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char];
+            });
+        }
+
+        window.loadPublicLeaderboard = function () {
+            var list = document.getElementById('landingLeaderboardList');
+            if (!list) return;
+            fetch('/api/public/leaderboard')
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (!data || !Array.isArray(data.results) || data.results.length === 0) {
+                        list.innerHTML = '<div class="sm:col-span-2 lg:col-span-4 text-center text-gray-400 py-10">' +
+                            ((document.documentElement.lang === 'ar') ? 'لم يحصل أي طالب على نقاط خبرة بعد.' : 'No students have earned XP yet.') + '</div>';
+                        return;
+                    }
+                    list.innerHTML = data.results.map(function (student, index) {
+                        var medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                        var accent = index === 0 ? 'from-yellow-100 to-amber-50 border-yellow-200' :
+                            index === 1 ? 'from-slate-100 to-gray-50 border-slate-200' :
+                            index === 2 ? 'from-orange-100 to-amber-50 border-orange-200' :
+                            'from-purple-50 to-white border-purple-100';
+                        return '<div class="landing-leader-card bg-gradient-to-br ' + accent + ' border rounded-3xl p-5 text-center">' +
+                            '<div class="text-4xl mb-2">' + medal + '</div>' +
+                            '<div class="text-xs font-extrabold text-purple-500 mb-1">#' + student.rank + '</div>' +
+                            '<div class="font-extrabold text-gray-800 truncate">' + landingEscape(student.display_name) + '</div>' +
+                            '<div class="mt-3 flex items-center justify-center gap-2 text-sm font-bold text-purple-700">' +
+                            '<span>⭐ ' + student.xp + ' XP</span><span class="text-gray-300">•</span><span>' +
+                            ((document.documentElement.lang === 'ar') ? 'المستوى ' : 'Level ') + student.level + '</span></div></div>';
+                    }).join('');
+                })
+                .catch(function () {
+                    list.innerHTML = '<div class="sm:col-span-2 lg:col-span-4 text-center text-gray-400 py-10">' +
+                        ((document.documentElement.lang === 'ar') ? 'تعذر تحميل لوحة المتصدرين.' : 'Unable to load leaderboard.') + '</div>';
+                });
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var savedLanguage = 'en';
+            try { savedLanguage = localStorage.getItem('landingLang') || 'en'; } catch (_) {}
+            window.applyLandingLanguage(savedLanguage === 'ar' ? 'ar' : 'en');
+            window.loadPublicLeaderboard();
+        });
+    })();
+</script>
 
 </body>
 </html>`

@@ -7,3 +7,4 @@
 - [Student academy Arabic i18n](student-i18n.md) — all student-facing strings must route through I18N/tr* helpers; secondary render paths (restore, banners) are the usual leak points.
 - [Curriculum capability validation](curriculum-capability-validation.md) — build gate traces taught controls through palette, parser, and executor without evaluating source.
 - [Challenge execution validation](challenge-execution-validation.md) — deterministic representative programs must satisfy every challenge objective, including intermediate progress.
+- [Public leaderboard privacy](public-leaderboard.md) — landing-page rankings expose only approved students' first name/last initial, XP, and level.
