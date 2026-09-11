@@ -2562,6 +2562,13 @@ const htmlContent = `<!DOCTYPE html>
                         </div>
                         <!-- Center: placement hint -->
                         <span id="placementModeText" class="flex-1 text-center">🖱️ Select mode — click an object to select it, then press Delete</span>
+                        <div id="wallAngleControls" class="hidden items-center gap-1 whitespace-nowrap">
+                            <button onclick="setWallAngle(0)" class="bg-amber-700 hover:bg-amber-800 text-white rounded px-2 py-0.5 font-bold" title="Horizontal wall">H</button>
+                            <button onclick="setWallAngle(90)" class="bg-amber-700 hover:bg-amber-800 text-white rounded px-2 py-0.5 font-bold" title="Vertical wall">V</button>
+                            <label class="font-bold text-gray-600">Angle</label>
+                            <input id="wallAngleInput" type="number" min="0" max="359" step="1" value="0" onchange="setWallAngle(this.value)" class="w-14 border border-gray-300 rounded px-1 py-0.5 text-center" title="Wall angle in degrees" />
+                            <span class="font-bold text-gray-600">°</span>
+                        </div>
                         <!-- Right: exit button (shown during challenge) -->
                         <div id="missionExitBtn" class="hidden">
                             <button onclick="exitChallengeMode()" class="bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow px-3 py-0.5 text-xs font-bold transition-colors">✕ Exit Challenge</button>
@@ -3185,6 +3192,7 @@ const htmlContent = `<!DOCTYPE html>
         
         // Placement mode: 'none', 'wall', 'target', 'metal'
         var placementMode = null; // null = Select mode (click objects to select/delete)
+        var wallPlacementAngle = 0;
         
         // ============================================
         // CHALLENGE MODE STATE
@@ -5644,7 +5652,7 @@ const htmlContent = `<!DOCTYPE html>
                 // Wall collision — stop at wall face instead of walking through
                 for (var wc = 0; wc < wallObjects.length; wc++) {
                     var wobj = wallObjects[wc];
-                    var wDist = rayBoxIntersection(robot.x, robot.y, moveDx, moveDy, wobj.x, wobj.y, wobj.width, wobj.height);
+                    var wDist = rayWallIntersection(robot.x, robot.y, moveDx, moveDy, wobj);
                     if (wDist > 0 && wDist < moveDistance) {
                         moveDistance = Math.max(0, wDist - 2); // stop 2 px in front of face
                     }
@@ -5950,11 +5958,7 @@ const htmlContent = `<!DOCTYPE html>
             
             for (var w = 0; w < wallObjects.length; w++) {
                 var wall = wallObjects[w];
-                var dist = rayBoxIntersection(
-                    robot.x, robot.y,
-                    Math.cos(rad), Math.sin(rad),
-                    wall.x, wall.y, wall.width, wall.height
-                );
+                var dist = rayWallIntersection(robot.x, robot.y, Math.cos(rad), Math.sin(rad), wall);
                 if (dist > 0 && dist < minDist) {
                     minDist = dist;
                 }
@@ -5981,11 +5985,7 @@ const htmlContent = `<!DOCTYPE html>
                 var wall = wallObjects[w];
                 
                 // Ray-box intersection
-                var dist = rayBoxIntersection(
-                    robot.x, robot.y,
-                    Math.cos(rad), Math.sin(rad),
-                    wall.x, wall.y, wall.width, wall.height
-                );
+                var dist = rayWallIntersection(robot.x, robot.y, Math.cos(rad), Math.sin(rad), wall);
                 
                 if (dist > 0 && dist < minDist) {
                     minDist = dist;
@@ -6030,6 +6030,28 @@ const htmlContent = `<!DOCTYPE html>
                 return tmin > 0 ? tmin : tmax;
             }
             return -1;
+        }
+
+        function rayWallIntersection(rx, ry, dx, dy, wall) {
+            var angle = wall.angle || 0;
+            if (angle === 0) {
+                return rayBoxIntersection(rx, ry, dx, dy, wall.x, wall.y, wall.width, wall.height);
+            }
+
+            // Transform the ray into the wall's unrotated local coordinate system.
+            var cx = wall.x + wall.width / 2;
+            var cy = wall.y + wall.height / 2;
+            var rad = -angle * Math.PI / 180;
+            var cos = Math.cos(rad);
+            var sin = Math.sin(rad);
+            var localRx = (rx - cx) * cos - (ry - cy) * sin;
+            var localRy = (rx - cx) * sin + (ry - cy) * cos;
+            var localDx = dx * cos - dy * sin;
+            var localDy = dx * sin + dy * cos;
+            return rayBoxIntersection(
+                localRx, localRy, localDx, localDy,
+                -wall.width / 2, -wall.height / 2, wall.width, wall.height
+            );
         }
         
         function rayBoundaryIntersection(rx, ry, dx, dy) {
@@ -6562,6 +6584,11 @@ const htmlContent = `<!DOCTYPE html>
                 var wall = group[0]; // Draw the first one
                 
                 ctx.save();
+                var wallCenterX = wall.x + wall.width / 2;
+                var wallCenterY = wall.y + wall.height / 2;
+                ctx.translate(wallCenterX, wallCenterY);
+                ctx.rotate((wall.angle || 0) * Math.PI / 180);
+                ctx.translate(-wallCenterX, -wallCenterY);
                 
                 // Check if this wall is selected
                 var isSelected = (selectedObject === wall);
@@ -9094,12 +9121,18 @@ const htmlContent = `<!DOCTYPE html>
             // Cursor changes so the user feels what mode they are in
             var canvasEl = document.getElementById('robotCanvas');
             if (canvasEl) canvasEl.style.cursor = mode ? 'crosshair' : 'pointer';
+            var wallAngleControls = document.getElementById('wallAngleControls');
+            if (wallAngleControls) {
+                wallAngleControls.className = mode === 'wall'
+                    ? 'flex items-center gap-1 whitespace-nowrap'
+                    : 'hidden items-center gap-1 whitespace-nowrap';
+            }
 
             // Update indicator text
             var posSlot = (document.getElementById('posSlotSelect') || {}).value || 'A';
             var modeText = {
                 'metal':    'Click to place: 🔩 Metal  (click again to stop)',
-                'wall':     'Click to place: 🧱 Long Wall (6 steps)  (click again to stop)',
+                'wall':     '🧱 Choose H, V, or any angle, then click to place  (click 🧱 again to stop)',
                 'fire':     'Click to place: 🔥 Fire  (click again to stop)',
                 'target':   'Click to place: 🎯 Target  (click again to stop)',
                 'position': 'Click to place: 📍 Position ' + posSlot + ' marker  (click 📍 again to stop)'
@@ -9112,6 +9145,17 @@ const htmlContent = `<!DOCTYPE html>
             } else {
                 addChatMessage('stemo', '🤖 🖱️ Select mode — click any object to highlight it, then press Delete (or the 🗑️ button) to remove it.');
             }
+        }
+
+        function setWallAngle(value) {
+            var parsed = Number(value);
+            if (!isFinite(parsed)) parsed = 0;
+            wallPlacementAngle = ((parsed % 360) + 360) % 360;
+            var input = document.getElementById('wallAngleInput');
+            if (input) input.value = String(Math.round(wallPlacementAngle * 100) / 100);
+            if (placementMode !== 'wall') setPlacementMode('wall');
+            document.getElementById('placementModeText').textContent =
+                '🧱 Wall angle: ' + wallPlacementAngle + '° — click the board to place it';
         }
         
         var wallStartPos = null;
@@ -9181,7 +9225,14 @@ const htmlContent = `<!DOCTYPE html>
             // Check walls
             for (var i = 0; i < wallObjects.length; i++) {
                 var w = wallObjects[i];
-                if (x >= w.x && x <= w.x + w.width && y >= w.y && y <= w.y + w.height) {
+                var wcx = w.x + w.width / 2;
+                var wcy = w.y + w.height / 2;
+                var wrad = -(w.angle || 0) * Math.PI / 180;
+                var wcos = Math.cos(wrad);
+                var wsin = Math.sin(wrad);
+                var localX = (x - wcx) * wcos - (y - wcy) * wsin;
+                var localY = (x - wcx) * wsin + (y - wcy) * wcos;
+                if (Math.abs(localX) <= w.width / 2 && Math.abs(localY) <= w.height / 2) {
                     return { obj: w, type: 'wall' };
                 }
             }
@@ -9273,18 +9324,22 @@ const htmlContent = `<!DOCTYPE html>
             var wallHeight = 40;
             var snappedCenterX = 275 + Math.round((x - 275) / 20) * 20;
             var snappedCenterY = 275 + Math.round((y - 275) / 20) * 20;
-            snappedCenterX = Math.max(75, Math.min(475, snappedCenterX));
-            snappedCenterY = Math.max(35, Math.min(515, snappedCenterY));
+            var wallRad = wallPlacementAngle * Math.PI / 180;
+            var halfBoundsWidth = Math.abs(Math.cos(wallRad)) * wallWidth / 2 + Math.abs(Math.sin(wallRad)) * wallHeight / 2;
+            var halfBoundsHeight = Math.abs(Math.sin(wallRad)) * wallWidth / 2 + Math.abs(Math.cos(wallRad)) * wallHeight / 2;
+            snappedCenterX = Math.max(15 + halfBoundsWidth, Math.min(535 - halfBoundsWidth, snappedCenterX));
+            snappedCenterY = Math.max(15 + halfBoundsHeight, Math.min(535 - halfBoundsHeight, snappedCenterY));
             wallObjects.push({
                 id: wallIdCounter++,
                 x: snappedCenterX - wallWidth / 2,
                 y: snappedCenterY - wallHeight / 2,
                 width: wallWidth,
-                height: wallHeight
+                height: wallHeight,
+                angle: wallPlacementAngle
             });
             
             drawRobot();
-            addChatMessage('stemo', "🤖 🧱 Long wall placed! It is 6 steps wide and snapped to the grid.");
+            addChatMessage('stemo', "🤖 🧱 Long wall placed at " + wallPlacementAngle + "° and snapped to the grid.");
         }
         
         function addTargetAt(x, y) {
@@ -10170,6 +10225,7 @@ const htmlContent = `<!DOCTYPE html>
             var groups = {};
             objects.forEach(function(obj) {
                 var key = Math.round(obj.x) + ',' + Math.round(obj.y);
+                if (typeof obj.angle === 'number') key += ',angle:' + obj.angle;
                 if (!groups[key]) groups[key] = [];
                 groups[key].push(obj);
             });
