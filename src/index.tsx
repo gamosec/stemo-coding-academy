@@ -3184,7 +3184,9 @@ const htmlContent = `<!DOCTYPE html>
             streak: parseInt(localStorage.getItem('stemo_streak') || '1')
         };
 
-        var WORLD_VIEW_SCALE = 0.86;
+        // Display-only fit: keep the logical world at 550×550 while making
+        // the grid and objects easier to read inside the responsive stage.
+        var WORLD_VIEW_SCALE = 0.92;
         var robot = {
             x: 275,
             y: 275,
@@ -5321,7 +5323,7 @@ const htmlContent = `<!DOCTYPE html>
                 zoom: {
                     controls: false,
                     wheel: true,
-                    startScale: 0.85,
+                    startScale: 0.95,
                     maxScale: 2,
                     minScale: 0.5
                 },
