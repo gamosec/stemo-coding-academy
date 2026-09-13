@@ -2557,8 +2557,7 @@ const htmlContent = `<!DOCTYPE html>
                         <i class="fas fa-stop"></i> <span data-i18n="btn_stop_reset">Stop &amp; Reset</span>
                     </button>
                     <div class="flex items-center gap-0.5 bg-gray-100 rounded-full px-1 py-0.5" title="Where STEMO starts">
-                        <button onclick="setStartPoint('center')" id="startCenterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from center (home)">🏠</button>
-                        <button onclick="setStartPoint('left')" id="startLeftBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs" title="Start from the left edge (more room to write)" data-i18n="btn_left_start">⬅️ Left</button>
+                        <button onclick="setStartPoint('center')" id="startCenterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs" title="STEMO always starts from the center">🏠</button>
                     </div>
                     <button onclick="undoCode()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm" title="Undo last block change (Ctrl+Z)" data-i18n="btn_undo">
                         ↩️ Undo
@@ -3224,12 +3223,13 @@ const htmlContent = `<!DOCTYPE html>
             dancing: false
         };
 
-        // STEMO start points — center (home) is default; left gives room to write long words
+        // STEMO always starts from the center. The explicit Blockly
+        // "Go to Left Start" block remains available for lessons that need it.
         var STEMO_START_POINTS = {
             center: { x: 275, y: 275, angle: -90 },
             left:   { x: 70,  y: 275, angle: -90 }
         };
-        var stemoStartName = safeStorageGetEarly('stemoStartPoint') || 'center';
+        var stemoStartName = 'center';
         function getStemoStart() {
             return STEMO_START_POINTS[stemoStartName] || STEMO_START_POINTS.center;
         }
@@ -8656,10 +8656,10 @@ const htmlContent = `<!DOCTYPE html>
             updateStartPointUI();
         });
 
-        // STEMO start point — choose center (home) or left edge; moves STEMO there and persists
+        // STEMO start point — the manual start is always the center.
         function setStartPoint(name) {
-            stemoStartName = (name === 'left') ? 'left' : 'center';
-            safeStorageSet('stemoStartPoint', stemoStartName);
+            stemoStartName = 'center';
+            safeStorageSet('stemoStartPoint', 'center');
             updateStartPointUI();
             resetRobot();
             playSound('click');
@@ -8667,11 +8667,10 @@ const htmlContent = `<!DOCTYPE html>
         function updateStartPointUI() {
             var c = document.getElementById('startCenterBtn');
             var l = document.getElementById('startLeftBtn');
-            if (!c || !l) return;
+            if (!c) return;
             var active = 'bg-teal-500 hover:bg-teal-600 text-white px-2 py-1 rounded-full font-bold transition-all text-xs';
-            var idle = 'bg-gray-300 hover:bg-gray-400 text-gray-700 px-2 py-1 rounded-full font-bold transition-all text-xs';
-            if (stemoStartName === 'left') { l.className = active; c.className = idle; }
-            else { c.className = active; l.className = idle; }
+            c.className = active;
+            if (l) l.remove();
         }
 
         // STEMO body color customization (persisted)
