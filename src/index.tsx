@@ -2303,13 +2303,13 @@ const htmlContent = `<!DOCTYPE html>
         @media (min-width: 1024px) {
             #codeLayout { height: calc(100vh - 153px); min-height: 560px; }
             #robotPanel {
-                width: clamp(620px, 50vw, 760px);
+                width: clamp(640px, 52vw, 800px);
                 flex: 0 0 auto;
             }
         }
         /* Mid-size tablets (landscape): keep the world large without starving Blockly */
         @media (min-width: 1024px) and (max-width: 1279px) {
-            #robotPanel { width: min(56vw, 650px); }
+            #robotPanel { width: min(60vw, 680px); }
         }
         /* Tablets portrait & small screens: stack the workspace vertically */
         @media (max-width: 1023px) {
@@ -2730,7 +2730,7 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="lg:w-[590px] bg-[#fbfaff] border-l-2 border-violet-200 flex flex-col transition-all duration-300">
+                <div id="robotPanel" class="lg:w-[640px] bg-[#fbfaff] border-l-2 border-violet-200 flex flex-col transition-all duration-300">
                     <div class="bg-gradient-to-r from-purple-900 via-purple-700 to-violet-600 text-white p-2 flex items-center justify-between">
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <span class="text-xl">🤖</span>
