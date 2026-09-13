@@ -748,6 +748,15 @@ function newProgressRevision(): string {
     return `${new Date().toISOString()}|${crypto.randomUUID()}`
 }
 
+// Both student saves and teacher/admin resets use this exact compare-and-swap
+// statement. The revision check prevents an older tab from overwriting a reset.
+export const progressCompareAndSwapSql = `
+    UPDATE student_progress
+    SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=?,
+        updated_at=?
+    WHERE student_id=? AND updated_at=?
+`
+
 // Get student progress
 app.get('/api/progress/:studentId', authMiddleware, async (c) => {
     const me = c.get('user')
@@ -875,12 +884,7 @@ app.post('/api/progress', authMiddleware, async (c) => {
 
     const nextRevision = newProgressRevision()
     const saveResult = stored
-        ? await c.env.DB.prepare(`
-            UPDATE student_progress
-            SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=?,
-                updated_at=?
-            WHERE student_id=? AND updated_at=?
-        `).bind(
+        ? await c.env.DB.prepare(progressCompareAndSwapSql).bind(
             xp, level, JSON.stringify(safeLessons), JSON.stringify(safeBadges),
             safeStreak, nextRevision, me.id, storedRevision
         ).run()
@@ -1016,12 +1020,7 @@ app.post('/api/teacher/students/:id/reset-progress', authMiddleware, async (c) =
             .filter((id: string) => validBadgeIds.has(id))
         const nextRevision = newProgressRevision()
         const resetResult = stored
-            ? await c.env.DB.prepare(`
-                UPDATE student_progress
-                SET xp=?, level=?, completed_lessons=?, earned_badges=?, streak=?,
-                    updated_at=?
-                WHERE student_id=? AND updated_at=?
-            `).bind(
+            ? await c.env.DB.prepare(progressCompareAndSwapSql).bind(
                 xp, level, JSON.stringify(remainingLessons), JSON.stringify(safeBadges),
                 streak, nextRevision, studentId, storedRevision
             ).run()
