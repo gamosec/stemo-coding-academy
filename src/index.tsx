@@ -2226,7 +2226,7 @@ const htmlContent = `<!DOCTYPE html>
         * { font-family: 'Nunito', sans-serif; }
         h1, h2, h3, .logo-text { font-family: 'Fredoka One', cursive; }
         
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .gradient-bg { background: linear-gradient(135deg, #32127f 0%, #5b21b6 100%); }
         .card-shadow { box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
         .robot-glow { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5)); }
         
@@ -2244,12 +2244,20 @@ const htmlContent = `<!DOCTYPE html>
         
         #robotCanvas {
             border-radius: 16px;
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            background: linear-gradient(135deg, #f8f3ff 0%, #e8dcff 100%);
             display: block;
             width: 100%;
             height: 100%;
         }
-        #robotWorldViewport { min-width: 0; min-height: 0; }
+        #robotWorldViewport {
+            min-width: 0;
+            min-height: 0;
+            background: linear-gradient(180deg, #faf7ff 0%, #f3edff 100%);
+        }
+        #blockPalette {
+            background: linear-gradient(180deg, #fbfaff 0%, #f3edff 100%);
+            border-color: #ddd6fe;
+        }
         #robotWorldStage {
             position: relative;
             flex: 0 0 auto;
@@ -2295,13 +2303,13 @@ const htmlContent = `<!DOCTYPE html>
         @media (min-width: 1024px) {
             #codeLayout { height: calc(100vh - 153px); min-height: 560px; }
             #robotPanel {
-                width: clamp(590px, 48vw, 700px);
+                width: clamp(620px, 50vw, 760px);
                 flex: 0 0 auto;
             }
         }
         /* Mid-size tablets (landscape): keep the world large without starving Blockly */
         @media (min-width: 1024px) and (max-width: 1279px) {
-            #robotPanel { width: min(52vw, 590px); }
+            #robotPanel { width: min(56vw, 650px); }
         }
         /* Tablets portrait & small screens: stack the workspace vertically */
         @media (max-width: 1023px) {
@@ -2517,7 +2525,7 @@ const htmlContent = `<!DOCTYPE html>
         <!-- Code Tab - MAXIMIZED WORKSPACE LAYOUT -->
         <div id="code-section" class="hidden -mx-6 -mb-6">
             <!-- Top Bar with Run/Clear -->
-            <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-2 rounded-t-2xl flex items-center justify-between">
+            <div class="bg-gradient-to-r from-purple-900 via-purple-700 to-violet-600 text-white p-2 rounded-t-2xl flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-puzzle-piece text-lg"></i>
                     <div>
@@ -2527,7 +2535,7 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
                 <div class="flex flex-wrap gap-2 items-center justify-end">
                     <!-- Toggle Robot Panel Button -->
-                    <button onclick="toggleRobotPanel()" id="toggleRobotBtn" class="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
+                    <button onclick="toggleRobotPanel()" id="toggleRobotBtn" class="bg-violet-500 hover:bg-violet-600 text-white px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1 text-sm">
                         <span id="robotPanelIcon">🤖</span>
                         <span id="robotPanelText" class="hidden sm:inline">Hide Robot</span>
                     </button>
@@ -2722,8 +2730,8 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="blocklyDiv" class="flex-1 min-w-0"></div>
                 
                 <!-- Robot Panel - Right Side (Bigger canvas + chat) -->
-                <div id="robotPanel" class="lg:w-[590px] bg-white border-l-2 border-gray-200 flex flex-col transition-all duration-300">
-                    <div class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2 flex items-center justify-between">
+                <div id="robotPanel" class="lg:w-[590px] bg-[#fbfaff] border-l-2 border-violet-200 flex flex-col transition-all duration-300">
+                    <div class="bg-gradient-to-r from-purple-900 via-purple-700 to-violet-600 text-white p-2 flex items-center justify-between">
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <span class="text-xl">🤖</span>
                             <span class="font-bold">STEMO's World</span>
@@ -6887,7 +6895,7 @@ const htmlContent = `<!DOCTYPE html>
             for (var i = firstGridX; i < canvas.width; i += 20) {
                 var xStep = (i - gridOriginX) / 20;
                 var xMajor = xStep % 5 === 0;
-                ctx.strokeStyle = '#e5e7eb';
+                ctx.strokeStyle = '#e9ddff';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(i, 0);
@@ -6896,7 +6904,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Label five-step landmarks only, keeping the one-step grid uncluttered.
                 if (xMajor && i > 0 && i < canvas.width) {
-                    ctx.fillStyle = '#9ca3af';
+                    ctx.fillStyle = '#8b6fb8';
                     ctx.font = '9px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText(xStep.toString(), i, 11);
@@ -6905,7 +6913,7 @@ const htmlContent = `<!DOCTYPE html>
             for (var j = firstGridY; j < canvas.height; j += 20) {
                 var yStep = (gridOriginY - j) / 20;
                 var yMajor = yStep % 5 === 0;
-                ctx.strokeStyle = '#e5e7eb';
+                ctx.strokeStyle = '#e9ddff';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(0, j);
@@ -6914,7 +6922,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Positive Y is upward, matching the coordinate readout.
                 if (yMajor && j > 0 && j < canvas.height) {
-                    ctx.fillStyle = '#9ca3af';
+                    ctx.fillStyle = '#8b6fb8';
                     ctx.font = '9px Arial';
                     ctx.textAlign = 'left';
                     ctx.fillText(yStep.toString(), 3, j + 3);
@@ -10709,14 +10717,14 @@ const htmlContent = `<!DOCTYPE html>
                 icon.textContent = '🤖';
                 text.textContent = 'Hide Robot';
                 btn.classList.remove('bg-gray-500');
-                btn.classList.add('bg-cyan-500', 'hover:bg-cyan-600');
+                btn.classList.add('bg-violet-500', 'hover:bg-violet-600');
             } else {
                 if (stacked) { panel.style.display = 'none'; } else { panel.style.width = '0'; }
                 panel.classList.remove('border-l-2');
                 panel.classList.add('overflow-hidden', 'border-l-0');
                 icon.textContent = '👁️';
                 text.textContent = 'Show Robot';
-                btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-600');
+                btn.classList.remove('bg-violet-500', 'hover:bg-violet-600');
                 btn.classList.add('bg-gray-500');
             }
             
