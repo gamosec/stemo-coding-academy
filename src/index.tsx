@@ -2261,10 +2261,21 @@ const htmlContent = `<!DOCTYPE html>
         #robotWorldStage {
             position: relative;
             flex: 0 0 auto;
-            width: 550px;
-            height: 550px;
+            width: 100%;
+            height: 100%;
             max-width: 100%;
             max-height: 100%;
+            overflow: hidden;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #f8f3ff 0%, #e8dcff 100%);
+        }
+        #robotCanvas {
+            position: absolute;
+            top: 0;
+            z-index: 10;
+        }
+        #threeCanvasContainer {
+            z-index: 20;
         }
         /* Keep the lower controls usable without letting them shrink the world. */
         #panelChat { padding: 8px; }
@@ -10743,12 +10754,32 @@ const htmlContent = `<!DOCTYPE html>
             if (!viewport || !stage || viewport.clientWidth <= 0 || viewport.clientHeight <= 0) return;
             var availableWidth = Math.max(0, viewport.clientWidth - 16);
             var availableHeight = Math.max(0, viewport.clientHeight - 16);
-            var size = Math.min(660, availableWidth, availableHeight);
-            if (size <= 0) return;
-            stage.style.width = size + 'px';
-            stage.style.height = size + 'px';
+            // Use the full horizontal panel for the STEMO area, but keep the
+            // logical 550×550 world square centered inside it. This gives the
+            // workspace the wide reference layout without stretching the
+            // grid, robot, or 3D projection.
+            var stageWidth = Math.min(760, availableWidth);
+            var stageHeight = Math.min(660, availableHeight);
+            var worldSize = Math.min(stageWidth, stageHeight);
+            if (stageWidth <= 0 || stageHeight <= 0 || worldSize <= 0) return;
+            stage.style.width = stageWidth + 'px';
+            stage.style.height = stageHeight + 'px';
+
+            var canvas = document.getElementById('robotCanvas');
+            if (canvas) {
+                canvas.style.width = worldSize + 'px';
+                canvas.style.height = worldSize + 'px';
+                canvas.style.left = Math.round((stageWidth - worldSize) / 2) + 'px';
+            }
 
             var threeContainer = document.getElementById('threeCanvasContainer');
+            if (threeContainer) {
+                threeContainer.style.width = worldSize + 'px';
+                threeContainer.style.height = worldSize + 'px';
+                threeContainer.style.left = Math.round((stageWidth - worldSize) / 2) + 'px';
+                threeContainer.style.right = 'auto';
+                threeContainer.style.bottom = 'auto';
+            }
             if (renderer && camera && threeContainer && !threeContainer.classList.contains('hidden')) {
                 var w = threeContainer.clientWidth;
                 var h = threeContainer.clientHeight;
