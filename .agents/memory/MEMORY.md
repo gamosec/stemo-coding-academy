@@ -12,3 +12,4 @@
 - [STEMO world scaling](stemo-world-scaling.md) — enlarge or fit the world visually without changing its logical simulation coordinates; 2D, 3D, and HUD must share one stage.
 - [D1 schema changes](d1-schema-changes.md) — never run schema setup in global request middleware; verify production first and use one-time, legacy-safe migrations.
 - [Student startup hydration](student-startup-hydration.md) — progress, curriculum, badges, and profile must initialize independently; removing one refresh must not suppress another surface.
+- [GitHub–Cloudflare synchronization](github-cloudflare-sync.md) — finish releases with GitHub main and the active Cloudflare Pages source on the same commit.
