@@ -28,6 +28,16 @@ assert.match(
   /if \(initialProgress && initialProgress\.xp !== undefined\) \{\s*applyAuthoritativeProgress\(initialProgress\);\s*\} else \{\s*[\s\S]*?loadProgressFromDB\(userData\.id\);/,
   'a hydrated page must not race its D1 snapshot with a second automatic progress GET',
 )
+assert.match(
+  source,
+  /\}\s*loadLessons\(\);\s*loadBadges\(\);\s*loadProfile\(\);\s*\} else \{/,
+  'authenticated student startup must load lessons independently of progress refresh',
+)
+assert.match(
+  source,
+  /Failed to load curriculum:[\s\S]*?Unable to load the curriculum/,
+  'curriculum failures must render a visible retry state',
+)
 
 assert.match(
   source,

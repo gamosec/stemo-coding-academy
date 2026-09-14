@@ -690,9 +690,29 @@ app.get('/api/public/classes', async (c) => {
 // PROGRESS ROUTES
 // ============================================
 
+function safeJsonArray(value: unknown): unknown[] {
+    if (Array.isArray(value)) return value
+    if (typeof value !== 'string' || !value) return []
+    try {
+        const parsed = JSON.parse(value)
+        return Array.isArray(parsed) ? parsed : []
+    } catch {
+        return []
+    }
+}
+
+function jsonForHtmlAttribute(value: unknown): string {
+    return JSON.stringify(value)
+        .replace(/&/g, '&amp;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
 function progressPayload(progress: any, studentId: string | number) {
-    const completedLessons = JSON.parse(progress?.completed_lessons || '[]')
-    const earnedBadges = JSON.parse(progress?.earned_badges || '[]')
+    const completedLessons = safeJsonArray(progress?.completed_lessons)
+    const earnedBadges = safeJsonArray(progress?.earned_badges)
     return {
         student_id: studentId,
         xp: Number(progress?.xp || 0),
@@ -4150,6 +4170,8 @@ const htmlContent = `<!DOCTYPE html>
                     // snapshot and must not race it with a second automatic GET.
                     loadProgressFromDB(userData.id);
                 }
+                loadLessons();
+                loadBadges();
                 loadProfile();
             } else {
                 updateUI();
@@ -4219,12 +4241,17 @@ const htmlContent = `<!DOCTYPE html>
 
         function applyAuthoritativeProgress(data) {
             if (!data || data.xp === undefined) return false;
-            var serverLessons = Array.isArray(data.completed_lessons)
-                ? data.completed_lessons
-                : JSON.parse(data.completed_lessons || '[]');
-            var serverBadges = Array.isArray(data.earned_badges)
-                ? data.earned_badges
-                : JSON.parse(data.earned_badges || '[]');
+            function safeProgressArray(value) {
+                if (Array.isArray(value)) return value;
+                try {
+                    var parsed = JSON.parse(value || '[]');
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+            var serverLessons = safeProgressArray(data.completed_lessons);
+            var serverBadges = safeProgressArray(data.earned_badges);
             var changed = data.xp !== stemo.xp ||
                 data.level !== stemo.level ||
                 Number(data.streak || 0) !== stemo.streak ||
@@ -4368,11 +4395,21 @@ const htmlContent = `<!DOCTYPE html>
         // LESSONS
         // ============================================
         function loadLessons() {
+            var grid = document.getElementById('lessonsGrid');
+            if (grid) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">Loading curriculum…</div>';
+            }
             fetch('/api/curriculum')
-                .then(function(response) { return response.json(); })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('Curriculum request failed: ' + response.status);
+                    return response.json();
+                })
                 .then(function(data) {
+                    var requiredSections = ['basic', 'intermediate', 'advanced', 'creative'];
+                    if (!data || requiredSections.some(function(key) { return !Array.isArray(data[key]); })) {
+                        throw new Error('Curriculum response is incomplete');
+                    }
                     curriculumData = data;
-                    var grid = document.getElementById('lessonsGrid');
                     var html = '';
                     
                     const levels = [
@@ -4443,6 +4480,17 @@ const htmlContent = `<!DOCTYPE html>
                     });
                     
                     grid.innerHTML = html;
+                })
+                .catch(function(error) {
+                    console.error('Failed to load curriculum:', error);
+                    if (grid) {
+                        grid.innerHTML =
+                            '<div class="col-span-full rounded-2xl border border-red-200 bg-red-50 p-6 text-center">' +
+                            '<p class="font-bold text-red-700">Unable to load the curriculum.</p>' +
+                            '<p class="mt-1 text-sm text-red-600">Please check your connection or sign in again.</p>' +
+                            '<button type="button" onclick="loadLessons()" class="mt-4 rounded-full bg-red-600 px-5 py-2 text-sm font-bold text-white hover:bg-red-700">Retry</button>' +
+                            '</div>';
+                    }
                 });
         }
 
@@ -13871,7 +13919,7 @@ app.get('/academy', async (c) => {
     const demoBanner = `<div style="background:#f59e0b;color:#fff;text-align:center;padding:8px 16px;font-weight:bold;font-size:14px;position:sticky;top:0;z-index:9999;">
         🎓 Preview Mode — You are viewing the academy as a ${payload.role}. <a href="${backUrl}" style="color:#fff;text-decoration:underline;margin-left:12px;">← Back to Dashboard</a>
     </div>`
-    const userJson = JSON.stringify({ id: payload.id, role: payload.role, username: payload.username, full_name: payload.full_name || payload.username })
+    const userJson = jsonForHtmlAttribute({ id: payload.id, role: payload.role, username: payload.username, full_name: payload.full_name || payload.username })
     const page = htmlContent
         .replace('<body', demoBanner + '<body')
         .replace('id="xpCounter"', `id="xpCounter" data-demo="teacher" data-user='${userJson}'`)
@@ -13897,9 +13945,10 @@ app.get('/', async (c) => {
             'SELECT xp, level, completed_lessons, earned_badges, streak, updated_at FROM student_progress WHERE student_id = ?'
         ).bind(payload.id).first()
         : null
-    const initialProgressJson = JSON.stringify(progressPayload(initialProgress, payload.id))
+    const initialProgressJson = jsonForHtmlAttribute(progressPayload(initialProgress, payload.id))
+    const userJson = jsonForHtmlAttribute(payload)
     const page = htmlContent
-        .replace('id="xpCounter"', `id="xpCounter" data-user='${JSON.stringify(payload)}' data-progress='${initialProgressJson}'`)
+        .replace('id="xpCounter"', `id="xpCounter" data-user='${userJson}' data-progress='${initialProgressJson}'`)
     const response = c.html(page)
     response.headers.set('Cache-Control', 'no-store')
     return response
