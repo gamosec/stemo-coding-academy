@@ -4140,7 +4140,9 @@ const htmlContent = `<!DOCTYPE html>
             var xpEl = document.getElementById('xpCounter');
             isTeacherDemo = xpEl.getAttribute('data-demo') === 'teacher';
             var userData = null;
+            var initialProgress = null;
             try { userData = JSON.parse(xpEl.getAttribute('data-user') || 'null'); } catch(e) {}
+            try { initialProgress = JSON.parse(xpEl.getAttribute('data-progress') || 'null'); } catch(e) {}
             if (isTeacherDemo) {
                 // Teacher/admin preview mode — reset any stale localStorage data so it shows clean
                 stemo.xp = 0; stemo.level = 1; stemo.completedLessons = []; stemo.badges = []; stemo.streak = 1;
@@ -4165,6 +4167,11 @@ const htmlContent = `<!DOCTYPE html>
             } else if (userData) {
                 currentUser = userData;
                 document.getElementById('studentName').textContent = userData.full_name || userData.username;
+                // Hydrate from the server-rendered value before the API request
+                // finishes, so a new browser/device never shows stale local XP.
+                if (initialProgress && initialProgress.xp !== undefined) {
+                    applyAuthoritativeProgress(initialProgress);
+                }
                 loadProgressFromDB(userData.id);
                 loadProfile();
             } else {
@@ -4300,16 +4307,30 @@ const htmlContent = `<!DOCTYPE html>
 
         // Load progress from D1
         async function loadProgressFromDB(userId) {
-            try {
-                const res = await fetch('/api/progress/' + userId);
-                const data = await res.json();
-                if (data && data.xp !== undefined) {
-                    applyAuthoritativeProgress(data);
-                    loadLessons();
-                    loadBadges();
-                    updateProfileStats();
+            for (var attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const res = await fetch('/api/progress/' + userId, {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache' }
+                    });
+                    if (!res.ok) throw new Error('Progress request failed: ' + res.status);
+                    const data = await res.json();
+                    if (data && data.xp !== undefined) {
+                        applyAuthoritativeProgress(data);
+                        loadLessons();
+                        loadBadges();
+                        updateProfileStats();
+                        return;
+                    }
+                } catch(e) {
+                    if (attempt === 2) {
+                        console.log('Using server-hydrated progress after progress refresh failed');
+                    } else {
+                        await new Promise(function(resolve) { setTimeout(resolve, 250 * (attempt + 1)); });
+                    }
                 }
-            } catch(e) { console.log('Using local progress'); }
+            }
         }
 
         // Change password (student self-service)
@@ -13879,8 +13900,14 @@ app.get('/', async (c) => {
     if (payload.role === 'teacher') return c.redirect('/dashboard/teacher')
     if (payload.role === 'parent') return c.redirect('/dashboard/parent')
     // Inject user info into the main student app
+    const initialProgress = c.env.DB
+        ? await c.env.DB.prepare(
+            'SELECT xp, level, completed_lessons, earned_badges, streak, updated_at FROM student_progress WHERE student_id = ?'
+        ).bind(payload.id).first()
+        : null
+    const initialProgressJson = JSON.stringify(progressPayload(initialProgress, payload.id))
     const page = htmlContent
-        .replace('id="xpCounter"', `id="xpCounter" data-user='${JSON.stringify(payload)}'`)
+        .replace('id="xpCounter"', `id="xpCounter" data-user='${JSON.stringify(payload)}' data-progress='${initialProgressJson}'`)
     return c.html(page)
 })
 
