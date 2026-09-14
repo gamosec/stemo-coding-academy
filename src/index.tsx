@@ -769,7 +769,9 @@ app.get('/api/progress/:studentId', authMiddleware, async (c) => {
         if (!link) return c.json({ error: 'Forbidden' }, 403)
     }
     const progress = await c.env.DB.prepare('SELECT * FROM student_progress WHERE student_id = ?').bind(studentId).first()
-    return c.json(progressPayload(progress, studentId))
+    const response = c.json(progressPayload(progress, studentId))
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 })
 
 // Save student progress — server-authoritative validation
@@ -4268,6 +4270,25 @@ const htmlContent = `<!DOCTYPE html>
             return changed;
         }
 
+        function shouldApplyProgressRefresh(data) {
+            if (!data || data.xp === undefined) return false;
+            var incomingRevision = String(data.progress_revision || '');
+            var currentRevision = String(progressRevision || '');
+            // A fresh page can already be hydrated from the server-rendered
+            // progress. Never let an empty or older API response overwrite it.
+            if (currentRevision && (!incomingRevision || incomingRevision < currentRevision)) {
+                return false;
+            }
+            // Treat an identical revision as the same snapshot. If a
+            // malformed/cached response has a lower XP value, keep the current
+            // authoritative state instead of flickering back to zero.
+            if (currentRevision && incomingRevision === currentRevision &&
+                Number(data.xp || 0) < Number(stemo.xp || 0)) {
+                return false;
+            }
+            return true;
+        }
+
         // Save progress to D1 (and localStorage as fallback)
         async function saveProgress() {
             if (isTeacherDemo) return; // Teachers never earn or save XP
@@ -4316,7 +4337,7 @@ const htmlContent = `<!DOCTYPE html>
                     });
                     if (!res.ok) throw new Error('Progress request failed: ' + res.status);
                     const data = await res.json();
-                    if (data && data.xp !== undefined) {
+                    if (shouldApplyProgressRefresh(data)) {
                         applyAuthoritativeProgress(data);
                         loadLessons();
                         loadBadges();
@@ -13885,7 +13906,9 @@ app.get('/academy', async (c) => {
     const page = htmlContent
         .replace('<body', demoBanner + '<body')
         .replace('id="xpCounter"', `id="xpCounter" data-demo="teacher" data-user='${userJson}'`)
-    return c.html(page)
+    const response = c.html(page)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 })
 
 // Main app - show landing page if not logged in, else redirect to dashboard
