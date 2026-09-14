@@ -1393,6 +1393,7 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
                COALESCE(sp.completed_lessons, '[]') as completed_lessons,
                COALESCE(sp.earned_badges, '[]') as earned_badges,
                COALESCE(sp.streak, 0) as streak,
+               COALESCE(sp.updated_at, '') as progress_revision,
                c.name as class_name,
                s.name as school_name
         FROM users u
@@ -1404,7 +1405,9 @@ app.get('/api/leaderboard', authMiddleware, async (c) => {
         ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
         LIMIT ? OFFSET ?
     `).bind(pageSize, offset).all()
-    return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+    const response = c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 })
 
 // Public landing-page leaderboard. Only approved students' display names,
@@ -1468,7 +1471,9 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
                    COALESCE(sp.xp, 0) as xp,
                    COALESCE(sp.level, 1) as level,
                    COALESCE(sp.completed_lessons, '[]') as completed_lessons,
+                   COALESCE(sp.earned_badges, '[]') as earned_badges,
                    COALESCE(sp.streak, 0) as streak,
+                   COALESCE(sp.updated_at, '') as progress_revision,
                    c.name as class_name,
                    s.name as school_name
             FROM class_students cs2
@@ -1482,7 +1487,9 @@ app.get('/api/leaderboard/class', authMiddleware, async (c) => {
             ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
             LIMIT ? OFFSET ?
         `).bind(me.id, pageSize, offset).all()
-        return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+        const response = c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+        response.headers.set('Cache-Control', 'no-store')
+        return response
     } catch (e: any) { console.error('Leaderboard class error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
@@ -1509,7 +1516,9 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
                    COALESCE(sp.xp, 0) as xp,
                    COALESCE(sp.level, 1) as level,
                    COALESCE(sp.completed_lessons, '[]') as completed_lessons,
+                   COALESCE(sp.earned_badges, '[]') as earned_badges,
                    COALESCE(sp.streak, 0) as streak,
+                   COALESCE(sp.updated_at, '') as progress_revision,
                    c.name as class_name,
                    s.name as school_name
             FROM class_students mycs
@@ -1525,7 +1534,9 @@ app.get('/api/leaderboard/school', authMiddleware, async (c) => {
             ORDER BY COALESCE(sp.xp, 0) DESC, u.id ASC
             LIMIT ? OFFSET ?
         `).bind(me.id, pageSize, offset).all()
-        return c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+        const response = c.json(leaderboardPageResponse(results, page, pageSize, Number(totalRow?.total || 0)))
+        response.headers.set('Cache-Control', 'no-store')
+        return response
     } catch (e: any) { console.error('Leaderboard school error:', e); return c.json({ error: 'Internal server error' }, 500) }
 })
 
@@ -9476,6 +9487,11 @@ const htmlContent = `<!DOCTYPE html>
                 if (nextButton) nextButton.disabled = page >= totalPages;
                 if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
                 const myId = currentUser ? currentUser.id : null;
+                var myProgressRow = rows.find(function(student) { return student.id == myId; });
+                if (myProgressRow && shouldApplyProgressRefresh(myProgressRow)) {
+                    applyAuthoritativeProgress(myProgressRow);
+                    updateProfileStats();
+                }
                 const medals = ['🥇','🥈','🥉'];
                 const podiumColors = ['from-yellow-400 to-amber-500','from-gray-300 to-gray-400','from-orange-400 to-amber-600'];
                 const podiumSizes = ['h-28','h-20','h-16'];
@@ -13931,7 +13947,9 @@ app.get('/', async (c) => {
     const initialProgressJson = JSON.stringify(progressPayload(initialProgress, payload.id))
     const page = htmlContent
         .replace('id="xpCounter"', `id="xpCounter" data-user='${JSON.stringify(payload)}' data-progress='${initialProgressJson}'`)
-    return c.html(page)
+    const response = c.html(page)
+    response.headers.set('Cache-Control', 'no-store')
+    return response
 })
 
 export default app

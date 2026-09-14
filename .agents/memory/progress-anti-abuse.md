@@ -28,3 +28,14 @@ a reset must not be able to restore removed completions after the reset wins.
 **How to apply:** every progress GET returns the current revision, every student
 save sends it, and both saves and resets only update the row when that revision
 still matches. A stale save receives and applies the current server state.
+
+Cross-device hydration must also be server-authoritative and revision-aware.
+Authenticated academy HTML, progress responses, and authenticated leaderboard
+responses must not be cached; an older or revisionless refresh must never replace
+a newer hydrated snapshot.
+
+**Why:** browser-local XP can briefly render correctly and then be overwritten by
+an older zero response, creating disagreement between the header and leaderboard.
+
+**How to apply:** hydrate authenticated pages from D1, include the durable progress
+revision in every authenticated progress view, and apply only the newest revision.
