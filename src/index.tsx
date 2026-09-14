@@ -2314,13 +2314,13 @@ const htmlContent = `<!DOCTYPE html>
         @media (min-width: 1024px) {
             #codeLayout { height: calc(100vh - 153px); min-height: 560px; }
             #robotPanel {
-                width: clamp(640px, 52vw, 800px);
+                width: clamp(720px, 58vw, 920px);
                 flex: 0 0 auto;
             }
         }
         /* Mid-size tablets (landscape): keep the world large without starving Blockly */
         @media (min-width: 1024px) and (max-width: 1279px) {
-            #robotPanel { width: min(60vw, 680px); }
+            #robotPanel { width: clamp(640px, 64vw, 760px); }
         }
         /* Tablets portrait & small screens: stack the workspace vertically */
         @media (max-width: 1023px) {
@@ -10757,8 +10757,8 @@ const htmlContent = `<!DOCTYPE html>
             // logical 550×550 world square centered inside it. This gives the
             // workspace the wide reference layout without stretching the
             // grid, robot, or 3D projection.
-            var stageWidth = Math.min(760, availableWidth);
-            var stageHeight = Math.min(660, availableHeight);
+            var stageWidth = Math.min(860, availableWidth);
+            var stageHeight = Math.min(720, availableHeight);
             var worldSize = Math.min(stageWidth, stageHeight);
             if (stageWidth <= 0 || stageHeight <= 0 || worldSize <= 0) return;
             stage.style.width = stageWidth + 'px';
