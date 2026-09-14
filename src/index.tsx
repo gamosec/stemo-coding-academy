@@ -2252,7 +2252,7 @@ const htmlContent = `<!DOCTYPE html>
         #robotWorldViewport {
             min-width: 0;
             min-height: 0;
-            background: linear-gradient(180deg, #faf7ff 0%, #f3edff 100%);
+            background: #ffffff;
         }
         #blockPalette {
             background: linear-gradient(180deg, #fbfaff 0%, #f3edff 100%);
@@ -2267,7 +2267,7 @@ const htmlContent = `<!DOCTYPE html>
             max-height: 100%;
             overflow: hidden;
             border-radius: 16px;
-            background: linear-gradient(135deg, #f8f3ff 0%, #e8dcff 100%);
+            background: #ffffff;
         }
         #robotCanvas {
             position: absolute;
