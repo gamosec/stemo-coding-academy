@@ -13,6 +13,22 @@ assert.doesNotMatch(
   'rendering badges must never save or rewrite student progress',
 )
 
+const loadLeaderboardMatch = source.match(
+  /async function loadLeaderboard\(\) \{([\s\S]*?)\n        function setPlacementMode/,
+)
+assert.ok(loadLeaderboardMatch, 'loadLeaderboard function must remain discoverable')
+assert.doesNotMatch(
+  loadLeaderboardMatch[1],
+  /applyAuthoritativeProgress\s*\(/,
+  'leaderboard reporting data must never overwrite authoritative student progress',
+)
+
+assert.match(
+  source,
+  /if \(initialProgress && initialProgress\.xp !== undefined\) \{\s*applyAuthoritativeProgress\(initialProgress\);\s*\} else \{\s*[\s\S]*?loadProgressFromDB\(userData\.id\);/,
+  'a hydrated page must not race its D1 snapshot with a second automatic progress GET',
+)
+
 assert.match(
   source,
   /media-src 'self' data: https:\/\/static\.blockly\.com;/,

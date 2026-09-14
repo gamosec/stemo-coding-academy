@@ -4144,8 +4144,12 @@ const htmlContent = `<!DOCTYPE html>
                 // finishes, so a new browser/device never shows stale local XP.
                 if (initialProgress && initialProgress.xp !== undefined) {
                     applyAuthoritativeProgress(initialProgress);
+                } else {
+                    // Fallback for non-server-rendered shells only. The normal
+                    // authenticated page already contains a fresh no-store D1
+                    // snapshot and must not race it with a second automatic GET.
+                    loadProgressFromDB(userData.id);
                 }
-                loadProgressFromDB(userData.id);
                 loadProfile();
             } else {
                 updateUI();
@@ -9441,11 +9445,6 @@ const htmlContent = `<!DOCTYPE html>
                 if (nextButton) nextButton.disabled = page >= totalPages;
                 if (pageSizeSelect) pageSizeSelect.value = String(pageSize);
                 const myId = currentUser ? currentUser.id : null;
-                var myProgressRow = rows.find(function(student) { return student.id == myId; });
-                if (myProgressRow && shouldApplyProgressRefresh(myProgressRow)) {
-                    applyAuthoritativeProgress(myProgressRow);
-                    updateProfileStats();
-                }
                 const medals = ['🥇','🥈','🥉'];
                 const podiumColors = ['from-yellow-400 to-amber-500','from-gray-300 to-gray-400','from-orange-400 to-amber-600'];
                 const podiumSizes = ['h-28','h-20','h-16'];

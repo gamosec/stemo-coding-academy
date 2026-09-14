@@ -49,3 +49,15 @@ replace a visible legacy XP total with zero.
 
 **How to apply:** only explicit lesson or challenge completion may initiate a
 student save. Compute display-only badge state without mutating or persisting it.
+
+Only the server-hydrated student progress snapshot and explicit progress-save
+responses may update the main XP state. Reporting views such as leaderboards must
+never overwrite it, and a hydrated page must not race itself with a redundant GET.
+
+**Why:** secondary queries and duplicate initialization requests can return in a
+different order and replace a correct XP header even when D1 contains the right
+student record.
+
+**How to apply:** treat leaderboards as display-only. Hydrate once from the
+authenticated no-store page response; use the progress GET only for shells that
+were not server-hydrated.
