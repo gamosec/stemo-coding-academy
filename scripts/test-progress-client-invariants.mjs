@@ -38,6 +38,16 @@ assert.match(
   /Failed to load curriculum:[\s\S]*?Unable to load the curriculum/,
   'curriculum failures must render a visible retry state',
 )
+assert.match(
+  source,
+  /localStorage\.setItem\('stemo_streak', stemo\.streak\);[\s\S]*?updateUI\(\);\s*return changed;/,
+  'authoritative progress hydration must render even when it matches local storage',
+)
+assert.match(
+  source,
+  /profileXP: stemo\.xp,[\s\S]*?profileLessons: stemo\.completedLessons\.length/,
+  'profile and achievements summaries must render from the same progress state',
+)
 
 assert.match(
   source,

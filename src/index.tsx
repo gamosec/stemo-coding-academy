@@ -4231,12 +4231,22 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         function updateUI() {
-            document.getElementById('xpCounter').textContent = stemo.xp;
-            document.getElementById('levelCounter').textContent = stemo.level;
-            document.getElementById('totalXP').textContent = stemo.xp;
-            document.getElementById('lessonsCompleted').textContent = stemo.completedLessons.length;
-            document.getElementById('streakDays').textContent = stemo.streak;
-            document.getElementById('badgesEarned').textContent = stemo.badges.length;
+            var summaryValues = {
+                xpCounter: stemo.xp,
+                levelCounter: stemo.level,
+                totalXP: stemo.xp,
+                lessonsCompleted: stemo.completedLessons.length,
+                streakDays: stemo.streak,
+                badgesEarned: stemo.badges.length,
+                profileXP: stemo.xp,
+                profileLessons: stemo.completedLessons.length,
+                profileStreak: stemo.streak,
+                profileBadges: stemo.badges.length
+            };
+            Object.keys(summaryValues).forEach(function(id) {
+                var element = document.getElementById(id);
+                if (element) element.textContent = summaryValues[id];
+            });
         }
 
         function applyAuthoritativeProgress(data) {
@@ -4268,7 +4278,10 @@ const htmlContent = `<!DOCTYPE html>
             localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
             localStorage.setItem('stemo_badges', JSON.stringify(stemo.badges));
             localStorage.setItem('stemo_streak', stemo.streak);
-            if (changed) updateUI();
+            // Always render the authoritative snapshot. On a fresh page the
+            // in-memory values can already match localStorage while the DOM
+            // still contains its initial zero placeholders.
+            updateUI();
             return changed;
         }
 
@@ -9259,10 +9272,7 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         function updateProfileStats() {
-            document.getElementById('profileXP').textContent = stemo.xp;
-            document.getElementById('profileLessons').textContent = stemo.completedLessons.length;
-            document.getElementById('profileStreak').textContent = stemo.streak;
-            document.getElementById('profileBadges').textContent = stemo.badges.length;
+            updateUI();
         }
 
         async function loadProfileRanks() {
