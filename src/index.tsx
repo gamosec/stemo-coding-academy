@@ -175,8 +175,9 @@ app.use('*', async (c, next) => {
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; " +
         "img-src 'self' data: https://img.youtube.com https://i.ytimg.com; " +
+        "media-src 'self' data: https://static.blockly.com; " +
         "frame-src https://www.youtube.com https://youtube.com; " +
-        "connect-src 'self'; " +
+        "connect-src 'self' https://static.blockly.com; " +
         "object-src 'none'; " +
         "base-uri 'self'"
     )
@@ -4750,16 +4751,11 @@ const htmlContent = `<!DOCTYPE html>
                 .then(function(r) { return r.json(); })
                 .then(function(allBadges) {
                     var grid = document.getElementById('badgesGrid');
-                    var needSave = false;
                     var html = '';
                     var earned = 0;
 
                     allBadges.forEach(function(badge) {
                         var isEarned = isBadgeEarned(badge);
-                        if (isEarned && !stemo.badges.includes(badge.id)) {
-                            stemo.badges.push(badge.id);
-                            needSave = true;
-                        }
                         if (isEarned) earned++;
                         var typeLabel = badge.req || (badge.xpRequired + ' XP');
                         html += '<div class="rounded-2xl card-shadow p-4 text-center border-2 transition-all ' +
@@ -4775,7 +4771,6 @@ const htmlContent = `<!DOCTYPE html>
                     grid.innerHTML = html;
                     document.getElementById('badgesEarned').textContent = earned;
                     document.getElementById('profileBadges').textContent = earned;
-                    if (needSave) saveProgress();
                     renderProfileBadges(allBadges);
                 });
         }

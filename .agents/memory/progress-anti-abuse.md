@@ -39,3 +39,13 @@ an older zero response, creating disagreement between the header and leaderboard
 
 **How to apply:** hydrate authenticated pages from D1, include the durable progress
 revision in every authenticated progress view, and apply only the newest revision.
+
+Page initialization and read-only rendering paths must never call the progress
+save endpoint, including badge derivation and profile rendering.
+
+**Why:** a badge render previously triggered a save immediately after login. That
+turned a harmless page refresh into a server-side XP recalculation and could
+replace a visible legacy XP total with zero.
+
+**How to apply:** only explicit lesson or challenge completion may initiate a
+student save. Compute display-only badge state without mutating or persisting it.
