@@ -24,4 +24,10 @@ assert.match(
   'CSP must permit Blockly audio requests',
 )
 
-console.log('Client progress invariants passed: badge loading is read-only and Blockly audio is allowed.')
+assert.doesNotMatch(
+  source,
+  /Auto-migrate|CREATE TABLE IF NOT EXISTS lesson_videos/,
+  'normal page requests must not run lesson-content schema migrations',
+)
+
+console.log('Client progress invariants passed: page loads are read-only and Blockly audio is allowed.')

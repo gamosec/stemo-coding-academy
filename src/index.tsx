@@ -183,47 +183,6 @@ app.use('*', async (c, next) => {
     )
 })
 
-// Auto-migrate: create any missing tables on first request
-app.use('*', async (c, next) => {
-    if (c.env?.DB) {
-        try {
-            await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS lesson_videos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                lesson_name TEXT NOT NULL,
-                youtube_url TEXT NOT NULL,
-                sort_order INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`).run()
-            await c.env.DB.prepare(`CREATE TABLE IF NOT EXISTS interactive_lessons (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                html_content TEXT NOT NULL,
-                lesson_number INTEGER,
-                is_published INTEGER NOT NULL DEFAULT 1,
-                sort_order INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`).run()
-            try {
-                await c.env.DB.prepare('ALTER TABLE interactive_lessons ADD COLUMN lesson_number INTEGER').run()
-            } catch(_) {}
-            await c.env.DB.prepare(`
-                UPDATE interactive_lessons AS target
-                SET lesson_number = target.sort_order
-                WHERE target.lesson_number IS NULL
-                  AND target.sort_order > 0
-                  AND (SELECT COUNT(*) FROM interactive_lessons AS matching WHERE matching.sort_order = target.sort_order) = 1
-            `).run()
-            try {
-                await c.env.DB.prepare(
-                    'CREATE UNIQUE INDEX IF NOT EXISTS idx_interactive_lessons_lesson_number ON interactive_lessons(lesson_number) WHERE lesson_number IS NOT NULL'
-                ).run()
-            } catch(_) {}
-        } catch(_) {}
-    }
-    return next()
-})
-
 // ============================================
 // AUTH ROUTES
 // ============================================
