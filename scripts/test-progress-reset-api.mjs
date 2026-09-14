@@ -338,6 +338,49 @@ test('a reloaded tab gets the new revision while another open tab is rejected as
   assert.equal(staleSave.progress_revision, reloadedTab.progress_revision)
 })
 
+test('a first challenge completion is atomic and a replay cannot add XP', async () => {
+  const recentRevision = `${new Date().toISOString()}|recent-seed`
+  const db = fixture({
+    progress: {
+      101: {
+        ...seededProgress(['lesson-1', 'lesson-2', 'lesson-3']),
+        xp: 250,
+        updated_at: recentRevision,
+      },
+    },
+  })
+  const student = await tokenFor({ id: 101, role: 'student' })
+  const completed = ['lesson-1', 'lesson-2', 'lesson-3', 'lesson-4', 'lesson-4-challenge']
+
+  const firstResponse = await request(app, db, '/api/progress', {
+    actor: student,
+    body: {
+      progress_revision: recentRevision,
+      completed_lessons: completed,
+      xp: 999999,
+    },
+  })
+  const first = await json(firstResponse)
+
+  assert.equal(firstResponse.status, 200)
+  assert.deepEqual(first.completed_lessons, completed)
+  assert.equal(first.xp, 550)
+
+  const replayResponse = await request(app, db, '/api/progress', {
+    actor: student,
+    body: {
+      progress_revision: first.progress_revision,
+      completed_lessons: completed,
+      xp: 999999,
+    },
+  })
+  const replay = await json(replayResponse)
+
+  assert.equal(replayResponse.status, 200)
+  assert.deepEqual(replay.completed_lessons, completed)
+  assert.equal(replay.xp, 550)
+})
+
 const vite = await createServer({ appType: 'custom', server: { middlewareMode: true } })
 try {
   ({ default: app } = await vite.ssrLoadModule('/src/index.tsx'))

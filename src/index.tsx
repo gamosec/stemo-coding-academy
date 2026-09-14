@@ -823,9 +823,24 @@ app.post('/api/progress', authMiddleware, async (c) => {
         : 0
     const maxNew = (lastSaveMs && Date.now() - lastSaveMs < 20000) ? 1 : 3
     let added = 0
+    const acceptedBaseIds = new Set<string>()
     for (const id of newIds) {
-        if (added >= maxNew) break
-        if (isUnlocked(id)) { currentSet.add(id); added++ }
+        const isChallenge = id.endsWith('-challenge')
+        const baseId = isChallenge ? id.slice(0, -'-challenge'.length) : id
+        // A first-time challenge submits its base lesson and bonus ID together.
+        // Count that pair as one logical completion so the cooldown cannot keep
+        // the base while silently dropping the challenge bonus.
+        const completesAcceptedBase = isChallenge && acceptedBaseIds.has(baseId)
+        if (added >= maxNew && !completesAcceptedBase) continue
+        if (isUnlocked(id)) {
+            currentSet.add(id)
+            if (isChallenge) {
+                if (!completesAcceptedBase) added++
+            } else {
+                acceptedBaseIds.add(id)
+                added++
+            }
+        }
     }
     const safeLessons = [...currentSet]
 
@@ -4746,8 +4761,13 @@ const htmlContent = `<!DOCTYPE html>
                 challengeCompleted = true;
                 setTimeout(function() {
                     addChatMessage('stemo', '🎉 ALL STEPS COMPLETE! Amazing work! 🏆🏆🏆');
-                    if (currentLesson) {
-                        completeChallengeLesson(currentLesson);
+                    // Reward the lesson that launched the challenge. A delayed
+                    // completion callback must never use a lesson selected later.
+                    var completedLesson = currentLesson && currentLesson.id === challengeActiveLessonId
+                        ? currentLesson
+                        : CHALLENGE_LESSON_META[challengeActiveLessonId];
+                    if (completedLesson) {
+                        completeChallengeLesson(completedLesson);
                     } else {
                         showSuccessModal(0, true);
                     }
@@ -10667,6 +10687,7 @@ const htmlContent = `<!DOCTYPE html>
                         if (savedLessonId && savedIsChallenge && LESSON_CHALLENGES[savedLessonId]) {
                             // ── Restore a challenge file ──────────────────────────────────
                             challengeMode = false;
+                            challengeActiveLessonId = savedLessonId;
                             challengeCompleted = false;
                             missionObjectives = null;
                             targetTrails = [];
@@ -10704,6 +10725,7 @@ const htmlContent = `<!DOCTYPE html>
                         } else {
                             // ── Restore a free-build (or lesson-only) file ────────────────
                             challengeMode = false;
+                            challengeActiveLessonId = null;
                             challengeCompleted = false;
                             missionObjectives = null;
                             targetTrails = [];

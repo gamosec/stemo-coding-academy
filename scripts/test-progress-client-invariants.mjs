@@ -48,6 +48,16 @@ assert.match(
   /profileXP: stemo\.xp,[\s\S]*?profileLessons: stemo\.completedLessons\.length/,
   'profile and achievements summaries must render from the same progress state',
 )
+assert.match(
+  source,
+  /savedLessonId && savedIsChallenge && LESSON_CHALLENGES\[savedLessonId\][\s\S]*?challengeActiveLessonId = savedLessonId;/,
+  'restored challenges must lock completion to their saved lesson ID',
+)
+assert.match(
+  source,
+  /Restore a free-build[\s\S]*?challengeActiveLessonId = null;/,
+  'restoring a non-challenge project must clear stale challenge identity',
+)
 
 assert.match(
   source,
