@@ -2376,15 +2376,23 @@ const htmlContent = `<!DOCTYPE html>
         nav .bg-white\/20 { background:rgba(255,255,255,.13) !important; border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(10px); }
         nav .bg-white\/20:hover { background:rgba(255,255,255,.22) !important; transform:translateY(-1px); }
         nav .bg-white\/20, nav button { transition:transform .2s ease,background-color .2s ease; }
-        /* Certificate: a quiet, paper-like reward that still belongs to the STEMO world. */
-        .certificate-shell { background:linear-gradient(135deg,#fffdf7,#f8fbff); border:1px solid #dbeafe; box-shadow:0 18px 45px rgba(30,64,175,.12); }
-        .certificate-paper { position:relative; overflow:hidden; background:#fffdf7; border:10px solid #f3d48b; box-shadow:inset 0 0 0 2px #8b5e34, inset 0 0 0 8px #fffdf7; }
-        .certificate-paper:before,.certificate-paper:after { content:""; position:absolute; width:170px; height:170px; border-radius:50%; border:1px solid rgba(59,130,246,.14); pointer-events:none; }
-        .certificate-paper:before { right:-65px; top:-65px; box-shadow:0 0 0 18px rgba(59,130,246,.05),0 0 0 36px rgba(245,158,11,.06); }
-        .certificate-paper:after { left:-90px; bottom:-90px; border-color:rgba(245,158,11,.18); }
-        .certificate-seal { width:82px; height:82px; border-radius:50%; border:3px solid #a16207; outline:2px solid #f3d48b; outline-offset:4px; background:radial-gradient(circle,#fff7cf 0 42%,#f5d778 43% 48%,#fff7cf 49%); color:#8a5a09; display:flex; align-items:center; justify-content:center; text-align:center; font-size:10px; font-weight:900; letter-spacing:.08em; transform:rotate(-9deg); }
-        @page { size:landscape; margin:12mm; }
-        @media print { body * { visibility:hidden !important; } #certificatePaper,#certificatePaper * { visibility:visible !important; } #certificatePaper { position:absolute; inset:0; width:100%; min-height:calc(100vh - 24mm); box-shadow:none; border-width:10px; } .certificate-actions { display:none !important; } }
+        /* Certificate: official STEAM Academy purple, magenta, and gold branding. */
+        .certificate-shell { background:linear-gradient(135deg,#faf7ff,#fff); border:1px solid #ddd0f7; box-shadow:0 18px 45px rgba(76,29,149,.14); }
+        .certificate-paper { position:relative; overflow:hidden; background:linear-gradient(145deg,#fff 0%,#fdfaff 58%,#fff8e8 100%); border:10px solid #4c1d95; box-shadow:inset 0 0 0 3px #f59e0b, inset 0 0 0 9px #fff, inset 0 0 0 11px #a855f7; }
+        .certificate-paper:before,.certificate-paper:after { content:""; position:absolute; width:190px; height:190px; border-radius:50%; border:2px solid rgba(126,34,206,.13); pointer-events:none; }
+        .certificate-paper:before { right:-72px; top:-72px; box-shadow:0 0 0 20px rgba(168,85,247,.055),0 0 0 40px rgba(245,158,11,.055); }
+        .certificate-paper:after { left:-92px; bottom:-92px; border-color:rgba(219,39,119,.14); box-shadow:0 0 0 22px rgba(219,39,119,.04); }
+        .certificate-logo { width:auto; height:62px; max-width:230px; object-fit:contain; margin:0 auto; filter:drop-shadow(0 4px 8px rgba(76,29,149,.12)); }
+        .certificate-seal { width:86px; height:86px; border-radius:50%; border:3px solid #6d28d9; outline:2px solid #f59e0b; outline-offset:4px; background:radial-gradient(circle,#fff 0 40%,#f3e8ff 41% 48%,#fff 49%); color:#581c87; display:flex; align-items:center; justify-content:center; text-align:center; font-size:10px; font-weight:900; letter-spacing:.08em; transform:rotate(-7deg); }
+        @page { size:A4 landscape; margin:8mm; }
+        @media print {
+            html,body { width:100%; height:100%; margin:0 !important; padding:0 !important; background:#fff !important; }
+            body * { visibility:hidden !important; }
+            #certificatePaper,#certificatePaper * { visibility:visible !important; }
+            #certificatePaper { position:fixed !important; left:8mm !important; top:8mm !important; width:calc(100% - 16mm) !important; height:calc(100% - 16mm) !important; min-height:0 !important; margin:0 !important; padding:12mm 14mm !important; border-width:10px !important; border-radius:0 !important; box-shadow:inset 0 0 0 3px #f59e0b,inset 0 0 0 9px #fff,inset 0 0 0 11px #a855f7 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+            #certificatePaper .certificate-logo { height:18mm; }
+            .certificate-actions { display:none !important; }
+        }
         .max-w-7xl.mx-auto.p-6 { position:relative; z-index:1; }
         .max-w-7xl.mx-auto.p-6:before { content:""; position:absolute; width:180px; height:180px; right:-90px; top:260px; border-radius:50%; background:#c4b5fd; opacity:.24; filter:blur(1px); z-index:-1; }
         .max-w-7xl.mx-auto.p-6 > .flex.gap-2 { padding:8px; border:1px solid #dbeafe; background:rgba(255,255,255,.72); border-radius:22px; box-shadow:0 8px 24px rgba(30,64,175,.08); backdrop-filter:blur(12px); }
@@ -3027,8 +3035,8 @@ const htmlContent = `<!DOCTYPE html>
             <section id="certificateCard" class="certificate-shell rounded-3xl p-5 md:p-7 mt-8" aria-labelledby="certificateHeading" data-testid="card-certificate">
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                        <p class="text-xs font-extrabold uppercase tracking-[.2em] text-indigo-500" data-i18n="certificate_label">Milestone certificate</p>
-                        <h3 id="certificateHeading" class="text-2xl font-bold text-slate-800 mt-1" data-i18n="certificate_heading">Your coding certificate</h3>
+                        <p class="text-xs font-extrabold uppercase tracking-[.2em] text-purple-600" data-i18n="certificate_label">STEAM Academy certificate</p>
+                        <h3 id="certificateHeading" class="text-2xl font-bold text-slate-800 mt-1" data-i18n="certificate_heading">Your academy certificate</h3>
                     </div>
                     <div id="certificateStatus" class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800" role="status"></div>
                 </div>
@@ -3041,13 +3049,13 @@ const htmlContent = `<!DOCTYPE html>
                 <div id="certificateReady" class="hidden mt-5">
                     <div id="certificatePaper" class="certificate-paper rounded-xl p-7 md:p-12 text-center" dir="ltr">
                         <div class="relative z-10">
-                            <div class="text-xs font-black tracking-[.35em] text-indigo-700 uppercase">STEMO</div>
-                            <div class="mt-5 text-sm font-semibold tracking-[.28em] uppercase text-slate-500">STEAM Academy</div>
-                            <h4 class="mt-4 text-3xl md:text-5xl font-black text-slate-800" data-i18n="certificate_title">Certificate of Achievement</h4>
+                            <img src="/static/steam-logo.png" alt="STEAM Academy" class="certificate-logo">
+                            <div class="mt-4 text-xs font-black tracking-[.32em] text-purple-700 uppercase">STEAM Academy</div>
+                            <h4 class="mt-3 text-3xl md:text-5xl font-black text-slate-800" data-i18n="certificate_title">Certificate of Achievement</h4>
                             <p class="mt-5 text-slate-500" data-i18n="certificate_awarded">This is proudly presented to</p>
-                            <p id="certificateStudentName" class="mt-2 text-2xl md:text-3xl font-black text-indigo-700"></p>
+                            <p id="certificateStudentName" class="mt-2 text-2xl md:text-3xl font-black text-purple-800"></p>
                             <p class="mt-5 text-slate-600 max-w-2xl mx-auto" data-i18n="certificate_body">for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of</p>
-                            <p class="mt-3 text-xl md:text-2xl font-black text-amber-700" data-i18n="certificate_coder_title">STEMO Certified Little Coder</p>
+                            <p class="mt-3 text-xl md:text-2xl font-black text-fuchsia-700" data-i18n="certificate_coder_title">STEAM Academy Certified Young Coder</p>
                             <p class="mt-3 text-sm text-slate-500 max-w-2xl mx-auto" data-i18n="certificate_excellence">Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.</p>
                             <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm font-bold text-slate-700">
                                 <span class="rounded-full bg-indigo-50 px-3 py-1.5" data-i18n="certificate_blockly">Blockly programming</span>
@@ -3056,7 +3064,7 @@ const htmlContent = `<!DOCTYPE html>
                             </div>
                             <div class="mt-8 flex items-end justify-between gap-5 text-left">
                                 <div><div class="h-px w-36 bg-slate-300"></div><p class="mt-2 text-xs text-slate-500"><span data-i18n="certificate_completed">Completed</span>: <span id="certificateDate"></span></p></div>
-                                <div class="certificate-seal" aria-label="STEMO Academy seal"><span>STEMO<br>ACADEMY<br>VERIFIED</span></div>
+                                <div class="certificate-seal" aria-label="STEAM Academy seal"><span>STEAM<br>ACADEMY<br>VERIFIED</span></div>
                             </div>
                         </div>
                     </div>
@@ -8186,11 +8194,11 @@ const htmlContent = `<!DOCTYPE html>
         var I18N = {
             en: {
                 tab_learn: 'Learn', tab_code: 'Code', tab_achievements: 'Achievements',
-                certificate_label: 'Milestone certificate', certificate_heading: 'Your coding certificate',
+                certificate_label: 'STEAM Academy certificate', certificate_heading: 'Your academy certificate',
                 certificate_locked_title: 'Complete the core curriculum to unlock',
                 certificate_title: 'Certificate of Achievement', certificate_awarded: 'This is proudly presented to',
                 certificate_body: 'for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of',
-                certificate_coder_title: 'STEMO Certified Little Coder',
+                certificate_coder_title: 'STEAM Academy Certified Young Coder',
                 certificate_excellence: 'Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.',
                 certificate_completed: 'Completed',
                 certificate_print: 'View / Print certificate', certificate_download: 'Download',
@@ -8214,11 +8222,11 @@ const htmlContent = `<!DOCTYPE html>
             },
             ar: {
                 tab_learn: 'تعلّم', tab_code: 'برمجة', tab_achievements: 'الإنجازات',
-                certificate_label: 'شهادة إنجاز', certificate_heading: 'شهادتك في البرمجة',
+                certificate_label: 'شهادة أكاديمية STEAM', certificate_heading: 'شهادتك من الأكاديمية',
                 certificate_locked_title: 'أكمل المنهج الأساسي لفتح الشهادة',
                 certificate_title: 'شهادة إنجاز', certificate_awarded: 'تُقدَّم بكل فخر إلى',
                 certificate_body: 'لإتمام مناهج المستوى الأساسي والمتوسط والمتقدم بنجاح والحصول على لقب',
-                certificate_coder_title: 'مبرمج STEMO الصغير المعتمد',
+                certificate_coder_title: 'مبرمج أكاديمية STEAM الصغير المعتمد',
                 certificate_excellence: 'تقديراً للتميز في برمجة Blockly والتفكير المنطقي وأتمتة الروبوتات.',
                 certificate_completed: 'تاريخ الإكمال',
                 certificate_print: 'عرض / طباعة الشهادة', certificate_download: 'تنزيل',
