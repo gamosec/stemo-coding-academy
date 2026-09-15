@@ -13327,48 +13327,77 @@ const landingPage = `<!DOCTYPE html>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/style.css">
     <style>
-        body { font-family: 'Nunito', sans-serif; }
-        .fredoka { font-family: 'Fredoka One', cursive; }
-        .hero-gradient { background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 40%, #7c3aed 70%, #4338ca 100%); }
-        .feature-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .feature-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(109,40,217,0.18); }
-        @media (hover: none) { .feature-card:hover { transform: none; box-shadow: none; } }
-        button, a { touch-action: manipulation; }
-        .stat-card { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); }
-        .section-divider { background: linear-gradient(90deg, transparent, #7c3aed, transparent); height: 2px; }
-        .glow { box-shadow: 0 0 30px rgba(139,92,246,0.4); }
-        .badge-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(139,92,246,0.12); color: #6d28d9; border: 1px solid rgba(139,92,246,0.3); border-radius: 999px; padding: 4px 14px; font-size: 13px; font-weight: 700; }
-         .landing-lang-toggle { min-width: 76px; }
-         .landing-leader-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
-         .landing-leader-card:hover { transform: translateY(-4px); box-shadow: 0 16px 28px rgba(109,40,217,0.14); }
-         [dir="rtl"] .landing-rtl-text { text-align: right; }
-         [dir="rtl"] .landing-hero-copy { direction: rtl; }
-        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-        .float-anim { animation: float 3.5s ease-in-out infinite; }
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
-        .fade-in { animation: fadeInUp 0.7s ease both; }
-        .step-connector { position: absolute; top: 32px; left: 50%; right: -50%; height: 2px; background: linear-gradient(90deg, #7c3aed, #a78bfa); z-index: 0; }
+        :root { --ink:#16213d; --navy:#17205c; --violet:#5135d8; --electric:#6f58ff; --cyan:#36d8e8; --sun:#ffd447; --coral:#ff6f91; --paper:#f7f8ff; }
+        * { box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body { font-family:'Nunito',sans-serif; color:var(--ink); background:var(--paper); }
+        .fredoka { font-family:'Fredoka One',cursive; letter-spacing:-.025em; }
+        button,a { touch-action:manipulation; }
+        a:focus-visible,button:focus-visible { outline:4px solid var(--sun); outline-offset:4px; }
+        .landing-nav { background:rgba(247,248,255,.88); border-bottom:1px solid rgba(81,53,216,.12); box-shadow:0 8px 30px rgba(35,31,103,.08); }
+        .landing-logo { filter:drop-shadow(0 5px 4px rgba(81,53,216,.18)); }
+        .hero-gradient { background:var(--navy); position:relative; isolation:isolate; }
+        .hero-gradient:before { content:""; position:absolute; inset:0; opacity:.42; background-image:radial-gradient(circle at 12% 20%,#48e2e8 0 1px,transparent 2px),radial-gradient(circle at 78% 24%,#ffd447 0 2px,transparent 3px),radial-gradient(circle at 64% 78%,#ff6f91 0 1px,transparent 2px); background-size:140px 140px,190px 190px,110px 110px; }
+        .hero-gradient:after { content:""; position:absolute; width:900px; height:600px; right:-260px; top:-280px; z-index:-1; background:radial-gradient(ellipse,#6146e5 0%,rgba(81,53,216,.38) 45%,transparent 70%); }
+        .hero-showcase { position:relative; width:min(610px,48vw); padding:10px; border-radius:30px; background:linear-gradient(135deg,rgba(54,216,232,.95),rgba(111,88,255,.92) 48%,rgba(255,111,145,.9)); box-shadow:0 35px 90px rgba(6,8,61,.55),inset 0 0 0 1px rgba(255,255,255,.45); transform:rotate(2deg); }
+        .hero-showcase:before { content:""; position:absolute; inset:-18px; z-index:-1; border:1px solid rgba(54,216,232,.38); border-radius:42px; transform:rotate(-4deg); }
+        .hero-showcase img { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:21px; box-shadow:0 12px 35px rgba(5,8,50,.38); }
+        .hero-showcase-label { position:absolute; top:-20px; left:28px; display:flex; align-items:center; gap:8px; padding:9px 14px; border-radius:999px; color:#171b51; background:var(--sun); box-shadow:0 10px 24px rgba(6,8,61,.3); font-size:12px; font-weight:900; letter-spacing:.04em; text-transform:uppercase; }
+        .hero-showcase-label:before { content:""; width:9px; height:9px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.2); }
+        .code-float { background:#fff; color:var(--ink); box-shadow:0 18px 35px rgba(6,8,61,.28); border-radius:14px; font-family:monospace; font-weight:800; padding:10px 14px; }
+        .code-float span:first-child { color:#6843de; }
+        .badge-pill { display:inline-flex; align-items:center; gap:7px; background:#eeeaff; color:#5135d8; border:1px solid #d8d0ff; border-radius:999px; padding:7px 15px; font-size:13px; font-weight:900; letter-spacing:.02em; }
+        .hero-badge { background:rgba(54,216,232,.13); color:#a9f4f8; border-color:rgba(54,216,232,.4); }
+        .hero-title { text-wrap:balance; text-shadow:0 7px 0 rgba(23,32,92,.25); }
+        .hero-title .sun { color:var(--sun); }
+        .hero-title .pink { color:#ff87ab; }
+        .primary-cta { background:var(--sun); color:#25204d; box-shadow:0 10px 0 #d79d24,0 20px 30px rgba(0,0,0,.2); }
+        .primary-cta:hover { transform:translateY(-3px); box-shadow:0 13px 0 #d79d24,0 24px 34px rgba(0,0,0,.25); }
+        .secondary-cta { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.35); }
+        .secondary-cta:hover { background:rgba(255,255,255,.2); transform:translateY(-3px); }
+        .stat-band { background:#241b78; }
+        .stat-card { background:rgba(255,255,255,.08); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.15); transition:transform .25s ease,background .25s ease; }
+        .stat-card:hover { transform:translateY(-4px); background:rgba(54,216,232,.14); }
+        .section-surface { background:var(--paper); }
+        .section-white { background:#fff; }
+        .feature-card,.landing-leader-card { transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease; }
+        .feature-card { border:1px solid #e5e5f5; box-shadow:0 10px 30px rgba(34,31,103,.06); }
+        .feature-card:hover,.landing-leader-card:hover { transform:translateY(-7px); box-shadow:0 20px 45px rgba(61,43,176,.16); border-color:#b9b0ff; }
+        .curriculum-card { box-shadow:0 18px 35px rgba(42,31,112,.09); }
+        .school-section { background:linear-gradient(120deg,#25166e,#3c278f 53%,#1c7898); }
+        .footer-dark { background:#111536; }
+        .landing-lang-toggle { min-width:82px; }
+        .landing-leader-card { background:#fff; border:1px solid #e4e2fa; }
+        [dir="rtl"] .landing-hero-copy { direction:rtl; }
+        [dir="rtl"] .hero-title { text-shadow:none; }
+        @keyframes float { 0%,100% { transform:translateY(0) rotate(2deg); } 50% { transform:translateY(-12px) rotate(1deg); } }
+        .float-anim { animation:float 4.5s ease-in-out infinite; }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        .fade-in { animation:fadeInUp .8s cubic-bezier(.2,.8,.2,1) both; }
+        @media (max-width:1023px) { .hero-showcase { width:min(680px,92vw); } }
+        @media (max-width:767px) { .hero-title { font-size:3.2rem; } .code-float { font-size:11px; padding:8px 10px; } .hero-showcase { width:94vw; padding:7px; border-radius:22px; transform:rotate(1deg); } .hero-showcase img { border-radius:16px; } .hero-showcase-label { top:-17px; left:18px; font-size:10px; padding:7px 11px; } }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important; } }
     </style>
 </head>
-<body class="bg-white overflow-x-hidden">
+<body class="overflow-x-hidden">
 
 <!-- ========== NAVBAR ========== -->
-<nav class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-purple-100">
+<nav class="landing-nav fixed top-0 left-0 right-0 z-50 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <a href="/" class="flex items-center gap-3">
-            <img src="/static/steam-logo.png" alt="STEMO Coding" class="h-10 object-contain">
-            <span class="fredoka text-2xl text-purple-700 tracking-wide">STEMO Coding</span>
+            <img src="/static/steam-logo.png" alt="STEMO Coding" class="landing-logo h-10 object-contain">
+            <span class="fredoka text-2xl text-[#5135d8] tracking-wide">STEMO Coding</span>
         </a>
         <div class="flex items-center gap-2 sm:gap-3">
-            <button id="landingLangToggle" onclick="toggleLandingLanguage()" class="landing-lang-toggle px-3 py-2 rounded-full border-2 border-purple-200 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm" aria-label="Switch language">العربية</button>
-            <a href="/login" data-landing-i18n="Login" class="px-4 sm:px-5 py-2 rounded-full border-2 border-purple-600 text-purple-700 font-bold hover:bg-purple-50 transition-all text-sm">Login</a>
-            <a href="/register" data-landing-i18n="Register as Student" class="hidden sm:inline-block px-5 py-2 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-700 transition-all text-sm shadow-md">Register as Student</a>
+            <button id="landingLangToggle" onclick="toggleLandingLanguage()" class="landing-lang-toggle px-3 py-2 rounded-full border-2 border-[#d8d0ff] text-[#5135d8] font-bold hover:bg-[#eeeaff] transition-all text-sm" aria-label="Switch language">العربية</button>
+            <a href="/login" data-landing-i18n="Login" class="px-4 sm:px-5 py-2 rounded-full border-2 border-[#5135d8] text-[#5135d8] font-bold hover:bg-[#eeeaff] transition-all text-sm">Login</a>
+            <a href="/register" data-landing-i18n="Register as Student" class="hidden sm:inline-block px-5 py-2 rounded-full bg-[#5135d8] text-white font-bold hover:bg-[#3d28b1] transition-all text-sm shadow-md">Register as Student</a>
         </div>
     </div>
 </nav>
 
 <!-- ========== HERO ========== -->
-<section class="hero-gradient min-h-screen flex items-center pt-20 pb-16 relative overflow-hidden">
+<section class="hero-gradient min-h-screen flex items-center pt-28 pb-20 relative overflow-hidden">
     <div class="absolute inset-0 opacity-10">
         <div class="absolute top-10 left-10 text-9xl">🤖</div>
         <div class="absolute top-40 right-20 text-7xl">⭐</div>
@@ -13377,47 +13406,43 @@ const landingPage = `<!DOCTYPE html>
         <div class="absolute top-1/2 left-1/4 text-6xl">🧩</div>
     </div>
     <div class="max-w-7xl mx-auto px-6 relative z-10">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.04fr_.96fr] gap-12 lg:gap-20 items-center">
             <div class="text-white fade-in landing-hero-copy">
-                <div class="badge-pill mb-6" style="background:rgba(255,255,255,0.15);color:#e9d5ff;border-color:rgba(255,255,255,0.3);">
-                    <span>🏆</span> <span data-landing-i18n="Trusted by schools across the region">Trusted by schools across the region</span>
+                <div class="badge-pill hero-badge mb-6">
+                    <span>✦</span> <span data-landing-i18n="Trusted by schools across the region">Trusted by schools across the region</span>
                 </div>
-                <h1 class="fredoka text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
+                <h1 class="fredoka hero-title text-5xl md:text-6xl lg:text-7xl leading-tight mb-6">
                     <span data-landing-i18n="Where Kids Learn">Where Kids Learn</span><br>
-                    <span style="color:#fbbf24;" data-landing-i18n="Coding & Robotics">Coding & Robotics</span><br>
-                    <span data-landing-i18n="Through Play!">Through Play!</span>
+                    <span class="sun" data-landing-i18n="Coding & Robotics">Coding & Robotics</span><br>
+                    <span class="pink" data-landing-i18n="Through Play!">Through Play!</span>
                 </h1>
-                <p class="text-xl text-purple-200 mb-8 leading-relaxed max-w-lg" data-landing-i18n="STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.">
+                <p class="text-xl text-[#cdd4ff] mb-8 leading-relaxed max-w-lg" data-landing-i18n="STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.">
                     STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a href="/register" data-landing-i18n="🚀 Start for Free" class="px-8 py-4 rounded-full bg-yellow-400 text-gray-900 font-extrabold text-lg hover:bg-yellow-300 transition-all shadow-xl glow hover:scale-105">
+                    <a href="/register" data-landing-i18n="🚀 Start for Free" class="primary-cta px-8 py-4 rounded-full font-extrabold text-lg transition-all">
                         🚀 Start for Free
                     </a>
-                    <a href="/login" data-landing-i18n="🔐 Login to Platform" class="px-8 py-4 rounded-full bg-white/20 text-white font-bold text-lg hover:bg-white/30 transition-all border border-white/30">
+                    <a href="/login" data-landing-i18n="🔐 Login to Platform" class="secondary-cta px-8 py-4 rounded-full text-white font-bold text-lg transition-all">
                         🔐 Login to Platform
                     </a>
                 </div>
                 <div class="mt-10 flex flex-wrap gap-6">
-                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="No credit card required">No credit card required</span>
+                    <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="No credit card required">No credit card required</span>
                     </div>
-                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="Free for students">Free for students</span>
+                    <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Free for students">Free for students</span>
                     </div>
-                    <div class="flex items-center gap-2 text-purple-200 text-sm font-semibold">
-                        <i class="fas fa-check-circle text-green-400"></i> <span data-landing-i18n="Teacher-approved content">Teacher-approved content</span>
+                    <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Teacher-approved content">Teacher-approved content</span>
                     </div>
                 </div>
             </div>
-            <div class="flex justify-center lg:justify-end">
-                <div class="relative float-anim">
-                    <div class="w-64 h-64 md:w-80 md:h-80 rounded-full bg-white/10 flex items-center justify-center border-4 border-white/20 shadow-2xl" style="box-shadow:0 0 60px rgba(167,139,250,0.5);">
-                        <img src="/static/steam-logo.png" alt="STEMO Robot" class="w-48 md:w-64 object-contain drop-shadow-2xl">
-                    </div>
-                    <div class="absolute -top-4 -right-4 bg-yellow-400 text-gray-900 rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">⭐ +50 XP!</div>
-                    <div class="absolute -bottom-4 -left-4 bg-green-500 text-white rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">🏆 Level Up!</div>
-                    <div class="absolute top-1/2 -left-8 bg-blue-500 text-white rounded-2xl px-4 py-2 font-bold text-sm shadow-lg">🧩 Block Done!</div>
+            <div class="flex justify-center lg:justify-end py-8 lg:py-0">
+                <div class="hero-showcase float-anim">
+                    <div class="hero-showcase-label">Live coding adventure</div>
+                    <img src="/static/stemo-kids-coding.png" alt="Children learning visual coding with the STEMO robot platform">
                 </div>
             </div>
         </div>
@@ -13425,7 +13450,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== STATS ========== -->
-<section class="bg-purple-700 py-12">
+<section class="stat-band py-12">
     <div class="max-w-6xl mx-auto px-6">
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
             <div class="stat-card rounded-2xl p-5">
@@ -13453,7 +13478,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== PUBLIC LEADERBOARD ========== -->
-<section id="landing-leaderboard" class="py-24 bg-white">
+<section id="landing-leaderboard" class="py-24 section-white">
     <div class="max-w-6xl mx-auto px-6">
         <div class="text-center mb-12">
             <span class="badge-pill mb-4">🏆 <span data-landing-i18n="Student Spotlight">Student Spotlight</span></span>
@@ -13468,7 +13493,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== HOW IT WORKS ========== -->
-<section class="py-24 bg-gray-50">
+<section class="py-24 section-surface">
     <div class="max-w-6xl mx-auto px-6">
         <div class="text-center mb-16">
                 <span class="badge-pill mb-4">⚡ <span data-landing-i18n="Simple & Powerful">Simple & Powerful</span></span>
@@ -13496,7 +13521,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== WHAT KIDS LEARN ========== -->
-<section class="py-24 bg-white">
+<section class="py-24 section-white">
     <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
             <span class="badge-pill mb-4">📚 Full Curriculum</span>
@@ -13505,7 +13530,7 @@ const landingPage = `<!DOCTYPE html>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             <!-- Beginner -->
-            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+            <div class="curriculum-card rounded-3xl overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-green-400 to-emerald-500 p-5 text-white">
                     <div class="text-3xl mb-2">🟢</div>
                     <div class="fredoka text-2xl">Beginner</div>
@@ -13520,7 +13545,7 @@ const landingPage = `<!DOCTYPE html>
                 </div>
             </div>
             <!-- Intermediate -->
-            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+            <div class="curriculum-card rounded-3xl overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-blue-400 to-cyan-500 p-5 text-white">
                     <div class="text-3xl mb-2">🔵</div>
                     <div class="fredoka text-2xl">Intermediate</div>
@@ -13534,7 +13559,7 @@ const landingPage = `<!DOCTYPE html>
                 </div>
             </div>
             <!-- Advanced -->
-            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+            <div class="curriculum-card rounded-3xl overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-orange-400 to-red-500 p-5 text-white">
                     <div class="text-3xl mb-2">🔴</div>
                     <div class="fredoka text-2xl">Advanced</div>
@@ -13548,7 +13573,7 @@ const landingPage = `<!DOCTYPE html>
                 </div>
             </div>
             <!-- Expert -->
-            <div class="rounded-3xl overflow-hidden shadow-lg border border-gray-100">
+            <div class="curriculum-card rounded-3xl overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-purple-500 to-violet-600 p-5 text-white">
                     <div class="text-3xl mb-2">🟣</div>
                     <div class="fredoka text-2xl">Expert</div>
@@ -13583,7 +13608,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== FEATURES ========== -->
-<section class="py-24 bg-gray-50">
+<section class="py-24 section-surface">
     <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-16">
             <span class="badge-pill mb-4">🎯 Platform Features</span>
@@ -13656,7 +13681,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== FOR SCHOOLS ========== -->
-<section class="py-24 bg-gradient-to-br from-purple-900 via-violet-900 to-indigo-900 relative overflow-hidden">
+<section class="school-section py-24 relative overflow-hidden">
     <div class="absolute inset-0 opacity-5 text-9xl flex flex-wrap gap-8 p-8">
         <span>🏫</span><span>📚</span><span>🎓</span><span>🌟</span><span>💡</span><span>🏫</span><span>📚</span>
     </div>
@@ -13722,7 +13747,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== FOR PARENTS ========== -->
-<section class="py-24 bg-gray-50">
+<section class="py-24 section-surface">
     <div class="max-w-6xl mx-auto px-6">
         <div class="text-center mb-16">
             <span class="badge-pill mb-4">👨‍👩‍👧 For Parents</span>
@@ -13780,7 +13805,7 @@ const landingPage = `<!DOCTYPE html>
 </section>
 
 <!-- ========== FOOTER ========== -->
-<footer class="bg-gray-900 text-gray-400 py-12">
+<footer class="footer-dark text-gray-400 py-12">
     <div class="max-w-6xl mx-auto px-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="flex items-center gap-3">
