@@ -2376,6 +2376,15 @@ const htmlContent = `<!DOCTYPE html>
         nav .bg-white\/20 { background:rgba(255,255,255,.13) !important; border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(10px); }
         nav .bg-white\/20:hover { background:rgba(255,255,255,.22) !important; transform:translateY(-1px); }
         nav .bg-white\/20, nav button { transition:transform .2s ease,background-color .2s ease; }
+        /* Certificate: a quiet, paper-like reward that still belongs to the STEMO world. */
+        .certificate-shell { background:linear-gradient(135deg,#fffdf7,#f8fbff); border:1px solid #dbeafe; box-shadow:0 18px 45px rgba(30,64,175,.12); }
+        .certificate-paper { position:relative; overflow:hidden; background:#fffdf7; border:10px solid #f3d48b; box-shadow:inset 0 0 0 2px #8b5e34, inset 0 0 0 8px #fffdf7; }
+        .certificate-paper:before,.certificate-paper:after { content:""; position:absolute; width:170px; height:170px; border-radius:50%; border:1px solid rgba(59,130,246,.14); pointer-events:none; }
+        .certificate-paper:before { right:-65px; top:-65px; box-shadow:0 0 0 18px rgba(59,130,246,.05),0 0 0 36px rgba(245,158,11,.06); }
+        .certificate-paper:after { left:-90px; bottom:-90px; border-color:rgba(245,158,11,.18); }
+        .certificate-seal { width:82px; height:82px; border-radius:50%; border:3px solid #a16207; outline:2px solid #f3d48b; outline-offset:4px; background:radial-gradient(circle,#fff7cf 0 42%,#f5d778 43% 48%,#fff7cf 49%); color:#8a5a09; display:flex; align-items:center; justify-content:center; text-align:center; font-size:10px; font-weight:900; letter-spacing:.08em; transform:rotate(-9deg); }
+        @page { size:landscape; margin:12mm; }
+        @media print { body * { visibility:hidden !important; } #certificatePaper,#certificatePaper * { visibility:visible !important; } #certificatePaper { position:absolute; inset:0; width:100%; min-height:calc(100vh - 24mm); box-shadow:none; border-width:10px; } .certificate-actions { display:none !important; } }
         .max-w-7xl.mx-auto.p-6 { position:relative; z-index:1; }
         .max-w-7xl.mx-auto.p-6:before { content:""; position:absolute; width:180px; height:180px; right:-90px; top:260px; border-radius:50%; background:#c4b5fd; opacity:.24; filter:blur(1px); z-index:-1; }
         .max-w-7xl.mx-auto.p-6 > .flex.gap-2 { padding:8px; border:1px solid #dbeafe; background:rgba(255,255,255,.72); border-radius:22px; box-shadow:0 8px 24px rgba(30,64,175,.08); backdrop-filter:blur(12px); }
@@ -3014,6 +3023,49 @@ const htmlContent = `<!DOCTYPE html>
                 <i class="fas fa-medal text-yellow-500 mr-2"></i>Badges Collection
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="badgesGrid"></div>
+
+            <section id="certificateCard" class="certificate-shell rounded-3xl p-5 md:p-7 mt-8" aria-labelledby="certificateHeading" data-testid="card-certificate">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <p class="text-xs font-extrabold uppercase tracking-[.2em] text-indigo-500" data-i18n="certificate_label">Milestone certificate</p>
+                        <h3 id="certificateHeading" class="text-2xl font-bold text-slate-800 mt-1" data-i18n="certificate_heading">Your coding certificate</h3>
+                    </div>
+                    <div id="certificateStatus" class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800" role="status"></div>
+                </div>
+                <div id="certificateLocked" class="mt-5 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/70 p-5 text-slate-700">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl"><i class="fas fa-lock" aria-hidden="true"></i></div>
+                        <div><p class="font-bold" data-i18n="certificate_locked_title">Complete the core curriculum to unlock</p><p id="certificateProgress" class="text-sm text-slate-500 mt-1"></p></div>
+                    </div>
+                </div>
+                <div id="certificateReady" class="hidden mt-5">
+                    <div id="certificatePaper" class="certificate-paper rounded-xl p-7 md:p-12 text-center" dir="ltr">
+                        <div class="relative z-10">
+                            <div class="text-xs font-black tracking-[.35em] text-indigo-700 uppercase">STEMO</div>
+                            <div class="mt-5 text-sm font-semibold tracking-[.28em] uppercase text-slate-500">STEAM Academy</div>
+                            <h4 class="mt-4 text-3xl md:text-5xl font-black text-slate-800" data-i18n="certificate_title">Certificate of Achievement</h4>
+                            <p class="mt-5 text-slate-500" data-i18n="certificate_awarded">This is proudly presented to</p>
+                            <p id="certificateStudentName" class="mt-2 text-2xl md:text-3xl font-black text-indigo-700"></p>
+                            <p class="mt-5 text-slate-600 max-w-2xl mx-auto" data-i18n="certificate_body">for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of</p>
+                            <p class="mt-3 text-xl md:text-2xl font-black text-amber-700" data-i18n="certificate_coder_title">STEMO Certified Little Coder</p>
+                            <p class="mt-3 text-sm text-slate-500 max-w-2xl mx-auto" data-i18n="certificate_excellence">Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.</p>
+                            <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm font-bold text-slate-700">
+                                <span class="rounded-full bg-indigo-50 px-3 py-1.5" data-i18n="certificate_blockly">Blockly programming</span>
+                                <span class="rounded-full bg-amber-50 px-3 py-1.5" data-i18n="certificate_logic">Logical reasoning</span>
+                                <span class="rounded-full bg-cyan-50 px-3 py-1.5" data-i18n="certificate_robotics">Robotics automation</span>
+                            </div>
+                            <div class="mt-8 flex items-end justify-between gap-5 text-left">
+                                <div><div class="h-px w-36 bg-slate-300"></div><p class="mt-2 text-xs text-slate-500"><span data-i18n="certificate_completed">Completed</span>: <span id="certificateDate"></span></p></div>
+                                <div class="certificate-seal" aria-label="STEMO Academy seal"><span>STEMO<br>ACADEMY<br>VERIFIED</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-actions mt-4 flex flex-wrap gap-3 justify-end">
+                        <button type="button" onclick="printCertificate()" class="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 transition" data-testid="button-print-certificate"><i class="fas fa-print mr-2" aria-hidden="true"></i><span data-i18n="certificate_print">View / Print certificate</span></button>
+                        <button type="button" onclick="downloadCertificate()" class="rounded-full border border-indigo-200 bg-white px-5 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-50 transition" data-testid="button-download-certificate"><i class="fas fa-download mr-2" aria-hidden="true"></i><span data-i18n="certificate_download">Download</span></button>
+                    </div>
+                </div>
+            </section>
         </div>
 
         <!-- Profile Tab -->
@@ -4191,6 +4243,7 @@ const htmlContent = `<!DOCTYPE html>
         // Current logged-in student (populated on init)
         var currentUser = null;
         var progressRevision = null;
+        var certificateProgressDate = null;
 
         // true when a teacher/admin visits /academy — suppresses all XP, progress, and saves
         var isTeacherDemo = false;
@@ -4325,6 +4378,7 @@ const htmlContent = `<!DOCTYPE html>
                 var element = document.getElementById(id);
                 if (element) element.textContent = summaryValues[id];
             });
+            renderCertificate();
         }
 
         function applyAuthoritativeProgress(data) {
@@ -4351,6 +4405,7 @@ const htmlContent = `<!DOCTYPE html>
             stemo.badges = serverBadges;
             stemo.streak = Number(data.streak || 0);
             progressRevision = String(data.progress_revision || '');
+            certificateProgressDate = progressRevision || certificateProgressDate;
             localStorage.setItem('stemo_xp', stemo.xp);
             localStorage.setItem('stemo_level', stemo.level);
             localStorage.setItem('stemo_completed', JSON.stringify(stemo.completedLessons));
@@ -4501,6 +4556,7 @@ const htmlContent = `<!DOCTYPE html>
                         throw new Error('Curriculum response is incomplete');
                     }
                     curriculumData = data;
+                    renderCertificate();
                     var html = '';
                     
                     const levels = [
@@ -4845,6 +4901,46 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // BADGES
         // ============================================
+        function certificateRequirements() {
+            if (!curriculumData) return { total: 0, done: 0, ready: false };
+            var required = [].concat(curriculumData.basic || [], curriculumData.intermediate || [], curriculumData.advanced || []);
+            var done = required.filter(function(lesson) { return stemo.completedLessons.indexOf(lesson.id) !== -1; }).length;
+            return { total: required.length, done: done, ready: required.length > 0 && done === required.length };
+        }
+        function renderCertificate() {
+            var card = document.getElementById('certificateCard');
+            if (!card) return;
+            var req = certificateRequirements();
+            var locked = document.getElementById('certificateLocked');
+            var ready = document.getElementById('certificateReady');
+            var status = document.getElementById('certificateStatus');
+            var progress = document.getElementById('certificateProgress');
+            if (!req.ready) {
+                locked.classList.remove('hidden'); ready.classList.add('hidden');
+                status.textContent = currentLang === 'ar' ? 'مقفل' : 'Locked';
+                progress.textContent = currentLang === 'ar'
+                    ? 'أكملت ' + req.done + ' من ' + req.total + ' درساً أساسياً ومتوسطاً ومتقدماً.'
+                    : req.done + ' of ' + req.total + ' core lessons completed. Creative and challenge lessons are optional.';
+                return;
+            }
+            locked.classList.add('hidden'); ready.classList.remove('hidden');
+            status.textContent = currentLang === 'ar' ? 'مكتمل' : 'Completed';
+            var name = (currentUser && (currentUser.full_name || currentUser.username)) || document.getElementById('studentName').textContent || 'STEMO student';
+            document.getElementById('certificateStudentName').textContent = name;
+            var rawDate = certificateProgressDate ? String(certificateProgressDate).split('|')[0] : new Date().toISOString();
+            var date = new Date(rawDate);
+            if (isNaN(date.getTime())) date = new Date();
+            document.getElementById('certificateDate').textContent = date.toLocaleDateString(currentLang === 'ar' ? 'ar' : 'en', { year:'numeric', month:'long', day:'numeric' });
+        }
+        function printCertificate() {
+            var req = certificateRequirements();
+            if (!req.ready) return;
+            window.print();
+        }
+        function downloadCertificate() {
+            // The browser print dialog provides a reliable, accessible PDF/download path.
+            printCertificate();
+        }
         function isBadgeEarned(badge) {
             if (stemo.badges.includes(badge.id)) return true;
             if (badge.type === 'lessons') return stemo.completedLessons.length >= badge.threshold;
@@ -8090,6 +8186,15 @@ const htmlContent = `<!DOCTYPE html>
         var I18N = {
             en: {
                 tab_learn: 'Learn', tab_code: 'Code', tab_achievements: 'Achievements',
+                certificate_label: 'Milestone certificate', certificate_heading: 'Your coding certificate',
+                certificate_locked_title: 'Complete the core curriculum to unlock',
+                certificate_title: 'Certificate of Achievement', certificate_awarded: 'This is proudly presented to',
+                certificate_body: 'for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of',
+                certificate_coder_title: 'STEMO Certified Little Coder',
+                certificate_excellence: 'Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.',
+                certificate_completed: 'Completed',
+                certificate_print: 'View / Print certificate', certificate_download: 'Download',
+                certificate_blockly: 'Blockly programming', certificate_logic: 'Logical reasoning', certificate_robotics: 'Robotics automation',
                 tab_profile: 'My Profile', tab_leaderboard: 'Leaderboard', tab_videos: 'Video Training', tab_interactive: 'Interactive Lessons',
                 interactive_title: 'Interactive Lessons', interactive_subtitle: 'Explore interactive activities prepared by your academy.',
                 interactive_loading: 'Loading interactive lessons...', interactive_empty: 'No interactive lessons available yet.', interactive_open: 'Open Lesson', btn_refresh: 'Refresh',
@@ -8109,6 +8214,15 @@ const htmlContent = `<!DOCTYPE html>
             },
             ar: {
                 tab_learn: 'تعلّم', tab_code: 'برمجة', tab_achievements: 'الإنجازات',
+                certificate_label: 'شهادة إنجاز', certificate_heading: 'شهادتك في البرمجة',
+                certificate_locked_title: 'أكمل المنهج الأساسي لفتح الشهادة',
+                certificate_title: 'شهادة إنجاز', certificate_awarded: 'تُقدَّم بكل فخر إلى',
+                certificate_body: 'لإتمام مناهج المستوى الأساسي والمتوسط والمتقدم بنجاح والحصول على لقب',
+                certificate_coder_title: 'مبرمج STEMO الصغير المعتمد',
+                certificate_excellence: 'تقديراً للتميز في برمجة Blockly والتفكير المنطقي وأتمتة الروبوتات.',
+                certificate_completed: 'تاريخ الإكمال',
+                certificate_print: 'عرض / طباعة الشهادة', certificate_download: 'تنزيل',
+                certificate_blockly: 'برمجة Blockly', certificate_logic: 'التفكير المنطقي', certificate_robotics: 'أتمتة الروبوتات',
                 tab_profile: 'ملفي', tab_leaderboard: 'المتصدّرون', tab_videos: 'دروس فيديو', tab_interactive: 'دروس تفاعلية',
                 interactive_title: 'دروس تفاعلية', interactive_subtitle: 'اكتشف أنشطة تفاعلية أعدّتها أكاديميتك.',
                 interactive_loading: 'جارٍ تحميل الدروس التفاعلية...', interactive_empty: 'لا توجد دروس تفاعلية متاحة بعد.', interactive_open: 'فتح الدرس', btn_refresh: 'تحديث',
