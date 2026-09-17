@@ -2309,6 +2309,31 @@ const htmlContent = `<!DOCTYPE html>
             box-shadow: 0 -10px 28px rgba(30,41,59,.20);
         }
         #panelChat { padding: 12px; }
+        #chatDrawerHeader, #ccDrawerHeader {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin: -4px -2px 9px;
+            padding: 0 0 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        #chatMinimizeBtn, #ccMinimizeBtn {
+            width: auto !important;
+            height: auto !important;
+            min-height: 30px;
+            padding: 5px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+            cursor: pointer;
+        }
+        #chatMinimizeBtn {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        #chatMinimizeBtn:hover { background: #c7d2fe; }
         #chatMessages {
             height: min(220px, 28vh);
             min-height: 110px;
@@ -2317,6 +2342,17 @@ const htmlContent = `<!DOCTYPE html>
         #chatInput { padding-top: 8px; padding-bottom: 8px; }
         #panelChat button { width: 38px; height: 38px; }
         #panelCC #ccMessages { height: 170px !important; }
+        #ccDrawerHeader {
+            margin: 0;
+            padding: 9px 12px;
+            border-bottom: 1px solid #1e293b;
+        }
+        #ccMinimizeBtn {
+            background: rgba(255,255,255,.1);
+            color: #bae6fd;
+            border: 1px solid rgba(125,211,252,.25);
+        }
+        #ccMinimizeBtn:hover { background: rgba(255,255,255,.2); }
         #panelCC > div:first-child { padding-top: 9px !important; padding-bottom: 9px !important; }
         #panelCC > div:last-child { padding-top: 8px !important; padding-bottom: 8px !important; }
         @media (max-width: 1023px) {
@@ -2980,6 +3016,15 @@ const htmlContent = `<!DOCTYPE html>
 
                     <!-- STEMO Chat panel -->
                     <div id="panelChat" style="display:none;" class="bg-white p-3">
+                        <div id="chatDrawerHeader">
+                            <div class="flex items-center gap-2 text-indigo-700 text-xs font-extrabold">
+                                <span class="text-base">🤖</span>
+                                <span>STEMO Chat</span>
+                            </div>
+                            <button id="chatMinimizeBtn" onclick="switchRobotTab('chat')" aria-label="Minimize STEMO Chat">
+                                ⬇ Minimize Chat
+                            </button>
+                        </div>
                         <div id="chatMessages" class="overflow-y-auto space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
@@ -3001,10 +3046,13 @@ const htmlContent = `<!DOCTYPE html>
                     <!-- Command Center panel -->
                     <div id="panelCC" style="display:none;background:#0f172a;">
                         <!-- CC header -->
-                        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #1e293b;">
+                        <div id="ccDrawerHeader" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #1e293b;">
                             <div id="ccPulseDot" style="width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 7px #4ade80;animation:ccPulse 1.5s infinite;flex-shrink:0;"></div>
                             <span style="color:#4ade80;font-family:monospace;font-size:11px;font-weight:700;letter-spacing:1px;">COMMAND CENTER — UPLINK ACTIVE</span>
-                            <button onclick="clearCC()" title="Clear log" style="margin-left:auto;background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 7px;cursor:pointer;">CLR</button>
+                            <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+                                <button id="ccMinimizeBtn" onclick="switchRobotTab('cc')" aria-label="Minimize Command Center">⬇ Minimize</button>
+                                <button onclick="clearCC()" title="Clear log" style="background:rgba(255,255,255,0.08);border:none;color:#6b7280;font-size:10px;border-radius:4px;padding:1px 7px;cursor:pointer;">CLR</button>
+                            </div>
                         </div>
                         <!-- Transmission log -->
                         <div id="ccMessages" style="height:96px;overflow-y:auto;font-family:monospace;font-size:11px;line-height:1.6;padding:6px 12px;">
