@@ -197,6 +197,8 @@ const appSource = readFileSync(new URL('../src/index.tsx', import.meta.url), 'ut
 assert.match(appSource, /var tutorRequestQueue = Promise\.resolve\(\)/)
 assert.match(appSource, /tutorRequestQueue = tutorRequestQueue\.catch/)
 assert.match(appSource, /bodyLimit\(\{\s*maxSize: 50000/)
+assert.match(appSource, /@cf\/meta\/llama-3\.1-8b-instruct/)
+assert.doesNotMatch(appSource, /@cf\/meta\/llama-3-8b-instruct/)
 assert.match(appSource, /@cf\/meta\/llama-guard-3-8b/)
 assert.match(appSource, /Safety moderation failed; using deterministic fallback/)
 assert.ok(
