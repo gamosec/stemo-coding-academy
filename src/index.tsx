@@ -13561,13 +13561,13 @@ const landingPage = `<!DOCTYPE html>
                 </div>
                 <div class="mt-10 flex flex-wrap gap-6">
                     <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
-                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="No credit card required">No credit card required</span>
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Subscribe now">Subscribe now</span>
                     </div>
                     <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
-                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Free for students">Free for students</span>
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="For individuals and schools">For individuals and schools</span>
                     </div>
                     <div class="flex items-center gap-2 text-[#cdd4ff] text-sm font-semibold">
-                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Teacher-approved content">Teacher-approved content</span>
+                        <i class="fas fa-check-circle text-[#36d8e8]"></i> <span data-landing-i18n="Includes approved interactive lessons">Includes approved interactive lessons</span>
                     </div>
                 </div>
             </div>
@@ -13971,9 +13971,9 @@ const landingPage = `<!DOCTYPE html>
             'STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.': 'ستيمو كودنج منصة تفاعلية مدعومة بالذكاء الاصطناعي تعلّم الأطفال البرمجة والروبوتات من خلال الألعاب والتحديات ومرشد روبوت ودود — ولا تحتاج إلى خبرة سابقة.',
             '🚀 Start for Free': '🚀 ابدأ مجاناً',
             '🔐 Login to Platform': '🔐 الدخول إلى المنصة',
-            'No credit card required': 'لا تحتاج إلى بطاقة ائتمان',
-            'Free for students': 'مجاني للطلاب',
-            'Teacher-approved content': 'محتوى معتمد من المعلمين',
+            'Subscribe now': 'اشترك الآن',
+            'For individuals and schools': 'للأفراد والمدارس',
+            'Includes approved interactive lessons': 'يتضمن دروسًا تفاعلية معتمدة',
             'Lessons': 'درساً',
             'Difficulty Levels': 'مستويات صعوبة',
             'Block Types': 'نوعاً من اللبنات',
