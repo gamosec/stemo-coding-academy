@@ -85,6 +85,20 @@ assert.equal(openPath.shape, 'open_path')
 assert.equal(openPath.closed, false)
 assert.equal(summarizeDrawing([]).shape, 'none')
 
+const octagonPoints = Array.from({ length: 9 }, (_, index) => {
+  const angle = index * Math.PI / 4
+  return { x: 100 + Math.cos(angle) * 80, y: 100 + Math.sin(angle) * 80 }
+})
+const octagonContext = normalizeTutorContext({
+  language: 'en',
+  drawing: { trails: pathTrails(octagonPoints, 5) },
+}, {})
+assert.equal(octagonContext.drawing.shape, 'polygon')
+assert.equal(octagonContext.drawing.sideCount, 8)
+assert.equal(octagonContext.drawing.label, 'an octagon')
+assert.match(createFallbackTutorResponse(octagonContext, 'run_complete'), /octagon/)
+assert.match(createFallbackTutorResponse(octagonContext, 'run_complete'), /45°/)
+
 const program = summarizeProgram([
   { action: 'pen', value: true },
   { action: 'move', value: 20 },

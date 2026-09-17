@@ -94,6 +94,15 @@ function quadrilateralHasRightTurns(sides) {
   })
 }
 
+const ENGLISH_POLYGON_NAMES = {
+  5: 'pentagon',
+  6: 'hexagon',
+  7: 'heptagon',
+  8: 'octagon',
+  9: 'nonagon',
+  10: 'decagon',
+}
+
 export function summarizeDrawing(rawTrails) {
   const trails = sanitizeTrails(rawTrails)
   if (trails.length === 0) {
@@ -157,7 +166,9 @@ export function summarizeDrawing(rawTrails) {
     }
   } else if (closed && sides.length >= 5 && sides.length <= 12) {
     shape = 'polygon'
-    label = `a ${sides.length}-sided polygon`
+    const polygonName = ENGLISH_POLYGON_NAMES[sides.length]
+    label = polygonName ? `a${polygonName === 'octagon' ? 'n' : ''} ${polygonName}` : `a ${sides.length}-sided polygon`
+    evidence = `The trail closes after ${sides.length} connected sides.`
   }
 
   return {
@@ -311,10 +322,12 @@ Do not give a complete challenge solution. Give a hint that helps the child reas
 
 export function createFallbackTutorResponse(context, eventType = 'chat') {
   const shape = context.drawing
+  const polygonTurn = shape.sideCount > 0 ? Math.round((360 / shape.sideCount) * 10) / 10 : 0
   if (context.language === 'ar') {
     if (shape.shape === 'square') return '🎨 رسمت مربعًا! له أربعة أضلاع متقاربة وأربع زوايا قائمة. جرّب استخدام كتلة التكرار لرسمه بكتل أقل.'
     if (shape.shape === 'rectangle') return '🎨 رسمت مستطيلًا! الضلعان المتقابلان متساويان وتستخدم زوايا 90°. جرّب تغيير طول ضلعين فقط.'
     if (shape.shape === 'triangle') return '🎨 رسمت مثلثًا! عاد المسار إلى البداية بعد ثلاثة أضلاع. جرّب لونًا جديدًا أو حجم قلم مختلفًا.'
+    if (shape.shape === 'polygon') return `🎨 رسمت مضلعًا من ${shape.sideCount} أضلاع متصلة! لرسم مضلع منتظم استخدم زاوية دوران ${polygonTurn}°.`
     if (shape.shape !== 'none') return `🎨 رسمت ${shape.sideCount} مقاطع رئيسية${shape.closed ? ' وأغلقت المسار' : ''}. فكّر في الزاوية التي تحتاجها لجعل الشكل التالي منتظمًا.`
     return eventType === 'run_complete'
       ? '🤖 نفّذت برنامجك بنجاح! أضف القلم للأسفل مع الحركة إذا أردت أن أرسم شكلك وأصفه.'
@@ -324,6 +337,11 @@ export function createFallbackTutorResponse(context, eventType = 'chat') {
     if (shape.shape === 'square') return '🎨 ¡Dibujaste un cuadrado! Tiene cuatro lados parecidos y cuatro giros de 90°. Intenta usar Repetir para hacerlo con menos bloques.'
     if (shape.shape === 'rectangle') return '🎨 ¡Dibujaste un rectángulo! Los lados opuestos coinciden y los giros son de 90°. Prueba a cambiar solo dos longitudes.'
     if (shape.shape === 'triangle') return '🎨 ¡Dibujaste un triángulo! El camino volvió al inicio después de tres lados. Prueba otro color o grosor.'
+    if (shape.shape === 'polygon') {
+      const names = { 5: 'pentágono', 6: 'hexágono', 7: 'heptágono', 8: 'octágono', 9: 'nonágono', 10: 'decágono' }
+      const name = names[shape.sideCount] || `polígono de ${shape.sideCount} lados`
+      return `🎨 ¡Dibujaste un ${name}! Tiene ${shape.sideCount} lados conectados; un polígono regular usa giros de ${polygonTurn}°.`
+    }
     return shape.shape !== 'none'
       ? `🎨 Tu dibujo tiene ${shape.sideCount} secciones principales${shape.closed ? ' y forma un camino cerrado' : ''}. Prueba a ajustar el siguiente giro.`
       : '🤖 Ejecuté tu programa. Baja el lápiz y añade movimiento para que pueda reconocer tu dibujo.'
@@ -332,6 +350,11 @@ export function createFallbackTutorResponse(context, eventType = 'chat') {
     if (shape.shape === 'square') return '🎨 Tu as dessiné un carré ! Il a quatre côtés proches et quatre angles droits. Essaie Répéter pour utiliser moins de blocs.'
     if (shape.shape === 'rectangle') return '🎨 Tu as dessiné un rectangle ! Les côtés opposés correspondent et les virages font 90°. Essaie de modifier seulement deux longueurs.'
     if (shape.shape === 'triangle') return '🎨 Tu as dessiné un triangle ! Le tracé revient au départ après trois côtés. Essaie une autre couleur ou épaisseur.'
+    if (shape.shape === 'polygon') {
+      const names = { 5: 'pentagone', 6: 'hexagone', 7: 'heptagone', 8: 'octogone', 9: 'ennéagone', 10: 'décagone' }
+      const name = names[shape.sideCount] || `polygone à ${shape.sideCount} côtés`
+      return `🎨 Tu as dessiné un ${name} ! Il a ${shape.sideCount} côtés reliés ; un polygone régulier utilise des rotations de ${polygonTurn}°.`
+    }
     return shape.shape !== 'none'
       ? `🎨 Ton dessin contient ${shape.sideCount} sections principales${shape.closed ? ' et forme un tracé fermé' : ''}. Essaie d'ajuster le prochain angle.`
       : '🤖 J’ai exécuté ton programme. Baisse le stylo et ajoute un mouvement pour que je reconnaisse ton dessin.'
@@ -339,6 +362,10 @@ export function createFallbackTutorResponse(context, eventType = 'chat') {
   if (shape.shape === 'square') return '🎨 You drew a square! It has four nearly equal sides and four right-angle turns. Try using a Repeat block to draw it with fewer blocks.'
   if (shape.shape === 'rectangle') return '🎨 You drew a rectangle! Its opposite sides match and its turns are 90°. Try changing only two side lengths.'
   if (shape.shape === 'triangle') return '🎨 You drew a triangle! The path returned to its start after three sides. Try a new pen color or thickness.'
+  if (shape.shape === 'polygon') {
+    const name = ENGLISH_POLYGON_NAMES[shape.sideCount] || `${shape.sideCount}-sided polygon`
+    return `🎨 You drew a${name === 'octagon' ? 'n' : ''} ${name}! It has ${shape.sideCount} connected sides; a regular one uses ${polygonTurn}° turns.`
+  }
   if (shape.shape !== 'none') return `🎨 Your drawing has ${shape.sideCount} main line sections${shape.closed ? ' and returns to its starting point' : ''}. Think about the next turn angle that would make it more regular.`
   return eventType === 'run_complete'
     ? '🤖 I ran your program! Add Pen Down with movement if you want me to draw a shape and describe what you made.'
