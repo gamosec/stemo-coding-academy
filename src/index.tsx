@@ -2157,7 +2157,7 @@ app.post('/api/chat', authMiddleware, bodyLimit({
         if (!message || typeof message !== 'string') return c.json({ error: 'Message required' }, 400)
         if (message.length > 1000) return c.json({ error: 'Message too long (max 1000 characters)' }, 400)
         const safeEventType = eventType === 'run_complete' ? 'run_complete' : 'chat'
-        const tutorContext = normalizeTutorContext(context, curriculum)
+        const tutorContext = normalizeTutorContext(context, curriculum, message)
         const result = await generateAIResponse(c.env.AI, message, tutorContext, safeEventType)
         return c.json({
             response: result.response,
@@ -2180,7 +2180,7 @@ app.post('/api/chat', authMiddleware, bodyLimit({
 
 // Helper function for AI responses using Cloudflare Workers AI
 async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string }> {
-    const fallback = createFallbackTutorResponse(context, eventType)
+    const fallback = createFallbackTutorResponse(context, eventType, message)
     if (!ai) {
         console.warn('[STEMO AI] Workers AI binding is unavailable; using deterministic tutor feedback.')
         return { response: fallback, source: 'fallback' }
