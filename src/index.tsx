@@ -2384,12 +2384,12 @@ const htmlContent = `<!DOCTYPE html>
         .certificate-paper:after { left:-92px; bottom:-92px; border-color:rgba(219,39,119,.14); box-shadow:0 0 0 22px rgba(219,39,119,.04); }
         .certificate-logo { width:auto; height:62px; max-width:230px; object-fit:contain; margin:0 auto; filter:drop-shadow(0 4px 8px rgba(76,29,149,.12)); }
         .certificate-seal { width:86px; height:86px; border-radius:50%; border:3px solid #6d28d9; outline:2px solid #f59e0b; outline-offset:4px; background:radial-gradient(circle,#fff 0 40%,#f3e8ff 41% 48%,#fff 49%); color:#581c87; display:flex; align-items:center; justify-content:center; text-align:center; font-size:10px; font-weight:900; letter-spacing:.08em; transform:rotate(-7deg); }
-        @page { size:A4 landscape; margin:8mm; }
+        @page { size:A4 landscape; margin:0; }
         @media print {
             html,body { width:100%; height:100%; margin:0 !important; padding:0 !important; background:#fff !important; }
             body * { visibility:hidden !important; }
             #certificatePaper,#certificatePaper * { visibility:visible !important; }
-            #certificatePaper { position:fixed !important; left:8mm !important; top:8mm !important; width:calc(100% - 16mm) !important; height:calc(100% - 16mm) !important; min-height:0 !important; margin:0 !important; padding:12mm 14mm !important; border-width:10px !important; border-radius:0 !important; box-shadow:inset 0 0 0 3px #f59e0b,inset 0 0 0 9px #fff,inset 0 0 0 11px #a855f7 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+            #certificatePaper { position:fixed !important; left:0 !important; top:0 !important; width:100vw !important; height:100vh !important; box-sizing:border-box !important; min-height:0 !important; margin:0 !important; padding:12mm 14mm !important; border-width:10px !important; border-radius:0 !important; box-shadow:inset 0 0 0 3px #f59e0b,inset 0 0 0 9px #fff,inset 0 0 0 11px #a855f7 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
             #certificatePaper .certificate-logo { height:18mm; }
             .certificate-actions { display:none !important; }
         }
