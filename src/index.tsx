@@ -2163,6 +2163,7 @@ app.post('/api/chat', authMiddleware, bodyLimit({
             response: result.response,
             character: 'stemo',
             source: result.source,
+            sourceReason: result.reason,
             workSummary: {
                 drawing: tutorContext.drawing,
                 program: tutorContext.program,
@@ -2179,11 +2180,11 @@ app.post('/api/chat', authMiddleware, bodyLimit({
 })
 
 // Helper function for AI responses using Cloudflare Workers AI
-async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string }> {
+async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string; reason: string | null }> {
     const fallback = createFallbackTutorResponse(context, eventType, message)
     if (!ai) {
         console.warn('[STEMO AI] Workers AI binding is unavailable; using deterministic tutor feedback.')
-        return { response: fallback, source: 'fallback' }
+        return { response: fallback, source: 'fallback', reason: 'binding_unavailable' }
     }
 
     try {
@@ -2201,23 +2202,27 @@ async function generateAIResponse(ai: any, message: string, context: any, eventT
         ])
 
         if (result && result.response) {
-            const safeResponse = await moderateTutorResponse(ai, result.response)
-            if (safeResponse) return { response: safeResponse, source: 'ai' }
+            const moderation = await moderateTutorResponse(ai, result.response)
+            if (moderation.response) return { response: moderation.response, source: 'ai', reason: null }
             console.error('[STEMO AI] Model response rejected by child-safety moderation')
-            return { response: fallback, source: 'fallback' }
+            return { response: fallback, source: 'fallback', reason: moderation.reason }
         }
 
         console.error('[STEMO AI] Empty model response', result)
-        return { response: fallback, source: 'fallback' }
+        return { response: fallback, source: 'fallback', reason: 'empty_model_response' }
     } catch (e) {
         console.error('[STEMO AI] Workers AI request failed:', e)
-        return { response: fallback, source: 'fallback' }
+        return {
+            response: fallback,
+            source: 'fallback',
+            reason: e instanceof Error && e.message.includes('timed out') ? 'model_timeout' : 'model_request_failed',
+        }
     }
 }
 
-async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<string | null> {
+async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<{ response: string | null; reason: string | null }> {
     const response = safeTutorResponse(rawResponse)
-    if (!response) return null
+    if (!response) return { response: null, reason: 'deterministic_safety_rejected' }
     try {
         const guardResult: any = await Promise.race([
             ai.run('@cf/meta/llama-guard-3-8b', {
@@ -2230,10 +2235,15 @@ async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<str
         const verdict = typeof guardResult?.response === 'string'
             ? guardResult.response.trim()
             : ''
-        return /^safe(?:\s|$)/i.test(verdict) ? response : null
+        return /^safe(?:\s|$)/i.test(verdict)
+            ? { response, reason: null }
+            : { response: null, reason: 'guard_rejected' }
     } catch (error) {
         console.error('[STEMO AI] Safety moderation failed; using deterministic fallback:', error)
-        return null
+        return {
+            response: null,
+            reason: error instanceof Error && error.message.includes('timed out') ? 'guard_timeout' : 'guard_request_failed',
+        }
     }
 }
 
@@ -9460,6 +9470,7 @@ const htmlContent = `<!DOCTYPE html>
                     return response.json();
                 })
                 .then(function(data) {
+                    console.info('[STEMO Tutor]', data.source || 'unknown', data.sourceReason || 'ok');
                     addChatMessage('stemo', data.response || fallbackMessage);
                 })
                 .catch(function() {

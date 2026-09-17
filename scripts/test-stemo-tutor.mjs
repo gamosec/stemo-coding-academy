@@ -296,6 +296,12 @@ assert.match(appSource, /@cf\/meta\/llama-3\.1-8b-instruct/)
 assert.doesNotMatch(appSource, /@cf\/meta\/llama-3-8b-instruct/)
 assert.match(appSource, /@cf\/meta\/llama-guard-3-8b/)
 assert.match(appSource, /Safety moderation failed; using deterministic fallback/)
+assert.match(appSource, /console\.info\('\[STEMO Tutor\]'/)
+assert.match(appSource, /sourceReason: result\.reason/)
+assert.match(appSource, /binding_unavailable/)
+assert.match(appSource, /guard_request_failed/)
+const wranglerSource = readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
+assert.match(wranglerSource, /"observability":\s*\{\s*"enabled": true/)
 assert.ok(
   appSource.indexOf('checkLessonCompletion();') < appSource.indexOf('requestTutorRunFeedback(commands);'),
   'lesson completion checks must run before tutor context is captured',
