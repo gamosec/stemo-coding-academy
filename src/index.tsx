@@ -2211,7 +2211,7 @@ async function generateAIResponse(ai: any, message: string, context: any, eventT
             setTimeout(() => reject(new Error('Workers AI request timed out')), 12000)
         })
         const result: any = await Promise.race([
-            ai.run('@cf/meta/llama-3.1-8b-instruct', {
+            ai.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
                 messages,
                 max_tokens: 220,
                 temperature: 0.45,
