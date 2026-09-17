@@ -2387,9 +2387,17 @@ const htmlContent = `<!DOCTYPE html>
         @page { size:A4 landscape; margin:0; }
         @media print {
             html,body { width:100%; height:100%; margin:0 !important; padding:0 !important; background:#fff !important; }
-            body * { visibility:hidden !important; }
+            html,body { overflow:hidden !important; }
+            body > * { display:none !important; }
+            body > .max-w-7xl.mx-auto.p-6:has(#certificatePaper) { display:block !important; width:100vw !important; height:100vh !important; margin:0 !important; padding:0 !important; }
+            body > .max-w-7xl.mx-auto.p-6:has(#certificatePaper) > * { display:none !important; }
+            body > .max-w-7xl.mx-auto.p-6:has(#certificatePaper) #achievements-section { display:block !important; width:100vw !important; height:100vh !important; margin:0 !important; padding:0 !important; }
+            #achievements-section > * { display:none !important; }
+            #certificateCard { display:block !important; width:100vw !important; height:100vh !important; margin:0 !important; padding:0 !important; background:none !important; border:0 !important; box-shadow:none !important; }
+            #certificateCard > * { display:none !important; }
+            #certificateReady { display:block !important; width:100vw !important; height:100vh !important; margin:0 !important; padding:0 !important; }
             #certificatePaper,#certificatePaper * { visibility:visible !important; }
-            #certificatePaper { position:fixed !important; left:0 !important; top:0 !important; width:100vw !important; height:100vh !important; box-sizing:border-box !important; min-height:0 !important; margin:0 !important; padding:12mm 14mm !important; border-width:10px !important; border-radius:0 !important; box-shadow:inset 0 0 0 3px #f59e0b,inset 0 0 0 9px #fff,inset 0 0 0 11px #a855f7 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+            #certificatePaper { display:block !important; position:absolute !important; left:0 !important; top:0 !important; width:100vw !important; height:100vh !important; box-sizing:border-box !important; min-height:0 !important; margin:0 !important; padding:12mm 14mm !important; border-width:10px !important; border-radius:0 !important; box-shadow:inset 0 0 0 3px #f59e0b,inset 0 0 0 9px #fff,inset 0 0 0 11px #a855f7 !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; page-break-after:avoid !important; break-after:avoid !important; }
             #certificatePaper .certificate-logo { height:18mm; }
             .certificate-actions { display:none !important; }
         }
