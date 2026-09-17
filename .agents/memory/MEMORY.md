@@ -14,3 +14,4 @@
 - [Student startup hydration](student-startup-hydration.md) — progress, curriculum, badges, and profile must initialize independently; removing one refresh must not suppress another surface.
 - [GitHub–Cloudflare synchronization](github-cloudflare-sync.md) — finish releases with GitHub main and the active Cloudflare Pages source on the same commit.
 - [STEMO tutor safety boundary](stemo-tutor-safety.md) — deterministic work analysis is authoritative; AI only phrases coaching and must pass moderation plus authority-claim filtering.
+- [Tutor geometric evidence](tutor-geometric-evidence.md) — complex patterns need full bounded trail history; client and server trail caps must stay aligned.

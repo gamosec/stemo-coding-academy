@@ -2148,7 +2148,7 @@ app.get('/api/badges', authMiddleware, (c) => {
 
 // AI Chat endpoint — requires authentication
 app.post('/api/chat', authMiddleware, bodyLimit({
-    maxSize: 50000,
+    maxSize: 120000,
     onError: (c) => c.json({ error: 'Tutor request too large' }, 413),
 }), async (c) => {
     try {
@@ -2208,12 +2208,12 @@ async function generateAIResponse(ai: any, message: string, context: any, eventT
     try {
         const messages = buildTutorMessages(message, context, eventType)
         const timeout = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Workers AI request timed out')), 12000)
+            setTimeout(() => reject(new Error('Workers AI request timed out')), 23000)
         })
         const result: any = await Promise.race([
             ai.run('@cf/meta/llama-4-scout-17b-16e-instruct', {
                 messages,
-                max_tokens: 220,
+                max_tokens: 180,
                 temperature: 0.45,
             }),
             timeout,
@@ -9447,7 +9447,7 @@ const htmlContent = `<!DOCTYPE html>
             function roundedTutorNumber(value) {
                 return Math.round(Number(value || 0) * 10) / 10;
             }
-            var trails = (robot.trails || []).slice(-320).map(function(trail) {
+            var trails = (robot.trails || []).slice(-600).map(function(trail) {
                 return {
                     x1: roundedTutorNumber(trail.x1), y1: roundedTutorNumber(trail.y1),
                     x2: roundedTutorNumber(trail.x2), y2: roundedTutorNumber(trail.y2),
