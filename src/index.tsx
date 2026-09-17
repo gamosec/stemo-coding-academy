@@ -9499,7 +9499,9 @@ const htmlContent = `<!DOCTYPE html>
         function captureTutorRuntime() {
             return {
                 metalsCollected: tutorRunStats.metalsCollected,
-                metalsRemaining: metalObjects.filter(function(metal) { return !metal.pickedUp; }).length,
+                metalsRemaining: metalObjects.filter(function(metal) {
+                    return !metal.pickedUp && tutorRunStats.collectedMetalObjects.indexOf(metal) === -1;
+                }).length,
                 firesExtinguished: tutorRunStats.firesExtinguished,
                 firesRemaining: fireObjects.length,
                 magnetActivations: tutorRunStats.magnetActivations,

@@ -443,6 +443,7 @@ assert.match(appSource, /binding_unavailable/)
 assert.match(appSource, /guard_request_failed/)
 assert.match(appSource, /tutorLastRunRuntime = captureTutorRuntime\(\);/)
 assert.match(appSource, /noteTutorMetalCollection\(metal\)/)
+assert.match(appSource, /!metal\.pickedUp && tutorRunStats\.collectedMetalObjects\.indexOf\(metal\) === -1/)
 assert.match(appSource, /tutorRunStats\.firesExtinguished\+\+/)
 assert.match(appSource, /noteTutorTargetReach\(\)/)
 assert.ok(

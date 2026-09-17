@@ -7,4 +7,4 @@ Tutor facts about collection, spraying, extinguishing, condition outcomes, avoid
 
 **Why:** Final board state can erase real accomplishments: dropping a collected object resets its picked-up flag, moving away hides an earlier target reach, and refilling water hides prior consumption. Recomputing later can also attribute board edits to an old run.
 
-**How to apply:** Increment evidence in every manual and automated execution path, share counters through nested commands, freeze a sanitized snapshot before requesting feedback, and never use tutor evidence to award XP or declare challenge completion.
+**How to apply:** Increment evidence in every manual and automated execution path, share counters through nested commands, and freeze a sanitized snapshot before feedback. “Remaining metal” means never collected in that run, so a collected-then-dropped object is not counted again. Never use tutor evidence to award XP or declare challenge completion.
