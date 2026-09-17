@@ -2285,14 +2285,43 @@ const htmlContent = `<!DOCTYPE html>
         #threeCanvasContainer {
             z-index: 20;
         }
-        /* Keep the lower controls usable without letting them shrink the world. */
-        #panelChat { padding: 8px; }
-        #chatMessages { height: 38px; margin-bottom: 4px; }
-        #chatInput { padding-top: 4px; padding-bottom: 4px; }
-        #panelChat button { width: 32px; height: 32px; }
-        #panelCC #ccMessages { height: 64px !important; }
-        #panelCC > div:first-child { padding-top: 5px !important; padding-bottom: 5px !important; }
-        #panelCC > div:last-child { padding-top: 4px !important; padding-bottom: 4px !important; }
+        /* The robot world owns the full panel height. Chat/CC open as drawers over
+           the bottom edge so conversation controls never shrink the coding stage. */
+        #robotPanel { position: relative; min-height: 0; overflow: visible; }
+        #robotWorldViewport { min-height: 0; }
+        #robotTabBar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 45;
+            box-shadow: 0 -5px 16px rgba(15,23,42,.10);
+        }
+        #panelChat, #panelCC {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            bottom: 35px;
+            z-index: 40;
+            max-height: min(44%, 360px);
+            overflow: hidden;
+            border-radius: 14px 14px 0 0;
+            box-shadow: 0 -10px 28px rgba(30,41,59,.20);
+        }
+        #panelChat { padding: 12px; }
+        #chatMessages {
+            height: min(220px, 28vh);
+            min-height: 110px;
+            margin-bottom: 10px;
+        }
+        #chatInput { padding-top: 8px; padding-bottom: 8px; }
+        #panelChat button { width: 38px; height: 38px; }
+        #panelCC #ccMessages { height: 170px !important; }
+        #panelCC > div:first-child { padding-top: 9px !important; padding-bottom: 9px !important; }
+        #panelCC > div:last-child { padding-top: 8px !important; padding-bottom: 8px !important; }
+        @media (max-width: 1023px) {
+            #panelChat, #panelCC { left: 0; right: 0; max-height: 52%; }
+        }
         
         .chat-bubble {
             position: relative;
@@ -2938,20 +2967,20 @@ const htmlContent = `<!DOCTYPE html>
                     </div>
 
                     <!-- Tab switcher -->
-                    <div class="flex border-t-2 border-gray-200">
+                    <div id="robotTabBar" class="flex border-t-2 border-gray-200">
                         <button id="tabBtnChat" onclick="switchRobotTab('chat')"
                             class="flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all">
-                            💬 STEMO Chat
+                            💬 STEMO Chat <span id="chatTabChevron" class="ml-1">⌃</span>
                         </button>
                         <button id="tabBtnCC" onclick="switchRobotTab('cc')"
                             class="flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all">
-                            📡 Command Center
+                            📡 Command Center <span id="ccTabChevron" class="ml-1">⌄</span>
                         </button>
                     </div>
 
                     <!-- STEMO Chat panel -->
-                    <div id="panelChat" class="bg-white p-3">
-                        <div id="chatMessages" class="h-14 overflow-y-auto mb-2 space-y-1 text-sm">
+                    <div id="panelChat" style="display:none;" class="bg-white p-3">
+                        <div id="chatMessages" class="overflow-y-auto space-y-1 text-sm">
                             <div class="flex items-start gap-2">
                                 <span class="text-xl">🤖</span>
                                 <div class="bg-blue-100 rounded-lg p-2 text-sm">
@@ -3547,6 +3576,7 @@ const htmlContent = `<!DOCTYPE html>
 
         
         var robotPanelVisible = true;
+        var robotDrawerOpen = false;
 
         var penColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'];
         var currentColorIndex = 0;
@@ -9304,20 +9334,29 @@ const htmlContent = `<!DOCTYPE html>
         // ============================================
         // COMMAND CENTER
         // ============================================
-        function switchRobotTab(tab) {
+        function switchRobotTab(tab, forceOpen) {
             var isChat = tab === 'chat';
-            document.getElementById('panelChat').style.display = isChat ? 'block' : 'none';
-            document.getElementById('panelCC').style.display = isChat ? 'none' : 'block';
+            var selectedTab = isChat ? document.getElementById('tabBtnChat') : document.getElementById('tabBtnCC');
+            var sameTab = selectedTab && selectedTab.getAttribute('aria-selected') === 'true';
+            robotDrawerOpen = forceOpen === true ? true : !(robotDrawerOpen && sameTab);
+            document.getElementById('panelChat').style.display = robotDrawerOpen && isChat ? 'block' : 'none';
+            document.getElementById('panelCC').style.display = robotDrawerOpen && !isChat ? 'block' : 'none';
             document.getElementById('tabBtnChat').className = isChat
                 ? 'flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all'
                 : 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all';
             document.getElementById('tabBtnCC').className = isChat
                 ? 'flex-1 py-1.5 text-xs font-bold bg-gray-100 text-gray-500 border-b-2 border-transparent hover:bg-gray-200 transition-all'
                 : 'flex-1 py-1.5 text-xs font-bold bg-gray-900 text-green-400 border-b-2 border-green-400 transition-all';
+            document.getElementById('tabBtnChat').setAttribute('aria-selected', String(isChat));
+            document.getElementById('tabBtnCC').setAttribute('aria-selected', String(!isChat));
+            document.getElementById('tabBtnChat').setAttribute('aria-expanded', String(robotDrawerOpen && isChat));
+            document.getElementById('tabBtnCC').setAttribute('aria-expanded', String(robotDrawerOpen && !isChat));
+            document.getElementById('chatTabChevron').textContent = robotDrawerOpen && isChat ? '⌃' : '⌄';
+            document.getElementById('ccTabChevron').textContent = robotDrawerOpen && !isChat ? '⌃' : '⌄';
         }
 
         function toggleCC(forceOpen) {
-            switchRobotTab('cc');
+            switchRobotTab('cc', forceOpen === true);
         }
 
         function addCommandCenterMessage(htmlLines) {
