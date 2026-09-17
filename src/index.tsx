@@ -1753,15 +1753,15 @@ const curriculum = {
             difficulty: 'medium',
             xpReward: 200,
             icon: '🧲',
-            introduction: "I have a powerful ELECTROMAGNET built into my front! 🧲 An electromagnet only works when electricity flows through it — turn it ON and metal objects stick to me, turn it OFF and they drop. Real robots in scrap yards and recycling centres use exactly this technology to sort metal from plastic and paper automatically. Self-driving warehouse robots at Amazon use magnets to move shelves! My magnet is strong enough to carry the 🔩 bolt pieces you place on the board. The rule: I must be VERY CLOSE to a metal piece for it to attach. Let's move some metal!",
+            introduction: "I have a powerful ELECTROMAGNET built into my front! 🧲 An electromagnet only works when electricity flows through it — turn it ON and metal objects stick to me, turn it OFF and they drop. Real robots in scrap yards and recycling centres use exactly this technology to sort metal automatically. The If Metal Nearby block lets me make a decision: when metal is within the magnet's 35-pixel reach (about 1.75 coding steps), the condition is true. Metal one step away can be collected immediately by putting Magnet ON inside the then branch. If it is farther away, the else branch can move me closer.",
             tasks: [
                 { id: 't1', text: 'Click the 🔩 button above the board to place one metal piece near me', completed: false },
                 { id: 't2', text: 'Build: Forward (to get close) → Magnet ON → Run. Does the bolt attach? 🧲', completed: false },
                 { id: 't3', text: 'Now add: Forward 3 → Magnet OFF. The metal drops at the new location!', completed: false },
                 { id: 't4', text: 'Place 2 metal pieces. Pick up the first, move it to a new spot, and turn Magnet OFF to drop it. Then collect the second one.', completed: false },
-                { id: 't5', text: 'Challenge: place 3 metals in a line. Collect them one at a time: Magnet ON near a metal → move it → Magnet OFF. Can you sort all 3?', completed: false }
+                { id: 't5', text: 'Place metal 1 step away. Build: If Metal Nearby → then Magnet ON → else Forward 1. Run it and watch the sensor decide! Then use it while sorting 3 metals.', completed: false }
             ],
-            hint: 'Turn Magnet ON only when you are close to one metal piece. Move it to its new spot, turn Magnet OFF to drop it, then go back for the next piece.',
+            hint: 'If Metal Nearby uses the same reach as the magnet: 35 pixels, about 1.75 steps. At 1 step away, Magnet ON in the then branch collects immediately. Otherwise, use else → Forward 1 to move closer.',
             homework: 'Design a "Metal Sorting Station"! Place 4 metal pieces scattered on the board. Move each piece, one at a time, to the top-right corner. Use loops to make your program shorter!',
             nextLesson: 'lesson-9'
         },
@@ -2898,6 +2898,9 @@ const htmlContent = `<!DOCTYPE html>
                     <div class="block-item bg-red-400 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-red-500 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('magnet_off')">
                         🧲 Magnet OFF
                     </div>
+                    <div class="block-item bg-amber-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-amber-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('if_metal_nearby')">
+                        🔩 If Metal Nearby
+                    </div>
                     
                     <div class="text-xs font-bold text-gray-500 mb-1 mt-2 uppercase">📡 Sensor</div>
                     <div class="block-item bg-cyan-500 text-white px-2 py-1.5 rounded-lg mb-1 cursor-pointer hover:bg-cyan-600 hover:scale-105 transition-all text-xs font-bold shadow" onclick="addBlock('sensor_scan')">
@@ -3773,6 +3776,7 @@ const htmlContent = `<!DOCTYPE html>
         var tutorRunStats = {
             metalsCollected: 0, firesExtinguished: 0, waterUsed: 0, targetReached: false,
             collectedMetalObjects: [],
+            metalChecks: 0, metalDetections: 0,
             wallChecks: 0, wallDetections: 0, wallAvoidances: 0,
             temperatureChecks: 0, hotDetections: 0, sensorScans: 0,
             magnetActivations: 0, spraysUsed: 0
@@ -5390,6 +5394,21 @@ const htmlContent = `<!DOCTYPE html>
             }
         };
 
+        Blockly.Blocks['if_metal_nearby'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔩 If Metal Nearby");
+                this.appendStatementInput("DO")
+                    .appendField("then");
+                this.appendStatementInput("ELSE")
+                    .appendField("else");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour(45);
+                this.setTooltip("True when an uncollected metal object is within the magnet's 35-pixel pickup range");
+            }
+        };
+
         Blockly.Blocks['repeat_times'] = {
             init: function() {
                 this.appendDummyInput()
@@ -5932,6 +5951,7 @@ const htmlContent = `<!DOCTYPE html>
             tutorRunStats = {
                 metalsCollected: 0, firesExtinguished: 0, waterUsed: 0, targetReached: false,
                 collectedMetalObjects: [],
+                metalChecks: 0, metalDetections: 0,
                 wallChecks: 0, wallDetections: 0, wallAvoidances: 0,
                 temperatureChecks: 0, hotDetections: 0, sensorScans: 0,
                 magnetActivations: 0, spraysUsed: 0
@@ -6003,6 +6023,17 @@ const htmlContent = `<!DOCTYPE html>
                     commands.push({ action: 'magnet', value: true });
                 } else if (type === 'magnet_off') {
                     commands.push({ action: 'magnet', value: false });
+                } else if (type === 'if_metal_nearby') {
+                    var doBlock = block.getInputTargetBlock('DO');
+                    var elseBlock = block.getInputTargetBlock('ELSE');
+                    commands.push({
+                        action: 'if_metal',
+                        doCommands: [],
+                        elseCommands: []
+                    });
+                    var lastCmd = commands[commands.length - 1];
+                    if (doBlock) parseBlocks(doBlock, lastCmd.doCommands);
+                    if (elseBlock) parseBlocks(elseBlock, lastCmd.elseCommands);
                 } else if (type === 'repeat_times') {
                     var times = parseInt(block.getFieldValue('TIMES'));
                     var innerBlock = block.getInputTargetBlock('DO');
@@ -6131,6 +6162,23 @@ const htmlContent = `<!DOCTYPE html>
                 
                 var cmd = commands[index];
                 index++;
+
+                if (cmd.action === 'if_metal') {
+                    tutorRunStats.metalChecks++;
+                    var nearbyMetal = detectMetalNearby();
+                    if (nearbyMetal) tutorRunStats.metalDetections++;
+                    var nestedCommands = nearbyMetal ? cmd.doCommands : cmd.elseCommands;
+                    if (nestedCommands && nestedCommands.length > 0) {
+                        executeCommands(nestedCommands, function() {
+                            drawRobot();
+                            setTimeout(executeNext, 200);
+                        }, runGeneration);
+                    } else {
+                        drawRobot();
+                        setTimeout(executeNext, 200);
+                    }
+                    return;
+                }
                 
                 // Handle if_wall specially - it needs to execute nested commands
                 if (cmd.action === 'if_wall') {
@@ -6684,7 +6732,7 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 }
             }
-            // Note: go_to_target, if_wall, if_hot and firefighter_mode are handled in executeCommands() directly
+            // Note: go_to_target, if_metal, if_wall, if_hot and firefighter_mode are handled in executeCommands() directly
         }
         
         // Choose best turn direction based on:
@@ -6970,6 +7018,23 @@ const htmlContent = `<!DOCTYPE html>
                 distance: minDist,
                 temp: Math.round(temp)
             };
+        }
+
+        function detectMetalNearby() {
+            var closestMetal = null;
+            var closestDistance = 35;
+            for (var m = 0; m < metalObjects.length; m++) {
+                var metal = metalObjects[m];
+                if (metal.pickedUp) continue;
+                var dx = metal.x - robot.x;
+                var dy = metal.y - robot.y;
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestMetal = metal;
+                }
+            }
+            return closestMetal;
         }
         
         // Find nearest fire from robot
@@ -8642,15 +8707,15 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-8': {
                 t: 'سحر المغناطيس',
                 d: 'التقط الأجسام المعدنية وحرّكها بمغناطيس كهربائي',
-                i: 'لديّ مغناطيس كهربائي قوي مدمج في مقدمتي! 🧲 المغناطيس الكهربائي يعمل فقط عندما يمرّ التيار الكهربائي خلاله — شغّله وتلتصق الأجسام المعدنية بي، وأطفئه فتسقط. الروبوتات الحقيقية في ساحات الخردة ومراكز إعادة التدوير تستخدم هذه التقنية بالضبط لفرز المعدن عن البلاستيك والورق تلقائيًا. الروبوتات ذاتية القيادة في مستودعات أمازون تستخدم المغناطيس لتحريك الرفوف! مغناطيسي قوي بما يكفي لحمل قطع البراغي 🔩 التي تضعها على اللوح. القاعدة: يجب أن أكون قريبًا جدًا من القطعة المعدنية لتلتصق. لنحرّك بعض المعدن!',
-                hint: 'شغّل المغناطيس فقط عندما تكون قريبًا من قطعة معدنية واحدة. حرّكها إلى موقعها الجديد، وأطفئ المغناطيس لإسقاطها، ثم عد للقطعة التالية.',
+                i: 'لديّ مغناطيس كهربائي قوي مدمج في مقدمتي! 🧲 مكعب «إذا كان المعدن قريبًا» يجعلني أقرر: يكون الشرط صحيحًا عندما تكون قطعة معدن غير مجمعة داخل مدى المغناطيس، أي 35 بكسل تقريبًا أو 1.75 خطوة برمجية. إذا كان المعدن على بعد خطوة واحدة، ضع تشغيل المغناطيس داخل فرع «إذن» لالتقاطه فورًا. وإذا كان أبعد، استخدم فرع «وإلا» للتحرك نحوه.',
+                hint: 'يستخدم «إذا كان المعدن قريبًا» نفس مدى الالتقاط: 35 بكسل تقريبًا أو 1.75 خطوة. عند بُعد خطوة واحدة يلتقطه تشغيل المغناطيس فورًا؛ وإلا استخدم للأمام 1 للاقتراب.',
                 hw: 'صمّم محطة فرز معادن! ضع 4 قطع معدنية متناثرة على اللوح. حرّك كل قطعة، واحدة تلو الأخرى، إلى الزاوية العلوية اليمنى. استخدم الحلقات لجعل برنامجك أقصر!',
                 tasks: [
                     'انقر زر 🔩 فوق اللوح لوضع قطعة معدنية قريبة مني',
                     'ابنِ: للأمام (للاقتراب) ← تشغيل المغناطيس ← تشغيل. هل يلتصق البرغي؟ 🧲',
                     'الآن أضف: للأمام 3 ← إطفاء المغناطيس. تسقط القطعة المعدنية في الموقع الجديد!',
                     'ضع قطعتين معدنيتين. التقط الأولى، حرّكها إلى موقع جديد، وأطفئ المغناطيس لإسقاطها. ثم اجمع القطعة الثانية.',
-                    'تحدٍ: ضع 3 قطع معدنية في صف. اجمعها واحدة تلو الأخرى: تشغيل المغناطيس قرب معدن ← حرّكه ← إطفاء المغناطيس. هل تستطيع فرز الثلاث؟'
+                    'ضع معدنًا على بعد خطوة واحدة. ابنِ: إذا كان المعدن قريبًا ← إذن تشغيل المغناطيس ← وإلا للأمام 1. شغّل وشاهد المستشعر يقرر، ثم استخدمه أثناء فرز 3 قطع.'
                 ]
             },
             'lesson-9': {
@@ -9502,6 +9567,8 @@ const htmlContent = `<!DOCTYPE html>
                 metalsRemaining: metalObjects.filter(function(metal) {
                     return !metal.pickedUp && tutorRunStats.collectedMetalObjects.indexOf(metal) === -1;
                 }).length,
+                metalChecks: tutorRunStats.metalChecks,
+                metalDetections: tutorRunStats.metalDetections,
                 firesExtinguished: tutorRunStats.firesExtinguished,
                 firesRemaining: fireObjects.length,
                 magnetActivations: tutorRunStats.magnetActivations,
@@ -11157,7 +11224,7 @@ const htmlContent = `<!DOCTYPE html>
             'lesson-5':  { id: 'lesson-5',  title: 'Loop Power!',           description: 'Use Repeat to replace boring repeated blocks',              hint: 'Staircase code: Repeat 5 → Forward 2, Right 90, Forward 2, Left 90',                      icon: '🔁', xpReward: 150,  nextLesson: 'lesson-6'  },
             'lesson-6':  { id: 'lesson-6',  title: 'Shape Artist',        description: 'Use maths to draw any polygon you can imagine',          hint: 'Formula: Turn Angle = 360 ÷ Sides. Triangle=120, Square=90, Pentagon=72, Hexagon=60, Octagon=45!', icon: '📐', xpReward: 200,  nextLesson: 'lesson-7'  },
             'lesson-7':  { id: 'lesson-7',  title: 'Star Power!',          description: 'Draw beautiful 8-pointed stars using a secret angle trick',  hint: '8-pointed star: Repeat 8 → Forward 6, Right 135°. The magic number is 135!',               icon: '✨', xpReward: 300,  nextLesson: 'lesson-8'  },
-            'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Pick up metal objects with your magnet.',             hint: 'Turn your magnet ON, move close to a metal object, and it will attach to STEMO!',           icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
+            'lesson-8':  { id: 'lesson-8',  title: 'Magnet Magic',      description: 'Sense, pick up, and move metal objects with your magnet.', hint: 'If Metal Nearby is true inside the magnet pickup range. Put Magnet ON in then; use else → Forward 1 when metal is farther away.', icon: '🧲', xpReward: 200, nextLesson: 'lesson-9'  },
             'lesson-9':  { id: 'lesson-9',  title: 'Ultrasonic Sight',  description: 'Navigate walls using your ultrasonic sensor.',        hint: 'The Scan Ahead beam shows distance to the nearest wall. Use it to decide when to turn!',    icon: '📡', xpReward: 250, nextLesson: 'lesson-10' },
             'lesson-10': { id: 'lesson-10', title: 'Space Navigator',   description: 'Reach the target point automatically.',               hint: 'Use Go To Target to navigate automatically, or calculate steps and use Move + Turn blocks.', icon: '🎯', xpReward: 300, nextLesson: 'lesson-11' },
             'lesson-11': { id: 'lesson-11', title: 'Smart Explorer',    description: 'Use If/Else logic to find the correct path.',         hint: 'Check which direction is clear before moving. If wall is close, go another way!',           icon: '🧠', xpReward: 350, nextLesson: 'lesson-12' },

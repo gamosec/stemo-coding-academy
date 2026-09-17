@@ -287,10 +287,10 @@ export function summarizeProgram(rawCommands) {
     usedPen: Boolean(actionCounts.pen),
     usedLoops: Boolean(actionCounts.repeat_var),
     usedVariables: Boolean(actionCounts.set_variable || actionCounts.change_variable),
-    usedSensors: Boolean(actionCounts.scan || actionCounts.check_temp || actionCounts.if_wall || actionCounts.if_hot),
+    usedSensors: Boolean(actionCounts.scan || actionCounts.check_temp || actionCounts.if_metal || actionCounts.if_wall || actionCounts.if_hot),
     usedMagnet: Boolean(actionCounts.magnet),
     usedWater: Boolean(actionCounts.spray_water || actionCounts.firefighter_mode),
-    usedConditionals: Boolean(actionCounts.if_wall || actionCounts.if_hot),
+    usedConditionals: Boolean(actionCounts.if_metal || actionCounts.if_wall || actionCounts.if_hot),
     usedNavigation: Boolean(actionCounts.auto_move || actionCounts.smart_turn || actionCounts.go_to_target || actionCounts.smart_navigate),
   }
 }
@@ -304,6 +304,8 @@ function sanitizeRuntime(rawRuntime) {
   return {
     metalsCollected: boundedCount(runtime.metalsCollected, 100),
     metalsRemaining: boundedCount(runtime.metalsRemaining, 100),
+    metalChecks: boundedCount(runtime.metalChecks, 500),
+    metalDetections: boundedCount(runtime.metalDetections, 500),
     firesExtinguished: boundedCount(runtime.firesExtinguished, 100),
     firesRemaining: boundedCount(runtime.firesRemaining, 100),
     magnetActivations: boundedCount(runtime.magnetActivations, 500),
@@ -494,7 +496,7 @@ Reply in ${LANGUAGE_NAMES[context.language] || 'English'} using at most 3 short 
 Use simple, encouraging language and at most 2 relevant emojis.
 Ground every claim about the student's program or drawing in the deterministic work summary. If the summary does not prove something, say you cannot see it yet.
 For a completed run, if metalsRemaining or firesRemaining is above zero, state the exact remaining count and ask the child to handle the next object.
-Only suggest blocks and concepts shown in the trusted curriculum excerpt or the student's program. Never invent an "If Metal" block.
+Only suggest blocks and concepts shown in the trusted curriculum excerpt or the student's program. Use the exact block name "If Metal Nearby" when that block is available.
 For a chat event, answer the student's question first. Do not repeat drawing feedback unless the student asks about the drawing.
 Use the trusted curriculum excerpts below for lesson facts and instructions. If they do not contain the answer, say so and offer a related small hint.
 Explain one useful coding, robotics, or geometry idea and suggest one small next step.
@@ -558,6 +560,7 @@ function fallbackChatResponse(context, message) {
 function fallbackRuntimeResponse(context) {
   const runtime = context.runtime || {}
   const hasObservedAction = runtime.metalsCollected > 0 ||
+    runtime.metalChecks > 0 ||
     runtime.firesExtinguished > 0 ||
     runtime.wallChecks > 0 ||
     runtime.wallAvoidances > 0 ||
@@ -569,6 +572,7 @@ function fallbackRuntimeResponse(context) {
   const facts = []
   if (context.language === 'ar') {
     if (runtime.metalsCollected > 0) facts.push(`جمعت ${runtime.metalsCollected} من الأجسام المعدنية`)
+    if (runtime.metalChecks > 0) facts.push(`فحصت شرط المعدن القريب ${runtime.metalChecks} مرات واكتشفت معدنًا ${runtime.metalDetections} مرات`)
     if (runtime.firesExtinguished > 0) facts.push(`أطفأت ${runtime.firesExtinguished} من الحرائق باستخدام ${runtime.spraysUsed} رشات`)
     if (runtime.wallChecks > 0) facts.push(`فحص شرط الجدار ${runtime.wallChecks} مرات واكتشف جدارًا ${runtime.wallDetections} مرات`)
     if (runtime.wallAvoidances > 0) facts.push(`تجنبت الجدار تلقائيًا ${runtime.wallAvoidances} مرات`)
@@ -579,6 +583,7 @@ function fallbackRuntimeResponse(context) {
   }
   if (context.language === 'es') {
     if (runtime.metalsCollected > 0) facts.push(`recogiste ${runtime.metalsCollected} objetos metálicos`)
+    if (runtime.metalChecks > 0) facts.push(`comprobaste la condición de metal cercano ${runtime.metalChecks} veces y detectaste metal ${runtime.metalDetections} veces`)
     if (runtime.firesExtinguished > 0) facts.push(`apagaste ${runtime.firesExtinguished} incendios con ${runtime.spraysUsed} chorros`)
     if (runtime.wallChecks > 0) facts.push(`comprobaste la condición de pared ${runtime.wallChecks} veces y detectaste una pared ${runtime.wallDetections} veces`)
     if (runtime.wallAvoidances > 0) facts.push(`evitaste paredes automáticamente ${runtime.wallAvoidances} veces`)
@@ -589,6 +594,7 @@ function fallbackRuntimeResponse(context) {
   }
   if (context.language === 'fr') {
     if (runtime.metalsCollected > 0) facts.push(`tu as ramassé ${runtime.metalsCollected} objets métalliques`)
+    if (runtime.metalChecks > 0) facts.push(`tu as testé la condition de métal proche ${runtime.metalChecks} fois et détecté du métal ${runtime.metalDetections} fois`)
     if (runtime.firesExtinguished > 0) facts.push(`tu as éteint ${runtime.firesExtinguished} incendies avec ${runtime.spraysUsed} jets`)
     if (runtime.wallChecks > 0) facts.push(`tu as testé la condition du mur ${runtime.wallChecks} fois et détecté un mur ${runtime.wallDetections} fois`)
     if (runtime.wallAvoidances > 0) facts.push(`tu as évité automatiquement des murs ${runtime.wallAvoidances} fois`)
@@ -598,6 +604,7 @@ function fallbackRuntimeResponse(context) {
     return `🤖 Pendant cette exécution, j’ai observé que ${facts.slice(0, 3).join(', ')}. Modifie une condition et observe le nouveau résultat.`
   }
   if (runtime.metalsCollected > 0) facts.push(`collected ${runtime.metalsCollected} metal objects`)
+  if (runtime.metalChecks > 0) facts.push(`checked If Metal Nearby ${runtime.metalChecks} times and detected metal ${runtime.metalDetections} times`)
   if (runtime.firesExtinguished > 0) facts.push(`extinguished ${runtime.firesExtinguished} fires with ${runtime.spraysUsed} sprays`)
   if (runtime.wallChecks > 0) facts.push(`checked the wall condition ${runtime.wallChecks} times and detected a wall ${runtime.wallDetections} times`)
   if (runtime.wallAvoidances > 0) facts.push(`automatically avoided walls ${runtime.wallAvoidances} times`)

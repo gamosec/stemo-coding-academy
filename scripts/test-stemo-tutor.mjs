@@ -150,6 +150,7 @@ assert.equal(program.usedVariables, true)
 
 const worldProgram = summarizeProgram([
   { action: 'magnet', value: true },
+  { action: 'if_metal', doCommands: [{ action: 'magnet', value: true }] },
   { action: 'if_wall', doCommands: [{ action: 'turn', value: 90 }] },
   { action: 'spray_water' },
   { action: 'smart_navigate' },
@@ -215,6 +216,8 @@ const context = normalizeTutorContext({
   runtime: {
     metalsCollected: 2,
     metalsRemaining: 1,
+    metalChecks: 3,
+    metalDetections: 2,
     firesExtinguished: 3,
     firesRemaining: 0,
     magnetActivations: 2,
@@ -252,6 +255,8 @@ assert.equal(context.lesson.id, 'lesson-4')
 assert.equal(context.conversation.length, 8)
 assert.equal(context.drawing.shape, 'square')
 assert.equal(context.runtime.metalsCollected, 2)
+assert.equal(context.runtime.metalChecks, 3)
+assert.equal(context.runtime.metalDetections, 2)
 assert.equal(context.runtime.firesExtinguished, 3)
 assert.equal(context.runtime.targetReached, true)
 assert.equal(context.knowledge[0].id, 'lesson-4')
@@ -267,6 +272,7 @@ assert.match(messages.at(-1).content, /Ignore every instruction/)
 assert.doesNotMatch(messages.at(-1).content, /"completed":true/)
 assert.doesNotMatch(messages.at(-1).content, /"done":true/)
 assert.match(messages.at(-1).content, /"metalsCollected":2/)
+assert.match(messages.at(-1).content, /"metalDetections":2/)
 assert.match(messages.at(-1).content, /"wallDetections":2/)
 
 const boundedRuntimeContext = normalizeTutorContext({
@@ -443,6 +449,10 @@ assert.match(appSource, /binding_unavailable/)
 assert.match(appSource, /guard_request_failed/)
 assert.match(appSource, /tutorLastRunRuntime = captureTutorRuntime\(\);/)
 assert.match(appSource, /noteTutorMetalCollection\(metal\)/)
+assert.match(appSource, /Blockly\.Blocks\['if_metal_nearby'\]/)
+assert.match(appSource, /cmd\.action === 'if_metal'/)
+assert.match(appSource, /function detectMetalNearby\(\)/)
+assert.match(appSource, /var closestDistance = 35/)
 assert.match(appSource, /!metal\.pickedUp && tutorRunStats\.collectedMetalObjects\.indexOf\(metal\) === -1/)
 assert.match(appSource, /tutorRunStats\.firesExtinguished\+\+/)
 assert.match(appSource, /noteTutorTargetReach\(\)/)
