@@ -3324,8 +3324,8 @@ const htmlContent = `<!DOCTYPE html>
 
     <!-- Footer -->
     <footer class="text-center py-8 mt-6 border-t border-purple-100 bg-white/60">
-        <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-        <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+        <p class="text-gray-400 text-sm">STEAM Academy © 2026</p>
+        <p class="text-gray-300 text-xs mt-1">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
     </footer>
 
     <script>
@@ -11203,8 +11203,8 @@ const loginPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <p class="text-purple-200 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-        <p class="text-purple-300 text-xs">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+        <p class="text-purple-200 text-sm">STEAM Academy © 2026</p>
+        <p class="text-purple-300 text-xs">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
     </div>
 </body>
 </html>`
@@ -12436,8 +12436,8 @@ init();
 </div>
 
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+    <p class="text-gray-400 text-sm">STEAM Academy © 2026</p>
+    <p class="text-gray-300 text-xs mt-1">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
 </footer>
 </body>
 </html>`
@@ -13175,8 +13175,8 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+    <p class="text-gray-400 text-sm">STEAM Academy © 2026</p>
+    <p class="text-gray-300 text-xs mt-1">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
 </footer>
 </body>
 </html>`
@@ -13312,8 +13312,8 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-4xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+    <p class="text-gray-400 text-sm">STEAM Academy © 2026</p>
+    <p class="text-gray-300 text-xs mt-1">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
 </footer>
 </body>
 </html>`
@@ -13437,8 +13437,8 @@ const registerPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <p class="text-purple-200 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
-        <p class="text-purple-300 text-xs">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
+        <p class="text-purple-200 text-sm">STEAM Academy © 2026</p>
+        <p class="text-purple-300 text-xs">© 2026 ستيم أكاديمي جميع الحقوق محفوظة</p>
     </div>
 </body>
 </html>`
@@ -13950,7 +13950,7 @@ const landingPage = `<!DOCTYPE html>
                 <a href="/register" class="hover:text-white transition-colors">Register</a>
             </div>
             <div class="text-sm text-center">
-                <div data-landing-i18n="© 2026 STEMO Coding">© 2026 STEMO Coding</div>
+                <div data-landing-i18n="STEAM Academy © 2026">STEAM Academy © 2026</div>
                 <div class="text-xs mt-1" data-landing-i18n="STEMO Coding is powered by STEAM Academy">STEMO Coding is powered by STEAM Academy</div>
             </div>
         </div>
@@ -14028,7 +14028,7 @@ const landingPage = `<!DOCTYPE html>
             'Register for free and start your coding journey with STEMO today!': 'سجّل مجاناً وابدأ رحلة البرمجة مع ستيمو اليوم!',
             '🎉 Register as Student': '🎉 التسجيل كطالب',
             'AI-Powered Coding & Robotics for Kids': 'برمجة وروبوتات للأطفال بالذكاء الاصطناعي',
-            '© 2026 STEMO Coding': '© ٢٠٢٦ ستيمو كودينغ',
+             'STEAM Academy © 2026': '© 2026 ستيم أكاديمي جميع الحقوق محفوظة',
             'STEMO Coding is powered by STEAM Academy': 'ستيمو كودينغ مدعوم من أكاديمية ستيم',
             'Register': 'التسجيل'
         };
