@@ -1,5 +1,12 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { bodyLimit } from 'hono/body-limit'
+import {
+    buildTutorMessages,
+    createFallbackTutorResponse,
+    normalizeTutorContext,
+    safeTutorResponse,
+} from './stemo-tutor.mjs'
 
 type Bindings = {
     AI: any
@@ -2140,69 +2147,93 @@ app.get('/api/badges', authMiddleware, (c) => {
 })
 
 // AI Chat endpoint — requires authentication
-app.post('/api/chat', authMiddleware, async (c) => {
+app.post('/api/chat', authMiddleware, bodyLimit({
+    maxSize: 50000,
+    onError: (c) => c.json({ error: 'Tutor request too large' }, 413),
+}), async (c) => {
     try {
-        const { message, context } = await c.req.json()
+        const rawBody = await c.req.text()
+        const { message, context, eventType } = JSON.parse(rawBody)
         if (!message || typeof message !== 'string') return c.json({ error: 'Message required' }, 400)
         if (message.length > 1000) return c.json({ error: 'Message too long (max 1000 characters)' }, 400)
-        const response = await generateAIResponse(c.env.AI, message, context)
+        const safeEventType = eventType === 'run_complete' ? 'run_complete' : 'chat'
+        const tutorContext = normalizeTutorContext(context, curriculum)
+        const result = await generateAIResponse(c.env.AI, message, tutorContext, safeEventType)
         return c.json({
-            response: response,
-            character: 'stemo'
+            response: result.response,
+            character: 'stemo',
+            source: result.source,
+            workSummary: {
+                drawing: tutorContext.drawing,
+                program: tutorContext.program,
+            },
         })
     } catch (err) {
         console.error('AI Chat Error:', err)
         return c.json({
-            response: "🤖 Oh no! My central processor is a bit dizzy. Can you try asking me again? 🧠💫",
-            character: 'stemo'
+            response: "🤖 I couldn't reach my cloud brain, but I can still help with blocks, movement, loops, and angles. Please try again.",
+            character: 'stemo',
+            source: 'fallback',
         })
     }
 })
 
 // Helper function for AI responses using Cloudflare Workers AI
-async function generateAIResponse(ai: any, message: string, context: any): Promise<string> {
-    const systemPrompt = `You are STEMO, a friendly, enthusiastic, and encouraging AI robot tutor for children learning to code.
-Your goal is to help students solve engineering puzzles and understand programming concepts using the STEMO visual coding academy platform.
-
-STRICT GUIDELINES:
-1. Tone: Kid-friendly, use emojis, be supportive and patient.
-2. Context: You have access to the curriculum data below. Use it to provide specific hints based on the lesson the student is on.
-3. Keep it brief: Kids have short attention spans. Give one or two helpful tips at a time.
-4. Encourage Logic: Instead of just giving the answer, explain the "Why" (e.g., Geometry for turns, Math for loops).
-5. Persona: You ARE STEMO (Steam Technology Education Mentor & Organizer). Refer to yourself as "I" or "STEMO".
-
-CURRICULUM CONTEXT:
-${JSON.stringify(curriculum, null, 2)}
-
-USER CONTEXT:
-- Current XP: ${context?.xp || 0}
-- Level: ${context?.level || 1}
-- Completed Lessons: ${context?.completedLessons?.join(', ') || 'None yet'}
-
-Answer the following message from a student: "${message}"`;
-
+async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string }> {
+    const fallback = createFallbackTutorResponse(context, eventType)
     if (!ai) {
-        console.warn('AI binding NOT found! Make sure you are running with wrangler and have AI enabled.');
-        return "🤖 My local brain is sleeping! 😴 Since I am running on your computer, I can't talk to my AI cloud right now. Try **deploying** me to Cloudflare, or keep using the blocks! ✨";
+        console.warn('[STEMO AI] Workers AI binding is unavailable; using deterministic tutor feedback.')
+        return { response: fallback, source: 'fallback' }
     }
 
     try {
-        const result = await ai.run('@cf/meta/llama-3-8b-instruct', {
-            messages: [
-                { role: 'system', content: 'You are STEMO, the AI coding robot buddy.' },
-                { role: 'user', content: systemPrompt }
-            ]
-        });
+        const messages = buildTutorMessages(message, context, eventType)
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Workers AI request timed out')), 12000)
+        })
+        const result: any = await Promise.race([
+            ai.run('@cf/meta/llama-3-8b-instruct', {
+                messages,
+                max_tokens: 220,
+                temperature: 0.45,
+            }),
+            timeout,
+        ])
 
         if (result && result.response) {
-            return result.response;
+            const safeResponse = await moderateTutorResponse(ai, result.response)
+            if (safeResponse) return { response: safeResponse, source: 'ai' }
+            console.error('[STEMO AI] Model response rejected by child-safety moderation')
+            return { response: fallback, source: 'fallback' }
         }
 
-        console.error('AI Summary Error: result.response is empty', result);
-        return "🤖 I heard you, but my thoughts got a bit tangled! 🧶 Let's try asking something else, or rephrase your question? 🧩";
+        console.error('[STEMO AI] Empty model response', result)
+        return { response: fallback, source: 'fallback' }
     } catch (e) {
-        console.error('AI Service Error:', e);
-        return "🤖 My internal sensors are picking up some interference! 🛰️ (AI Service Error). Let's focus on the blocks for a moment while I recalibrate! 🛠️";
+        console.error('[STEMO AI] Workers AI request failed:', e)
+        return { response: fallback, source: 'fallback' }
+    }
+}
+
+async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<string | null> {
+    const response = safeTutorResponse(rawResponse)
+    if (!response) return null
+    try {
+        const guardResult: any = await Promise.race([
+            ai.run('@cf/meta/llama-guard-3-8b', {
+                messages: [{ role: 'user', content: response }],
+            }),
+            new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Safety moderation timed out')), 6000)
+            }),
+        ])
+        const verdict = typeof guardResult?.response === 'string'
+            ? guardResult.response.trim()
+            : ''
+        return /^safe(?:\s|$)/i.test(verdict) ? response : null
+    } catch (error) {
+        console.error('[STEMO AI] Safety moderation failed; using deterministic fallback:', error)
+        return null
     }
 }
 
@@ -2303,12 +2334,18 @@ const htmlContent = `<!DOCTYPE html>
             right: 8px;
             bottom: 35px;
             z-index: 40;
-            max-height: min(44%, 360px);
             overflow: hidden;
             border-radius: 14px 14px 0 0;
             box-shadow: 0 -10px 28px rgba(30,41,59,.20);
         }
-        #panelChat { padding: 12px; }
+        #panelChat {
+            height: min(420px, calc(100% - 44px));
+            max-height: calc(100% - 44px);
+            min-height: 220px;
+            padding: 12px;
+            flex-direction: column;
+        }
+        #panelCC { max-height: min(44%, 360px); }
         #chatDrawerHeader, #ccDrawerHeader {
             display: flex;
             align-items: center;
@@ -2335,9 +2372,16 @@ const htmlContent = `<!DOCTYPE html>
         }
         #chatMinimizeBtn:hover { background: #c7d2fe; }
         #chatMessages {
-            height: min(220px, 28vh);
-            min-height: 110px;
+            flex: 1 1 auto;
+            height: auto;
+            min-height: 0;
             margin-bottom: 10px;
+        }
+        #chatComposer {
+            flex: 0 0 auto;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+            background: #ffffff;
         }
         #chatInput { padding-top: 8px; padding-bottom: 8px; }
         #panelChat button { width: 38px; height: 38px; }
@@ -2356,7 +2400,8 @@ const htmlContent = `<!DOCTYPE html>
         #panelCC > div:first-child { padding-top: 9px !important; padding-bottom: 9px !important; }
         #panelCC > div:last-child { padding-top: 8px !important; padding-bottom: 8px !important; }
         @media (max-width: 1023px) {
-            #panelChat, #panelCC { left: 0; right: 0; max-height: 52%; }
+            #panelChat, #panelCC { left: 0; right: 0; }
+            #panelCC { max-height: 52%; }
         }
         
         .chat-bubble {
@@ -3033,7 +3078,7 @@ const htmlContent = `<!DOCTYPE html>
                                 </div>
                             </div>
                         </div>
-                        <div class="flex gap-2">
+                        <div id="chatComposer" class="flex gap-2">
                             <input type="text" id="chatInput" placeholder="Ask STEMO for help..."
                                 class="flex-1 border-2 border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-indigo-400"
                                 onkeypress="handleChatKeypress(event)">
@@ -3625,6 +3670,9 @@ const htmlContent = `<!DOCTYPE html>
         
         var robotPanelVisible = true;
         var robotDrawerOpen = false;
+        var tutorChatHistory = [];
+        var lastTutorCommands = [];
+        var tutorRequestQueue = Promise.resolve();
 
         var penColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6'];
         var currentColorIndex = 0;
@@ -5835,6 +5883,7 @@ const htmlContent = `<!DOCTYPE html>
             // Parse and execute blocks
             var commands = [];
             parseBlocks(blocks[0], commands);
+            lastTutorCommands = commands;
             console.log('Commands to execute:', commands);
             
             if (commands.length === 0) {
@@ -6011,11 +6060,10 @@ const htmlContent = `<!DOCTYPE html>
                     console.log('Execution batch complete!');
                     if (isTopLevel) {
                         robotExecuting = false;
-                        addChatMessage('stemo', "🤖 Great job! I finished running your code! " + (robot.trails.length > 0 ? "Look at that beautiful drawing! 🎨" : "Try adding more blocks to make me do cool things! ✨"));
-                        
                         if (currentLesson) {
                             checkLessonCompletion();
                         }
+                        requestTutorRunFeedback(commands);
                     }
                     if (onComplete) onComplete();
                     return;
@@ -9343,6 +9391,97 @@ const htmlContent = `<!DOCTYPE html>
 
         // CHAT FUNCTIONALITY
         // ============================================
+        function compactTutorCommands(commands, output) {
+            output = output || [];
+            if (!Array.isArray(commands) || output.length >= 160) return output;
+            commands.forEach(function(command) {
+                if (!command || output.length >= 160) return;
+                var compact = { action: String(command.action || '').slice(0, 40) };
+                if (typeof command.value === 'number') compact.value = command.value;
+                if (command.varName) compact.varName = String(command.varName).slice(0, 40);
+                if (command.slot) compact.slot = String(command.slot).slice(0, 8);
+                output.push(compact);
+                compactTutorCommands(command.doCommands, output);
+                compactTutorCommands(command.elseCommands, output);
+            });
+            return output;
+        }
+
+        function tutorConversationBeforeLatestUser() {
+            var history = tutorChatHistory.slice();
+            if (history.length && history[history.length - 1].role === 'user') history.pop();
+            return history.slice(-8);
+        }
+
+        function buildTutorContext(commands, conversation) {
+            function roundedTutorNumber(value) {
+                return Math.round(Number(value || 0) * 10) / 10;
+            }
+            var trails = (robot.trails || []).slice(-320).map(function(trail) {
+                return {
+                    x1: roundedTutorNumber(trail.x1), y1: roundedTutorNumber(trail.y1),
+                    x2: roundedTutorNumber(trail.x2), y2: roundedTutorNumber(trail.y2),
+                    color: trail.color, size: trail.size
+                };
+            });
+            return {
+                currentLesson: currentLesson ? currentLesson.id : null,
+                language: currentLang,
+                level: stemo.level,
+                program: compactTutorCommands(commands || lastTutorCommands),
+                drawing: { trails: trails },
+                robot: {
+                    x: robot.x,
+                    y: robot.y,
+                    angle: robot.angle,
+                    carrying: robot.carrying ? (robot.carrying.type || 'object') : null,
+                    waterLevel: robot.waterLevel
+                },
+                challenge: {
+                    active: challengeMode,
+                    lessonId: challengeActiveLessonId,
+                    objectives: (missionObjectives || []).map(function(objective) {
+                        return { label: objective.label, done: objective.done };
+                    })
+                },
+                conversation: (conversation || tutorChatHistory.slice(-8))
+            };
+        }
+
+        function queueTutorRequest(payload, fallbackMessage) {
+            tutorRequestQueue = tutorRequestQueue.catch(function() {}).then(function() {
+                return fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('Tutor request failed');
+                    return response.json();
+                })
+                .then(function(data) {
+                    addChatMessage('stemo', data.response || fallbackMessage);
+                })
+                .catch(function() {
+                    addChatMessage('stemo', fallbackMessage);
+                });
+            });
+            return tutorRequestQueue;
+        }
+
+        function requestTutorRunFeedback(commands) {
+            var drew = robot.trails && robot.trails.length > 0;
+            queueTutorRequest({
+                    eventType: 'run_complete',
+                    message: 'Describe what I made or what my program accomplished, teach me one idea, and suggest one small next step.',
+                    context: buildTutorContext(commands, tutorChatHistory.slice(-8))
+                },
+                drew
+                    ? "🎨 I finished your drawing. Check the sides and turn angles, then try changing one part."
+                    : "🤖 I ran your program! Add Pen Down with movement if you want me to recognize a drawing."
+            );
+        }
+
         function handleChatKeypress(event) {
             if (event.key === 'Enter') {
                 sendChat();
@@ -9357,26 +9496,13 @@ const htmlContent = `<!DOCTYPE html>
             addChatMessage('user', message);
             input.value = '';
             
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+            queueTutorRequest({
                     message: message, 
-                    context: { 
-                        currentLesson: currentLesson ? currentLesson.id : null,
-                        xp: stemo.xp,
-                        level: stemo.level,
-                        completedLessons: stemo.completedLessons
-                    }
-                })
-            })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                addChatMessage('stemo', data.response);
-            })
-            .catch(function(err) {
-                addChatMessage('stemo', "🤖 Oops! I'm thinking too hard. Try again!");
-            });
+                    eventType: 'chat',
+                    context: buildTutorContext(lastTutorCommands, tutorConversationBeforeLatestUser())
+                },
+                "🤖 I couldn't reach my cloud brain, but I can still help with blocks, movement, loops, and angles."
+            );
         }
 
         // ============================================
@@ -9387,7 +9513,7 @@ const htmlContent = `<!DOCTYPE html>
             var selectedTab = isChat ? document.getElementById('tabBtnChat') : document.getElementById('tabBtnCC');
             var sameTab = selectedTab && selectedTab.getAttribute('aria-selected') === 'true';
             robotDrawerOpen = forceOpen === true ? true : !(robotDrawerOpen && sameTab);
-            document.getElementById('panelChat').style.display = robotDrawerOpen && isChat ? 'block' : 'none';
+            document.getElementById('panelChat').style.display = robotDrawerOpen && isChat ? 'flex' : 'none';
             document.getElementById('panelCC').style.display = robotDrawerOpen && !isChat ? 'block' : 'none';
             document.getElementById('tabBtnChat').className = isChat
                 ? 'flex-1 py-1.5 text-xs font-bold bg-white text-indigo-600 border-b-2 border-indigo-500 transition-all'
@@ -9472,6 +9598,11 @@ const htmlContent = `<!DOCTYPE html>
             var container = document.getElementById('chatMessages');
             var div = document.createElement('div');
             div.className = 'flex items-start gap-2';
+            tutorChatHistory.push({
+                role: sender === 'stemo' ? 'assistant' : 'user',
+                content: String(message || '').replace(/<[^>]*>/g, '').slice(0, 500)
+            });
+            if (tutorChatHistory.length > 12) tutorChatHistory.shift();
             // User messages are plain text — escape to prevent XSS
             // AI/stemo responses are trusted structured text — also escaped for safety
             var safeMsg = escHtml(message);

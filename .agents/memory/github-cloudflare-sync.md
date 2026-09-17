@@ -15,3 +15,7 @@ the existing HTTPS git credential remains invalid.
 **How to apply:** prefer pushing verified commits to GitHub and let the configured
 Cloudflare integration deploy them. If an emergency direct deployment is used,
 sync GitHub before finishing and verify the newest active Pages deployment source.
+
+**Environment note:** the HTTPS Git remote may reject otherwise valid GitHub access;
+the connected GitHub API can safely update the verified file revision, after which
+Cloudflare may create its own active deployment from that GitHub commit.
