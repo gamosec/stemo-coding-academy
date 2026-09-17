@@ -493,6 +493,8 @@ export function buildTutorMessages(message, context, eventType = 'chat') {
 Reply in ${LANGUAGE_NAMES[context.language] || 'English'} using at most 3 short sentences.
 Use simple, encouraging language and at most 2 relevant emojis.
 Ground every claim about the student's program or drawing in the deterministic work summary. If the summary does not prove something, say you cannot see it yet.
+For a completed run, if metalsRemaining or firesRemaining is above zero, state the exact remaining count and ask the child to handle the next object.
+Only suggest blocks and concepts shown in the trusted curriculum excerpt or the student's program. Never invent an "If Metal" block.
 For a chat event, answer the student's question first. Do not repeat drawing feedback unless the student asks about the drawing.
 Use the trusted curriculum excerpts below for lesson facts and instructions. If they do not contain the answer, say so and offer a related small hint.
 Explain one useful coding, robotics, or geometry idea and suggest one small next step.
@@ -603,6 +605,38 @@ function fallbackRuntimeResponse(context) {
   if (runtime.sensorScans > 0) facts.push(`used the sensor ${runtime.sensorScans} times`)
   if (runtime.targetReached) facts.push('reached the target')
   return `🤖 In this run, I observed that you ${facts.slice(0, 3).join(', ')}. Change one condition and see how the result changes.`
+}
+
+export function ensureTutorRuntimeFollowUp(response, context, eventType = 'chat') {
+  if (eventType !== 'run_complete' || typeof response !== 'string') return response
+  const runtime = context?.runtime || {}
+  const program = context?.program || {}
+
+  if (runtime.metalsRemaining > 0 && (runtime.metalsCollected > 0 || program.usedMagnet)) {
+    const count = runtime.metalsRemaining
+    const followUp = context.language === 'ar'
+      ? `ما زال هناك ${count} من الأجسام المعدنية. هل تستطيع تحريك STEMO لالتقاط الجسم التالي بالمغناطيس؟`
+      : context.language === 'es'
+        ? `Todavía quedan ${count} objetos metálicos. ¿Puedes mover a STEMO para recoger el siguiente con el imán?`
+        : context.language === 'fr'
+          ? `Il reste encore ${count} objets métalliques. Peux-tu déplacer STEMO pour ramasser le prochain avec l’aimant ?`
+          : `There ${count === 1 ? 'is' : 'are'} still ${count} metal object${count === 1 ? '' : 's'} left. Can you move STEMO to collect the next one with the magnet?`
+    return `${response.trim()} ${followUp}`
+  }
+
+  if (runtime.firesRemaining > 0 && (runtime.firesExtinguished > 0 || program.usedWater)) {
+    const count = runtime.firesRemaining
+    const followUp = context.language === 'ar'
+      ? `ما زال هناك ${count} من الحرائق. هل تستطيع العثور على الحريق التالي وإطفاءه؟`
+      : context.language === 'es'
+        ? `Todavía quedan ${count} incendios. ¿Puedes encontrar y apagar el siguiente?`
+        : context.language === 'fr'
+          ? `Il reste encore ${count} incendies. Peux-tu trouver et éteindre le prochain ?`
+          : `There ${count === 1 ? 'is' : 'are'} still ${count} fire${count === 1 ? '' : 's'} left. Can you find and extinguish the next one?`
+    return `${response.trim()} ${followUp}`
+  }
+
+  return response
 }
 
 export function createFallbackTutorResponse(context, eventType = 'chat', message = '') {

@@ -23,4 +23,9 @@ export function createFallbackTutorResponse(
   eventType?: 'chat' | 'run_complete' | string,
   message?: string,
 ): string
+export function ensureTutorRuntimeFollowUp(
+  response: string,
+  context: TutorContext,
+  eventType?: 'chat' | 'run_complete' | string,
+): string
 export function safeTutorResponse(rawResponse: unknown): string | null

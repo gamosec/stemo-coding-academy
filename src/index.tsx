@@ -4,6 +4,7 @@ import { bodyLimit } from 'hono/body-limit'
 import {
     buildTutorMessages,
     createFallbackTutorResponse,
+    ensureTutorRuntimeFollowUp,
     normalizeTutorContext,
     safeTutorResponse,
 } from './stemo-tutor.mjs'
@@ -2200,7 +2201,11 @@ function safeAIErrorDetail(error: unknown): string | null {
 }
 
 async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string; reason: string | null; detail: string | null }> {
-    const fallback = createFallbackTutorResponse(context, eventType, message)
+    const fallback = ensureTutorRuntimeFollowUp(
+        createFallbackTutorResponse(context, eventType, message),
+        context,
+        eventType,
+    )
     if (!ai) {
         console.warn('[STEMO AI] Workers AI binding is unavailable; using deterministic tutor feedback.')
         return { response: fallback, source: 'fallback', reason: 'binding_unavailable', detail: null }
@@ -2222,7 +2227,14 @@ async function generateAIResponse(ai: any, message: string, context: any, eventT
 
         if (result && result.response) {
             const moderation = await moderateTutorResponse(ai, result.response)
-            if (moderation.response) return { response: moderation.response, source: 'ai', reason: null, detail: null }
+            if (moderation.response) {
+                return {
+                    response: ensureTutorRuntimeFollowUp(moderation.response, context, eventType),
+                    source: 'ai',
+                    reason: null,
+                    detail: null,
+                }
+            }
             console.error('[STEMO AI] Model response rejected by child-safety moderation')
             return { response: fallback, source: 'fallback', reason: moderation.reason, detail: moderation.detail }
         }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import {
   buildTutorMessages,
   createFallbackTutorResponse,
+  ensureTutorRuntimeFollowUp,
   normalizeTutorContext,
   retrieveRelevantLessons,
   safeTutorResponse,
@@ -298,6 +299,41 @@ const runtimeFallbackContext = normalizeTutorContext({
 const runtimeFallback = createFallbackTutorResponse(runtimeFallbackContext, 'run_complete')
 assert.match(runtimeFallback, /collected 2 metal objects/)
 assert.match(runtimeFallback, /extinguished 1 fires with 3 sprays/)
+
+const metalFollowUp = ensureTutorRuntimeFollowUp(
+  'You collected one gear with the magnet.',
+  normalizeTutorContext({
+    language: 'en',
+    program: [{ action: 'magnet', value: true }],
+    runtime: { metalsCollected: 1, metalsRemaining: 1 },
+  }, curriculum),
+  'run_complete',
+)
+assert.match(metalFollowUp, /still 1 metal object left/)
+assert.match(metalFollowUp, /collect the next one with the magnet/)
+assert.doesNotMatch(metalFollowUp, /If Metal/i)
+
+const noMetalFollowUp = ensureTutorRuntimeFollowUp(
+  'You collected both gears.',
+  normalizeTutorContext({
+    language: 'en',
+    program: [{ action: 'magnet', value: true }],
+    runtime: { metalsCollected: 2, metalsRemaining: 0 },
+  }, curriculum),
+  'run_complete',
+)
+assert.equal(noMetalFollowUp, 'You collected both gears.')
+
+const fireFollowUp = ensureTutorRuntimeFollowUp(
+  'You extinguished one fire.',
+  normalizeTutorContext({
+    language: 'en',
+    program: [{ action: 'spray_water' }],
+    runtime: { firesExtinguished: 1, firesRemaining: 2 },
+  }, curriculum),
+  'run_complete',
+)
+assert.match(fireFollowUp, /still 2 fires left/)
 
 const arabicFallback = createFallbackTutorResponse(context, 'run_complete')
 assert.match(arabicFallback, /مربع/)
