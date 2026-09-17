@@ -8234,7 +8234,7 @@ const htmlContent = `<!DOCTYPE html>
                 certificate_locked_title: 'أكمل المنهج الأساسي لفتح الشهادة',
                 certificate_title: 'شهادة إنجاز', certificate_awarded: 'تُقدَّم بكل فخر إلى',
                 certificate_body: 'لإتمام مناهج المستوى الأساسي والمتوسط والمتقدم بنجاح والحصول على لقب',
-                certificate_coder_title: 'مبرمج أكاديمية STEAM الصغير المعتمد',
+                certificate_coder_title: 'شهادة المبرمج الصغير المعتمد من أكاديمية ستيم',
                 certificate_excellence: 'تقديراً للتميز في برمجة Blockly والتفكير المنطقي وأتمتة الروبوتات.',
                 certificate_completed: 'تاريخ الإكمال',
                 certificate_print: 'عرض / طباعة الشهادة', certificate_download: 'تنزيل',
