@@ -13918,7 +13918,7 @@ const landingPage = `<!DOCTYPE html>
     </div>
     <div class="max-w-5xl mx-auto px-6 relative z-10 text-center">
         <h2 class="fredoka text-4xl md:text-6xl text-white mb-6">Ready to Start the<br><span class="text-yellow-400">Adventure?</span></h2>
-        <p class="text-purple-200 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">Join STEMO Coding today — it's free for students and takes less than 2 minutes to get started.</p>
+        <p class="text-purple-200 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">Join STEMO Coding today — choose a plan for individuals or schools and get started in less than 2 minutes.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
             <div class="bg-white rounded-3xl p-8 text-center shadow-2xl">
                 <div class="text-5xl mb-4">🔐</div>
@@ -14022,7 +14022,7 @@ const landingPage = `<!DOCTYPE html>
             'Stay Connected to Your Child\\'s Learning': 'تابع تعلم طفلك باستمرار',
             'Ready to Start the': 'هل أنت مستعد لبدء',
             'Adventure?': 'المغامرة؟',
-            'Join STEMO Coding today — it\\'s free for students and takes less than 2 minutes to get started.': 'انضم إلى ستيمو كودنج اليوم — التسجيل مجاني للطلاب ويستغرق أقل من دقيقتين.',
+            'Join STEMO Coding today — choose a plan for individuals or schools and get started in less than 2 minutes.': 'انضم إلى ستيمو كودنج اليوم — اختر خطتك للأفراد أو المدارس وابدأ خلال أقل من دقيقتين.',
             'Already a Member?': 'هل أنت عضو بالفعل؟',
             'Students, teachers, parents and admins — log in to your dashboard.': 'الطلاب والمعلمون والوالدان والمديرون — سجّل الدخول إلى لوحة التحكم.',
             '🚀 Login Now': '🚀 سجّل الدخول الآن',
