@@ -13552,8 +13552,8 @@ const landingPage = `<!DOCTYPE html>
                     STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.
                 </p>
                 <div class="flex flex-wrap gap-4">
-                    <a href="/register" data-landing-i18n="🚀 Start for Free" class="primary-cta px-8 py-4 rounded-full font-extrabold text-lg transition-all">
-                        🚀 Start for Free
+                    <a href="/register" data-landing-i18n="🚀 Join us" class="primary-cta px-8 py-4 rounded-full font-extrabold text-lg transition-all">
+                        🚀 Join us
                     </a>
                     <a href="/login" data-landing-i18n="🔐 Login to Platform" class="secondary-cta px-8 py-4 rounded-full text-white font-bold text-lg transition-all">
                         🔐 Login to Platform
@@ -13969,7 +13969,7 @@ const landingPage = `<!DOCTYPE html>
             'Coding & Robotics': 'البرمجة والروبوتات',
             'Through Play!': 'من خلال اللعب!',
             'STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.': 'ستيمو كودنج منصة تفاعلية مدعومة بالذكاء الاصطناعي تعلّم الأطفال البرمجة والروبوتات من خلال الألعاب والتحديات ومرشد روبوت ودود — ولا تحتاج إلى خبرة سابقة.',
-            '🚀 Start for Free': '🚀 ابدأ مجاناً',
+            '🚀 Join us': '🚀 انضم إلينا',
             '🔐 Login to Platform': '🔐 الدخول إلى المنصة',
             'Subscribe now': 'اشترك الآن',
             'For individuals and schools': 'للأفراد والمدارس',
