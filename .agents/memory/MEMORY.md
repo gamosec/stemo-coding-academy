@@ -15,3 +15,4 @@
 - [GitHub–Cloudflare synchronization](github-cloudflare-sync.md) — finish releases with GitHub main and the active Cloudflare Pages source on the same commit.
 - [STEMO tutor safety boundary](stemo-tutor-safety.md) — deterministic work analysis is authoritative; AI only phrases coaching and must pass moderation plus authority-claim filtering.
 - [Tutor geometric evidence](tutor-geometric-evidence.md) — complex patterns need full bounded trail history; client and server trail caps must stay aligned.
+- [Tutor runtime evidence](tutor-runtime-evidence.md) — world accomplishments must be run-scoped events frozen at completion, not inferred later from mutable board state.

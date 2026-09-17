@@ -2168,6 +2168,7 @@ app.post('/api/chat', authMiddleware, bodyLimit({
             workSummary: {
                 drawing: tutorContext.drawing,
                 program: tutorContext.program,
+                runtime: tutorContext.runtime,
             },
         })
     } catch (err) {
@@ -3757,6 +3758,14 @@ const htmlContent = `<!DOCTYPE html>
         var challengeSensorScanCount = 0;
         var challengeWallConditionCount = 0;
         var challengeWallConditionTrueCount = 0;
+        var tutorRunStats = {
+            metalsCollected: 0, firesExtinguished: 0, waterUsed: 0, targetReached: false,
+            collectedMetalObjects: [],
+            wallChecks: 0, wallDetections: 0, wallAvoidances: 0,
+            temperatureChecks: 0, hotDetections: 0, sensorScans: 0,
+            magnetActivations: 0, spraysUsed: 0
+        };
+        var tutorLastRunRuntime = null;
         // True while executeCommands is running; used to suppress premature objective checks on drawing lessons
         var robotExecuting = false;
         // Incrementing this invalidates every delayed callback from an older run.
@@ -5908,6 +5917,14 @@ const htmlContent = `<!DOCTYPE html>
             robot.emotion = 'normal';
             robot.sayText = '';
             robot.dancing = false;
+            tutorRunStats = {
+                metalsCollected: 0, firesExtinguished: 0, waterUsed: 0, targetReached: false,
+                collectedMetalObjects: [],
+                wallChecks: 0, wallDetections: 0, wallAvoidances: 0,
+                temperatureChecks: 0, hotDetections: 0, sensorScans: 0,
+                magnetActivations: 0, spraysUsed: 0
+            };
+            tutorLastRunRuntime = null;
             drawRobot();
             
             // Parse and execute blocks
@@ -6093,6 +6110,7 @@ const htmlContent = `<!DOCTYPE html>
                         if (currentLesson) {
                             checkLessonCompletion();
                         }
+                        tutorLastRunRuntime = captureTutorRuntime();
                         requestTutorRunFeedback(commands);
                     }
                     if (onComplete) onComplete();
@@ -6104,6 +6122,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 // Handle if_wall specially - it needs to execute nested commands
                 if (cmd.action === 'if_wall') {
+                    tutorRunStats.wallChecks++;
                     if (challengeMode && challengeActiveLessonId === 'lesson-9') {
                         challengeWallConditionCount++;
                     }
@@ -6112,6 +6131,7 @@ const htmlContent = `<!DOCTYPE html>
                     if (challengeMode && challengeActiveLessonId === 'lesson-9' && wallSteps <= cmd.distance) {
                         challengeWallConditionTrueCount++;
                     }
+                    if (wallSteps <= cmd.distance) tutorRunStats.wallDetections++;
                     var nestedCommands = wallSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
                     
                     if (nestedCommands && nestedCommands.length > 0) {
@@ -6334,8 +6354,10 @@ const htmlContent = `<!DOCTYPE html>
 
                 // Handle if_hot (fire detection conditional)
                 if (cmd.action === 'if_hot') {
+                    tutorRunStats.temperatureChecks++;
                     var fireInfo = detectFireAhead();
                     var fireSteps = fireInfo.distance / 20;
+                    if (fireSteps <= cmd.distance) tutorRunStats.hotDetections++;
                     var nestedCommands = fireSteps <= cmd.distance ? cmd.doCommands : cmd.elseCommands;
                     
                     if (nestedCommands && nestedCommands.length > 0) {
@@ -6406,6 +6428,7 @@ const htmlContent = `<!DOCTYPE html>
                 
                 robot.x = Math.max(25, Math.min(525, newX));
                 robot.y = Math.max(25, Math.min(525, newY));
+                noteTutorTargetReach();
                 
                 // Check if magnet is ON and can pick up nearby metal
                 if (robot.magnetOn && (challengeMode || !robot.carrying)) {
@@ -6422,6 +6445,7 @@ const htmlContent = `<!DOCTYPE html>
                                     break;
                                 }
                                 metal.pickedUp = true;
+                                noteTutorMetalCollection(metal);
                                 playSound('pickup');
                                 if (challengeMode) {
                                     // Challenge: auto-collect, no carrying needed
@@ -6475,6 +6499,7 @@ const htmlContent = `<!DOCTYPE html>
                 robot.visible = cmd.value;
             } else if (cmd.action === 'magnet') {
                 robot.magnetOn = cmd.value;
+                if (cmd.value) tutorRunStats.magnetActivations++;
                 playSound(cmd.value ? 'magnet_on' : 'magnet_off');
                 if (cmd.value) {
                     // Magnet ON - try to pick up nearby metal
@@ -6494,6 +6519,7 @@ const htmlContent = `<!DOCTYPE html>
                                         break;
                                     }
                                     metal.pickedUp = true;
+                                    noteTutorMetalCollection(metal);
                                     robot.carrying = metal; // always carry so Magnet OFF can show the drop
                                     gotOne = true;
                                     playSound('pickup');
@@ -6551,6 +6577,7 @@ const htmlContent = `<!DOCTYPE html>
                     }
                 }
             } else if (cmd.action === 'scan') {
+                tutorRunStats.sensorScans++;
                 if (challengeMode && challengeActiveLessonId === 'lesson-9') {
                     challengeSensorScanCount++;
                 }
@@ -6566,6 +6593,7 @@ const htmlContent = `<!DOCTYPE html>
                 // Auto move with wall avoidance
                 var wallDist = detectWallAhead();
                 if (wallDist <= 30) { // Wall within 1.5 steps
+                    tutorRunStats.wallAvoidances++;
                     // Smart turn - choose best direction
                     playSound('bonk');
                     var turnDir = chooseBestTurnDirection();
@@ -6588,6 +6616,7 @@ const htmlContent = `<!DOCTYPE html>
                     
                     robot.x = Math.max(25, Math.min(525, newX));
                     robot.y = Math.max(25, Math.min(525, newY));
+                    noteTutorTargetReach();
                 }
             } else if (cmd.action === 'smart_turn') {
                 // Smart turn - choose best direction based on situation
@@ -6598,10 +6627,12 @@ const htmlContent = `<!DOCTYPE html>
                     addChatMessage('stemo', "🧠 Smart turn " + (turnDir > 0 ? "right ↪️" : "left ↩️"));
                 }
             } else if (cmd.action === 'check_temp') {
+                tutorRunStats.temperatureChecks++;
                 // Check temperature ahead
                 var fireInfo = detectFireAhead();
                 robot.lastTemp = fireInfo.temp;
                 if (fireInfo.fire) {
+                    tutorRunStats.hotDetections++;
                     addChatMessage('stemo', "🌡️ Temperature: " + fireInfo.temp + "°C 🔥 Fire detected " + Math.round(fireInfo.distance / 20) + " steps ahead!");
                 } else {
                     addChatMessage('stemo', "🌡️ Temperature: " + fireInfo.temp + "°C - All clear ahead!");
@@ -6621,10 +6652,13 @@ const htmlContent = `<!DOCTYPE html>
                             targetFire.health--;
                             spraysUsed++;
                         }
+                        tutorRunStats.spraysUsed += spraysUsed;
+                        tutorRunStats.waterUsed += spraysUsed;
                         robot.spraying = true;
                         playSound('spray');
                         if (targetFire.health <= 0) {
                             fireObjects = fireObjects.filter(function(f) { return f !== targetFire; });
+                            tutorRunStats.firesExtinguished++;
                             playSound('fire_out');
                             addChatMessage('stemo', "💧💥 Fire extinguished with " + spraysUsed + " spray" + (spraysUsed > 1 ? "s" : "") + "! Great job! 🎉 Water left: " + robot.waterLevel + "/10");
                             checkChallengeObjectives();
@@ -7012,6 +7046,8 @@ const htmlContent = `<!DOCTYPE html>
                 if (dist < 50) {
                     robot.waterLevel--;
                     nearestFire.health--;
+                    tutorRunStats.spraysUsed++;
+                    tutorRunStats.waterUsed++;
                     robot.visible = true;
                     // Trigger spray effect
                     robot.spraying = true;
@@ -7020,6 +7056,7 @@ const htmlContent = `<!DOCTYPE html>
                     
                     if (nearestFire.health <= 0) {
                         fireObjects = fireObjects.filter(function(f) { return f !== nearestFire; });
+                        tutorRunStats.firesExtinguished++;
                         playSound('fire_out');
                         addChatMessage('stemo', "🚒💧 Fire out! " + fireObjects.length + " fires remaining. Water: " + robot.waterLevel + "/10");
                     }
@@ -7037,6 +7074,7 @@ const htmlContent = `<!DOCTYPE html>
                     var wallDist = detectWallAhead();
                     
                     if (wallDist <= 30) {
+                        tutorRunStats.wallAvoidances++;
                         playSound('bonk');
                         var turnDir = chooseBestTurnDirection();
                         robot.angle += turnDir;
@@ -7135,6 +7173,7 @@ const htmlContent = `<!DOCTYPE html>
                 var dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < 25) {
                     robot.x = targetPoint.x; robot.y = targetPoint.y;
+                    noteTutorTargetReach();
                     playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
@@ -7189,6 +7228,7 @@ const htmlContent = `<!DOCTYPE html>
                 if (stepIndex >= path.length) {
                     robot.x = targetPoint.x;
                     robot.y = targetPoint.y;
+                    noteTutorTargetReach();
                     playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
@@ -7211,6 +7251,7 @@ const htmlContent = `<!DOCTYPE html>
                 var edx = robot.x - targetPoint.x, edy = robot.y - targetPoint.y;
                 if (Math.sqrt(edx*edx + edy*edy) < 25) {
                     robot.x = targetPoint.x; robot.y = targetPoint.y;
+                    noteTutorTargetReach();
                     playSound('success');
                     addChatMessage('stemo', "🎯 Target reached! 🎉");
                     drawRobot();
@@ -9443,6 +9484,39 @@ const htmlContent = `<!DOCTYPE html>
             return history.slice(-8);
         }
 
+        function captureTutorRuntime() {
+            return {
+                metalsCollected: tutorRunStats.metalsCollected,
+                metalsRemaining: metalObjects.filter(function(metal) { return !metal.pickedUp; }).length,
+                firesExtinguished: tutorRunStats.firesExtinguished,
+                firesRemaining: fireObjects.length,
+                magnetActivations: tutorRunStats.magnetActivations,
+                spraysUsed: tutorRunStats.spraysUsed,
+                waterUsed: tutorRunStats.waterUsed,
+                sensorScans: tutorRunStats.sensorScans,
+                wallChecks: tutorRunStats.wallChecks,
+                wallDetections: tutorRunStats.wallDetections,
+                wallAvoidances: tutorRunStats.wallAvoidances,
+                temperatureChecks: tutorRunStats.temperatureChecks,
+                hotDetections: tutorRunStats.hotDetections,
+                targetPresent: Boolean(targetPoint),
+                targetReached: tutorRunStats.targetReached
+            };
+        }
+
+        function noteTutorTargetReach() {
+            if (!targetPoint) return;
+            var dx = targetPoint.x - robot.x;
+            var dy = targetPoint.y - robot.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 40) tutorRunStats.targetReached = true;
+        }
+
+        function noteTutorMetalCollection(metal) {
+            if (!metal || tutorRunStats.collectedMetalObjects.indexOf(metal) !== -1) return;
+            tutorRunStats.collectedMetalObjects.push(metal);
+            tutorRunStats.metalsCollected = tutorRunStats.collectedMetalObjects.length;
+        }
+
         function buildTutorContext(commands, conversation) {
             function roundedTutorNumber(value) {
                 return Math.round(Number(value || 0) * 10) / 10;
@@ -9460,6 +9534,7 @@ const htmlContent = `<!DOCTYPE html>
                 level: stemo.level,
                 program: compactTutorCommands(commands || lastTutorCommands),
                 drawing: { trails: trails },
+                runtime: tutorLastRunRuntime || captureTutorRuntime(),
                 robot: {
                     x: robot.x,
                     y: robot.y,

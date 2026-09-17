@@ -288,6 +288,35 @@ export function summarizeProgram(rawCommands) {
     usedLoops: Boolean(actionCounts.repeat_var),
     usedVariables: Boolean(actionCounts.set_variable || actionCounts.change_variable),
     usedSensors: Boolean(actionCounts.scan || actionCounts.check_temp || actionCounts.if_wall || actionCounts.if_hot),
+    usedMagnet: Boolean(actionCounts.magnet),
+    usedWater: Boolean(actionCounts.spray_water || actionCounts.firefighter_mode),
+    usedConditionals: Boolean(actionCounts.if_wall || actionCounts.if_hot),
+    usedNavigation: Boolean(actionCounts.auto_move || actionCounts.smart_turn || actionCounts.go_to_target || actionCounts.smart_navigate),
+  }
+}
+
+function boundedCount(value, maximum = 999) {
+  return Math.max(0, Math.min(maximum, Math.round(finiteNumber(value))))
+}
+
+function sanitizeRuntime(rawRuntime) {
+  const runtime = rawRuntime && typeof rawRuntime === 'object' ? rawRuntime : {}
+  return {
+    metalsCollected: boundedCount(runtime.metalsCollected, 100),
+    metalsRemaining: boundedCount(runtime.metalsRemaining, 100),
+    firesExtinguished: boundedCount(runtime.firesExtinguished, 100),
+    firesRemaining: boundedCount(runtime.firesRemaining, 100),
+    magnetActivations: boundedCount(runtime.magnetActivations, 500),
+    spraysUsed: boundedCount(runtime.spraysUsed, 500),
+    waterUsed: boundedCount(runtime.waterUsed, 100),
+    sensorScans: boundedCount(runtime.sensorScans, 500),
+    wallChecks: boundedCount(runtime.wallChecks, 500),
+    wallDetections: boundedCount(runtime.wallDetections, 500),
+    wallAvoidances: boundedCount(runtime.wallAvoidances, 500),
+    temperatureChecks: boundedCount(runtime.temperatureChecks, 500),
+    hotDetections: boundedCount(runtime.hotDetections, 500),
+    targetPresent: Boolean(runtime.targetPresent),
+    targetReached: Boolean(runtime.targetPresent && runtime.targetReached),
   }
 }
 
@@ -423,6 +452,7 @@ export function normalizeTutorContext(rawContext, curriculum, studentMessage = '
     ),
     program: summarizeProgram(context.program),
     drawing: summarizeDrawing(context.drawing?.trails),
+    runtime: sanitizeRuntime(context.runtime),
     robot: {
       x: Math.round(finiteNumber(context.robot?.x)),
       y: Math.round(finiteNumber(context.robot?.y)),
@@ -478,6 +508,7 @@ ${JSON.stringify(curriculumKnowledge)}`
     lesson: promptSafeLesson(context.lesson),
     program: context.program,
     drawing: context.drawing,
+    runtime: context.runtime,
     robot: context.robot,
     challenge: context.challenge,
     progress: { level: context.level },
@@ -522,10 +553,63 @@ function fallbackChatResponse(context, message) {
   return '🤖 I can help with your lesson and program. Ask me about blocks, movement, loops, or angles.'
 }
 
+function fallbackRuntimeResponse(context) {
+  const runtime = context.runtime || {}
+  const hasObservedAction = runtime.metalsCollected > 0 ||
+    runtime.firesExtinguished > 0 ||
+    runtime.wallChecks > 0 ||
+    runtime.wallAvoidances > 0 ||
+    runtime.temperatureChecks > 0 ||
+    runtime.sensorScans > 0 ||
+    runtime.targetReached
+  if (!hasObservedAction) return null
+
+  const facts = []
+  if (context.language === 'ar') {
+    if (runtime.metalsCollected > 0) facts.push(`جمعت ${runtime.metalsCollected} من الأجسام المعدنية`)
+    if (runtime.firesExtinguished > 0) facts.push(`أطفأت ${runtime.firesExtinguished} من الحرائق باستخدام ${runtime.spraysUsed} رشات`)
+    if (runtime.wallChecks > 0) facts.push(`فحص شرط الجدار ${runtime.wallChecks} مرات واكتشف جدارًا ${runtime.wallDetections} مرات`)
+    if (runtime.wallAvoidances > 0) facts.push(`تجنبت الجدار تلقائيًا ${runtime.wallAvoidances} مرات`)
+    if (runtime.temperatureChecks > 0) facts.push(`فحصت الحرارة ${runtime.temperatureChecks} مرات`)
+    if (runtime.sensorScans > 0) facts.push(`استخدمت المستشعر ${runtime.sensorScans} مرات`)
+    if (runtime.targetReached) facts.push('وصلت إلى الهدف')
+    return `🤖 لاحظت في هذا التشغيل أنك ${facts.slice(0, 3).join('، ')}. جرّب تغيير شرط واحد وشاهد كيف تتغير النتيجة.`
+  }
+  if (context.language === 'es') {
+    if (runtime.metalsCollected > 0) facts.push(`recogiste ${runtime.metalsCollected} objetos metálicos`)
+    if (runtime.firesExtinguished > 0) facts.push(`apagaste ${runtime.firesExtinguished} incendios con ${runtime.spraysUsed} chorros`)
+    if (runtime.wallChecks > 0) facts.push(`comprobaste la condición de pared ${runtime.wallChecks} veces y detectaste una pared ${runtime.wallDetections} veces`)
+    if (runtime.wallAvoidances > 0) facts.push(`evitaste paredes automáticamente ${runtime.wallAvoidances} veces`)
+    if (runtime.temperatureChecks > 0) facts.push(`comprobaste la temperatura ${runtime.temperatureChecks} veces`)
+    if (runtime.sensorScans > 0) facts.push(`usaste el sensor ${runtime.sensorScans} veces`)
+    if (runtime.targetReached) facts.push('llegaste al objetivo')
+    return `🤖 En esta ejecución observé que ${facts.slice(0, 3).join(', ')}. Cambia una condición y observa cómo cambia el resultado.`
+  }
+  if (context.language === 'fr') {
+    if (runtime.metalsCollected > 0) facts.push(`tu as ramassé ${runtime.metalsCollected} objets métalliques`)
+    if (runtime.firesExtinguished > 0) facts.push(`tu as éteint ${runtime.firesExtinguished} incendies avec ${runtime.spraysUsed} jets`)
+    if (runtime.wallChecks > 0) facts.push(`tu as testé la condition du mur ${runtime.wallChecks} fois et détecté un mur ${runtime.wallDetections} fois`)
+    if (runtime.wallAvoidances > 0) facts.push(`tu as évité automatiquement des murs ${runtime.wallAvoidances} fois`)
+    if (runtime.temperatureChecks > 0) facts.push(`tu as vérifié la température ${runtime.temperatureChecks} fois`)
+    if (runtime.sensorScans > 0) facts.push(`tu as utilisé le capteur ${runtime.sensorScans} fois`)
+    if (runtime.targetReached) facts.push('tu as atteint la cible')
+    return `🤖 Pendant cette exécution, j’ai observé que ${facts.slice(0, 3).join(', ')}. Modifie une condition et observe le nouveau résultat.`
+  }
+  if (runtime.metalsCollected > 0) facts.push(`collected ${runtime.metalsCollected} metal objects`)
+  if (runtime.firesExtinguished > 0) facts.push(`extinguished ${runtime.firesExtinguished} fires with ${runtime.spraysUsed} sprays`)
+  if (runtime.wallChecks > 0) facts.push(`checked the wall condition ${runtime.wallChecks} times and detected a wall ${runtime.wallDetections} times`)
+  if (runtime.wallAvoidances > 0) facts.push(`automatically avoided walls ${runtime.wallAvoidances} times`)
+  if (runtime.temperatureChecks > 0) facts.push(`checked temperature ${runtime.temperatureChecks} times`)
+  if (runtime.sensorScans > 0) facts.push(`used the sensor ${runtime.sensorScans} times`)
+  if (runtime.targetReached) facts.push('reached the target')
+  return `🤖 In this run, I observed that you ${facts.slice(0, 3).join(', ')}. Change one condition and see how the result changes.`
+}
+
 export function createFallbackTutorResponse(context, eventType = 'chat', message = '') {
   if (eventType === 'chat') return fallbackChatResponse(context, message)
   const shape = context.drawing
   const polygonTurn = shape.sideCount > 0 ? Math.round((360 / shape.sideCount) * 10) / 10 : 0
+  const runtimeFeedback = fallbackRuntimeResponse(context)
   if (context.language === 'ar') {
     if (shape.shape === 'radial_pattern') return `❄️ رسمت نمطًا شعاعيًا من ${shape.motifCount} أشكال متكررة حول مركز واحد! يعود كل شكل إلى المركز ثم يدور قرابة ${shape.rotationStep}° قبل النسخة التالية.`
     if (shape.shape === 'square') return '🎨 رسمت مربعًا! له أربعة أضلاع متقاربة وأربع زوايا قائمة. جرّب استخدام كتلة التكرار لرسمه بكتل أقل.'
@@ -533,6 +617,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
     if (shape.shape === 'triangle') return '🎨 رسمت مثلثًا! عاد المسار إلى البداية بعد ثلاثة أضلاع. جرّب لونًا جديدًا أو حجم قلم مختلفًا.'
     if (shape.shape === 'polygon') return `🎨 رسمت مضلعًا من ${shape.sideCount} أضلاع متصلة! لرسم مضلع منتظم استخدم زاوية دوران ${polygonTurn}°.`
     if (shape.shape !== 'none') return `🎨 رسمت ${shape.sideCount} مقاطع رئيسية${shape.closed ? ' وأغلقت المسار' : ''}. فكّر في الزاوية التي تحتاجها لجعل الشكل التالي منتظمًا.`
+    if (runtimeFeedback) return runtimeFeedback
     return eventType === 'run_complete'
       ? '🤖 نفّذت برنامجك بنجاح! أضف القلم للأسفل مع الحركة إذا أردت أن أرسم شكلك وأصفه.'
       : '🤖 أستطيع مساعدتك في الدرس والبرنامج. جرّب سؤالي عن الكتل أو الحركة أو الزوايا.'
@@ -549,7 +634,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
     }
     return shape.shape !== 'none'
       ? `🎨 Tu dibujo tiene ${shape.sideCount} secciones principales${shape.closed ? ' y forma un camino cerrado' : ''}. Prueba a ajustar el siguiente giro.`
-      : '🤖 Ejecuté tu programa. Baja el lápiz y añade movimiento para que pueda reconocer tu dibujo.'
+      : runtimeFeedback || '🤖 Ejecuté tu programa. Baja el lápiz y añade movimiento para que pueda reconocer tu dibujo.'
   }
   if (context.language === 'fr') {
     if (shape.shape === 'radial_pattern') return `❄️ Tu as dessiné un mandala radial composé de ${shape.motifCount} formes répétées autour d’un centre ! Chaque forme revient au centre, puis tourne d’environ ${shape.rotationStep}° avant la suivante.`
@@ -563,7 +648,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
     }
     return shape.shape !== 'none'
       ? `🎨 Ton dessin contient ${shape.sideCount} sections principales${shape.closed ? ' et forme un tracé fermé' : ''}. Essaie d'ajuster le prochain angle.`
-      : '🤖 J’ai exécuté ton programme. Baisse le stylo et ajoute un mouvement pour que je reconnaisse ton dessin.'
+      : runtimeFeedback || '🤖 J’ai exécuté ton programme. Baisse le stylo et ajoute un mouvement pour que je reconnaisse ton dessin.'
   }
   if (shape.shape === 'radial_pattern') return `❄️ You drew a radial mandala with ${shape.motifCount} repeated shapes around one center! Each shape returns to the center, then turns about ${shape.rotationStep}° before the next copy.`
   if (shape.shape === 'square') return '🎨 You drew a square! It has four nearly equal sides and four right-angle turns. Try using a Repeat block to draw it with fewer blocks.'
@@ -574,9 +659,9 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
     return `🎨 You drew a${name === 'octagon' ? 'n' : ''} ${name}! It has ${shape.sideCount} connected sides; a regular one uses ${polygonTurn}° turns.`
   }
   if (shape.shape !== 'none') return `🎨 Your drawing has ${shape.sideCount} main line sections${shape.closed ? ' and returns to its starting point' : ''}. Think about the next turn angle that would make it more regular.`
-  return eventType === 'run_complete'
+  return runtimeFeedback || (eventType === 'run_complete'
     ? '🤖 I ran your program! Add Pen Down with movement if you want me to draw a shape and describe what you made.'
-    : '🤖 I can help with your lesson and program. Ask me about blocks, movement, loops, or angles.'
+    : '🤖 I can help with your lesson and program. Ask me about blocks, movement, loops, or angles.')
 }
 
 const UNSAFE_RESPONSE_PATTERNS = [
