@@ -13453,7 +13453,7 @@ const landingPage = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STEMO Coding — AI-Powered Coding & Robotics for Kids</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700;800&family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/style.css">
     <style>
@@ -13461,7 +13461,9 @@ const landingPage = `<!DOCTYPE html>
         * { box-sizing:border-box; }
         html { scroll-behavior:smooth; }
         body { font-family:'Nunito',sans-serif; color:var(--ink); background:var(--paper); }
+        html[lang="ar"] body { font-family:'Baloo Bhaijaan 2','Nunito',sans-serif; }
         .fredoka { font-family:'Fredoka One',cursive; letter-spacing:-.025em; }
+        html[lang="ar"] .fredoka { font-family:'Baloo Bhaijaan 2','Nunito',sans-serif; letter-spacing:0; }
         button,a { touch-action:manipulation; }
         a:focus-visible,button:focus-visible { outline:4px solid var(--sun); outline-offset:4px; }
         .landing-nav { background:rgba(247,248,255,.88); border-bottom:1px solid rgba(81,53,216,.12); box-shadow:0 8px 30px rgba(35,31,103,.08); }
@@ -13966,7 +13968,7 @@ const landingPage = `<!DOCTYPE html>
             'Where Kids Learn': 'حيث يتعلّم الأطفال',
             'Coding & Robotics': 'البرمجة والروبوتات',
             'Through Play!': 'من خلال اللعب!',
-            'STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.': 'ستيمو كودينغ منصة تفاعلية مدعومة بالذكاء الاصطناعي تعلّم الأطفال البرمجة والروبوتات من خلال الألعاب والتحديات ومرشد روبوت ودود — ولا تحتاج إلى خبرة سابقة.',
+            'STEMO Coding is an AI-powered interactive platform that teaches children programming and robotics through fun games, challenges, and a friendly robot guide — no prior experience needed.': 'ستيمو كودنج منصة تفاعلية مدعومة بالذكاء الاصطناعي تعلّم الأطفال البرمجة والروبوتات من خلال الألعاب والتحديات ومرشد روبوت ودود — ولا تحتاج إلى خبرة سابقة.',
             '🚀 Start for Free': '🚀 ابدأ مجاناً',
             '🔐 Login to Platform': '🔐 الدخول إلى المنصة',
             'No credit card required': 'لا تحتاج إلى بطاقة ائتمان',
@@ -13987,7 +13989,7 @@ const landingPage = `<!DOCTYPE html>
             'XP': 'نقطة خبرة',
             'Level': 'المستوى',
             'Simple & Powerful': 'بسيط وقوي',
-            'How STEMO Coding Works': 'كيف يعمل ستيمو كودينغ',
+            'How STEMO Coding Works': 'كيف يعمل ستيمو كودنج',
             'From registration to mastering robotics — it\\'s a smooth, guided journey for every child.': 'من التسجيل إلى إتقان الروبوتات — رحلة تعليمية سهلة وموجهة لكل طفل.',
             'Register & Join a Class': 'سجّل وانضم إلى فصل',
             'Students sign up, get approved by their teacher, and are placed in a class. Parents can also create accounts to monitor progress.': 'يسجّل الطلاب، ثم يوافق عليهم المعلم ويضعهم في فصل. ويمكن للوالدين إنشاء حسابات لمتابعة التقدم.',
@@ -14003,7 +14005,7 @@ const landingPage = `<!DOCTYPE html>
             'Advanced': 'متقدم',
             'Expert': 'خبير',
             'Real Programming Skills, Taught Visually': 'مهارات برمجة حقيقية تُدرّس بصرياً',
-            'By the end of STEMO Coding, every student understands these core concepts — the same ones professional developers use every day.': 'بنهاية ستيمو كودينغ، يفهم كل طالب هذه المفاهيم الأساسية — وهي نفسها التي يستخدمها المطورون المحترفون يومياً.',
+            'By the end of STEMO Coding, every student understands these core concepts — the same ones professional developers use every day.': 'بنهاية ستيمو كودنج، يفهم كل طالب هذه المفاهيم الأساسية — وهي نفسها التي يستخدمها المطورون المحترفون يومياً.',
             'Loops': 'التكرار',
             'Conditions': 'الشروط',
             'Variables': 'المتغيرات',
@@ -14020,7 +14022,7 @@ const landingPage = `<!DOCTYPE html>
             'Stay Connected to Your Child\\'s Learning': 'تابع تعلم طفلك باستمرار',
             'Ready to Start the': 'هل أنت مستعد لبدء',
             'Adventure?': 'المغامرة؟',
-            'Join STEMO Coding today — it\\'s free for students and takes less than 2 minutes to get started.': 'انضم إلى ستيمو كودينغ اليوم — التسجيل مجاني للطلاب ويستغرق أقل من دقيقتين.',
+            'Join STEMO Coding today — it\\'s free for students and takes less than 2 minutes to get started.': 'انضم إلى ستيمو كودنج اليوم — التسجيل مجاني للطلاب ويستغرق أقل من دقيقتين.',
             'Already a Member?': 'هل أنت عضو بالفعل؟',
             'Students, teachers, parents and admins — log in to your dashboard.': 'الطلاب والمعلمون والوالدان والمديرون — سجّل الدخول إلى لوحة التحكم.',
             '🚀 Login Now': '🚀 سجّل الدخول الآن',
@@ -14029,7 +14031,7 @@ const landingPage = `<!DOCTYPE html>
             '🎉 Register as Student': '🎉 التسجيل كطالب',
             'AI-Powered Coding & Robotics for Kids': 'برمجة وروبوتات للأطفال بالذكاء الاصطناعي',
              'STEAM Academy © 2026': '© 2026 ستيم أكاديمي جميع الحقوق محفوظة',
-            'STEMO Coding is powered by STEAM Academy': 'ستيمو كودينغ مدعوم من أكاديمية ستيم',
+            'STEMO Coding is powered by STEAM Academy': 'ستيمو كودنج مدعوم من أكاديمية ستيم',
             'Register': 'التسجيل'
         };
         var landingEnglish = {};
