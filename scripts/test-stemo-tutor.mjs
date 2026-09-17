@@ -100,6 +100,41 @@ assert.equal(octagonContext.drawing.label, 'an octagon')
 assert.match(createFallbackTutorResponse(octagonContext, 'run_complete'), /octagon/)
 assert.match(createFallbackTutorResponse(octagonContext, 'run_complete'), /45°/)
 
+function radialPolygonTrails(copies, sides, sideLength, rotationStep) {
+  const trails = []
+  let angle = 0
+  for (let copy = 0; copy < copies; copy += 1) {
+    let x = 0
+    let y = 0
+    for (let side = 0; side < sides; side += 1) {
+      const nextX = x + Math.cos(angle * Math.PI / 180) * sideLength
+      const nextY = y + Math.sin(angle * Math.PI / 180) * sideLength
+      trails.push({ x1: x, y1: y, x2: nextX, y2: nextY, color: '#a855f7', size: 4 })
+      x = nextX
+      y = nextY
+      angle += 360 / sides
+    }
+    angle += rotationStep
+  }
+  return trails
+}
+
+const triangleMandala = summarizeDrawing(radialPolygonTrails(36, 3, 100, 10))
+assert.equal(triangleMandala.shape, 'radial_pattern')
+assert.equal(triangleMandala.motifCount, 36)
+assert.equal(triangleMandala.motifSideCount, 3)
+assert.equal(triangleMandala.motifShape, 'triangles')
+assert.equal(triangleMandala.rotationStep, 10)
+assert.match(triangleMandala.evidence, /36 evenly rotated triangles/)
+
+const squareMandalaContext = normalizeTutorContext({
+  language: 'en',
+  drawing: { trails: radialPolygonTrails(12, 4, 60, 30) },
+}, {})
+assert.equal(squareMandalaContext.drawing.shape, 'radial_pattern')
+assert.equal(squareMandalaContext.drawing.motifShape, 'squares')
+assert.match(createFallbackTutorResponse(squareMandalaContext, 'run_complete'), /12 repeated shapes/)
+
 const program = summarizeProgram([
   { action: 'pen', value: true },
   { action: 'move', value: 20 },

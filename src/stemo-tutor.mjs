@@ -95,6 +95,66 @@ function quadrilateralHasRightTurns(sides) {
   })
 }
 
+function signedAngleDifference(from, to) {
+  let difference = (to - from) % 360
+  if (difference > 180) difference -= 360
+  if (difference < -180) difference += 360
+  return difference
+}
+
+function detectRadialPattern(trails) {
+  if (trails.length < 9) return null
+  const center = { x: trails[0].x1, y: trails[0].y1 }
+  const averageLength = trails.reduce((sum, trail) => sum + segmentLength(trail), 0) / trails.length
+  const centerTolerance = Math.max(5, averageLength * 0.12)
+  const boundaries = [0]
+  trails.forEach((trail, index) => {
+    if (pointDistance(center, { x: trail.x2, y: trail.y2 }) <= centerTolerance) {
+      boundaries.push(index + 1)
+    }
+  })
+  if (boundaries[boundaries.length - 1] !== trails.length) return null
+
+  const motifs = []
+  for (let index = 1; index < boundaries.length; index += 1) {
+    const motifTrails = trails.slice(boundaries[index - 1], boundaries[index])
+    const sides = mergeCollinearSegments(motifTrails)
+    if (sides.length >= 3 && sides.length <= 12) motifs.push({ trails: motifTrails, sides })
+  }
+  if (motifs.length < 3 || motifs.length !== boundaries.length - 1) return null
+
+  const sideCounts = motifs.map((motif) => motif.sides.length)
+  const motifSideCount = sideCounts[0]
+  if (!sideCounts.every((count) => count === motifSideCount)) return null
+  const startingAngles = motifs.map((motif) => segmentAngle(motif.sides[0]))
+  const rotationSteps = startingAngles.slice(1).map((angle, index) => (
+    signedAngleDifference(startingAngles[index], angle)
+  ))
+  const rotationStep = rotationSteps.reduce((sum, step) => sum + step, 0) / rotationSteps.length
+  if (Math.abs(rotationStep) < 2) return null
+  const rotationTolerance = Math.max(3, Math.abs(rotationStep) * 0.25)
+  if (!rotationSteps.every((step) => Math.abs(step - rotationStep) <= rotationTolerance)) return null
+
+  const motifLengths = motifs[0].sides.map(segmentLength)
+  let motifShape = `${motifSideCount}-sided polygons`
+  if (motifSideCount === 3 && allNear(motifLengths, 0.28)) {
+    motifShape = 'triangles'
+  } else if (motifSideCount === 4 && quadrilateralHasRightTurns(motifs[0].sides)) {
+    motifShape = allNear(motifLengths, 0.18) ? 'squares' : 'rectangles'
+  } else if (ENGLISH_POLYGON_NAMES[motifSideCount]) {
+    motifShape = `${ENGLISH_POLYGON_NAMES[motifSideCount]}s`
+  }
+  const roundedRotation = Math.round(Math.abs(rotationStep) * 10) / 10
+  return {
+    motifCount: motifs.length,
+    motifSideCount,
+    motifShape,
+    rotationStep: roundedRotation,
+    label: `a radial mandala made of ${motifs.length} ${motifShape}`,
+    evidence: `The trail repeatedly returns to one center after each ${motifSideCount}-sided motif, creating ${motifs.length} evenly rotated ${motifShape} with about ${roundedRotation}° between copies.`,
+  }
+}
+
 const ENGLISH_POLYGON_NAMES = {
   5: 'pentagon',
   6: 'hexagon',
@@ -143,8 +203,13 @@ export function summarizeDrawing(rawTrails) {
   let evidence = closed
     ? `The drawing returns to its starting point and has ${sides.length} main sides.`
     : `The drawing has ${sides.length} main line sections and ends away from its starting point.`
+  const radialPattern = detectRadialPattern(analyzedStroke.trails)
 
-  if (closed && sides.length === 3 && allNear(lengths, 0.28)) {
+  if (radialPattern) {
+    shape = 'radial_pattern'
+    label = radialPattern.label
+    evidence = radialPattern.evidence
+  } else if (closed && sides.length === 3 && allNear(lengths, 0.28)) {
     shape = 'triangle'
     label = 'a triangle'
     evidence = 'The trail closes after three main sides.'
@@ -182,6 +247,10 @@ export function summarizeDrawing(rawTrails) {
     colors,
     totalDistance: Math.round(lengths.reduce((sum, length) => sum + length, 0)),
     evidence,
+    motifCount: radialPattern?.motifCount || 0,
+    motifSideCount: radialPattern?.motifSideCount || 0,
+    motifShape: radialPattern?.motifShape || null,
+    rotationStep: radialPattern?.rotationStep || 0,
   }
 }
 
@@ -458,6 +527,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
   const shape = context.drawing
   const polygonTurn = shape.sideCount > 0 ? Math.round((360 / shape.sideCount) * 10) / 10 : 0
   if (context.language === 'ar') {
+    if (shape.shape === 'radial_pattern') return `❄️ رسمت نمطًا شعاعيًا من ${shape.motifCount} أشكال متكررة حول مركز واحد! يعود كل شكل إلى المركز ثم يدور قرابة ${shape.rotationStep}° قبل النسخة التالية.`
     if (shape.shape === 'square') return '🎨 رسمت مربعًا! له أربعة أضلاع متقاربة وأربع زوايا قائمة. جرّب استخدام كتلة التكرار لرسمه بكتل أقل.'
     if (shape.shape === 'rectangle') return '🎨 رسمت مستطيلًا! الضلعان المتقابلان متساويان وتستخدم زوايا 90°. جرّب تغيير طول ضلعين فقط.'
     if (shape.shape === 'triangle') return '🎨 رسمت مثلثًا! عاد المسار إلى البداية بعد ثلاثة أضلاع. جرّب لونًا جديدًا أو حجم قلم مختلفًا.'
@@ -468,6 +538,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
       : '🤖 أستطيع مساعدتك في الدرس والبرنامج. جرّب سؤالي عن الكتل أو الحركة أو الزوايا.'
   }
   if (context.language === 'es') {
+    if (shape.shape === 'radial_pattern') return `❄️ ¡Dibujaste un mandala radial con ${shape.motifCount} figuras repetidas alrededor de un centro! Cada figura vuelve al centro y gira unos ${shape.rotationStep}° antes de la siguiente.`
     if (shape.shape === 'square') return '🎨 ¡Dibujaste un cuadrado! Tiene cuatro lados parecidos y cuatro giros de 90°. Intenta usar Repetir para hacerlo con menos bloques.'
     if (shape.shape === 'rectangle') return '🎨 ¡Dibujaste un rectángulo! Los lados opuestos coinciden y los giros son de 90°. Prueba a cambiar solo dos longitudes.'
     if (shape.shape === 'triangle') return '🎨 ¡Dibujaste un triángulo! El camino volvió al inicio después de tres lados. Prueba otro color o grosor.'
@@ -481,6 +552,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
       : '🤖 Ejecuté tu programa. Baja el lápiz y añade movimiento para que pueda reconocer tu dibujo.'
   }
   if (context.language === 'fr') {
+    if (shape.shape === 'radial_pattern') return `❄️ Tu as dessiné un mandala radial composé de ${shape.motifCount} formes répétées autour d’un centre ! Chaque forme revient au centre, puis tourne d’environ ${shape.rotationStep}° avant la suivante.`
     if (shape.shape === 'square') return '🎨 Tu as dessiné un carré ! Il a quatre côtés proches et quatre angles droits. Essaie Répéter pour utiliser moins de blocs.'
     if (shape.shape === 'rectangle') return '🎨 Tu as dessiné un rectangle ! Les côtés opposés correspondent et les virages font 90°. Essaie de modifier seulement deux longueurs.'
     if (shape.shape === 'triangle') return '🎨 Tu as dessiné un triangle ! Le tracé revient au départ après trois côtés. Essaie une autre couleur ou épaisseur.'
@@ -493,6 +565,7 @@ export function createFallbackTutorResponse(context, eventType = 'chat', message
       ? `🎨 Ton dessin contient ${shape.sideCount} sections principales${shape.closed ? ' et forme un tracé fermé' : ''}. Essaie d'ajuster le prochain angle.`
       : '🤖 J’ai exécuté ton programme. Baisse le stylo et ajoute un mouvement pour que je reconnaisse ton dessin.'
   }
+  if (shape.shape === 'radial_pattern') return `❄️ You drew a radial mandala with ${shape.motifCount} repeated shapes around one center! Each shape returns to the center, then turns about ${shape.rotationStep}° before the next copy.`
   if (shape.shape === 'square') return '🎨 You drew a square! It has four nearly equal sides and four right-angle turns. Try using a Repeat block to draw it with fewer blocks.'
   if (shape.shape === 'rectangle') return '🎨 You drew a rectangle! Its opposite sides match and its turns are 90°. Try changing only two side lengths.'
   if (shape.shape === 'triangle') return '🎨 You drew a triangle! The path returned to its start after three sides. Try a new pen color or thickness.'
