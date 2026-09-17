@@ -11114,36 +11114,106 @@ const loginPage = `<!DOCTYPE html>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'Nunito', sans-serif; }
+        :root { --navy:#17205c; --violet:#5135d8; --electric:#6f58ff; --cyan:#36d8e8; --sun:#ffd447; --coral:#ff6f91; }
+        * { font-family: 'Nunito', sans-serif; box-sizing:border-box; }
         h1, h2 { font-family: 'Fredoka One', cursive; }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-page {
+            position:relative;
+            overflow:hidden;
+            background:
+                radial-gradient(circle at 12% 18%, rgba(54,216,232,.18), transparent 23%),
+                radial-gradient(circle at 88% 20%, rgba(255,111,145,.18), transparent 25%),
+                linear-gradient(135deg, #17205c 0%, #241b78 52%, #5135d8 100%);
+        }
+        .login-page::before {
+            content:"";
+            position:absolute;
+            inset:0;
+            opacity:.38;
+            pointer-events:none;
+            background-image:
+                radial-gradient(circle at 10% 25%, #36d8e8 0 1px, transparent 2px),
+                radial-gradient(circle at 82% 18%, #ffd447 0 2px, transparent 3px),
+                radial-gradient(circle at 62% 78%, #ff6f91 0 1px, transparent 2px);
+            background-size:150px 150px, 190px 190px, 115px 115px;
+        }
+        .login-page::after {
+            content:"✦";
+            position:absolute;
+            right:8%;
+            top:12%;
+            color:rgba(255,212,71,.3);
+            font-size:8rem;
+            transform:rotate(15deg);
+            pointer-events:none;
+        }
+        .login-shell { position:relative; z-index:1; }
+        .login-brand { filter:drop-shadow(0 8px 14px rgba(5,8,50,.3)); }
+        .login-wordmark { color:#fff; text-shadow:0 5px 0 rgba(23,32,92,.35); letter-spacing:.02em; }
+        .login-card {
+            position:relative;
+            overflow:hidden;
+            background:rgba(255,255,255,.97);
+            border:1px solid rgba(255,255,255,.72);
+            box-shadow:0 24px 70px rgba(5,8,50,.35);
+        }
+        .login-card::before {
+            content:"";
+            position:absolute;
+            top:0;
+            left:0;
+            right:0;
+            height:7px;
+            background:linear-gradient(90deg, var(--cyan), var(--electric), var(--coral));
+        }
+        .login-input {
+            width:100%;
+            border:2px solid #e5e7f7;
+            border-radius:14px;
+            background:#f7f8ff;
+            transition:border-color .2s ease, box-shadow .2s ease, background .2s ease;
+        }
+        .login-input:focus {
+            background:#fff;
+            border-color:var(--electric);
+            box-shadow:0 0 0 4px rgba(111,88,255,.14);
+            outline:none;
+        }
+        .login-submit {
+            background:linear-gradient(135deg, var(--electric), var(--violet));
+            box-shadow:0 8px 0 #3d28b1, 0 16px 26px rgba(81,53,216,.28);
+        }
+        .login-submit:hover { transform:translateY(-2px); box-shadow:0 10px 0 #3d28b1, 0 20px 30px rgba(81,53,216,.34); }
+        .register-link { background:#f7f8ff; border-color:#e5e7f7; }
+        .register-link:hover { background:#eeeaff; border-color:#cfc7ff; color:#5135d8; }
         .bounce { animation: bounce 2s infinite; }
         @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
     </style>
 </head>
-<body class="gradient-bg min-h-screen flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-md">
-        <div class="text-center mb-8">
-            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="h-20 mx-auto mb-4 object-contain drop-shadow-lg">
-            <h1 class="text-5xl text-white mb-2">STEMO</h1>
+<body class="login-page min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="login-shell w-full max-w-md">
+        <div class="text-center mb-7">
+            <img src="/static/steam-logo-white.png" alt="STEAM Academy" class="login-brand h-20 mx-auto mb-3 object-contain">
+            <h1 class="login-wordmark text-4xl sm:text-5xl mb-2">STEMO Coding</h1>
+            <p class="text-cyan-100 text-sm font-bold tracking-wide">Coding &amp; Robotics for Kids</p>
         </div>
-        <div class="card rounded-3xl p-8 shadow-2xl">
+        <div class="login-card rounded-3xl p-7 sm:p-8">
             <h2 class="text-2xl text-gray-800 mb-6 text-center">Welcome Back!</h2>
             <div id="errorMsg" class="hidden bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 mb-4 text-sm"></div>
             <form id="loginForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">Username</label>
                     <input id="username" type="text" placeholder="Enter your username" autocomplete="username"
-                        class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors text-lg">
+                        class="login-input px-4 py-3 text-gray-800 text-lg">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-600 mb-1">Password</label>
                     <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password"
-                        class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-indigo-400 transition-colors text-lg">
+                        class="login-input px-4 py-3 text-gray-800 text-lg">
                 </div>
                 <button type="submit" id="loginBtn"
-                    class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-bold text-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+                    class="login-submit w-full text-white py-3 rounded-xl font-bold text-lg transition-all transform">
                     🚀 Let's Go!
                 </button>
             </form>
@@ -11152,7 +11222,7 @@ const loginPage = `<!DOCTYPE html>
                 <span class="text-gray-400 text-xs">or</span>
                 <div class="flex-1 h-px bg-gray-200"></div>
             </div>
-            <a href="/register" class="block mt-4 text-center bg-gray-50 hover:bg-gray-100 border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold text-base transition-all">
+            <a href="/register" class="register-link block mt-4 text-center border-2 text-gray-600 py-3 rounded-xl font-bold text-base transition-all">
                 ✍️ Register as a Student
             </a>
             <p class="text-center text-gray-400 text-xs mt-3">Registration requires teacher or admin approval</p>
