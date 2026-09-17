@@ -3063,7 +3063,7 @@ const htmlContent = `<!DOCTYPE html>
                             <p class="mt-5 text-slate-500" data-i18n="certificate_awarded">This is proudly presented to</p>
                             <p id="certificateStudentName" class="mt-2 text-2xl md:text-3xl font-black text-purple-800"></p>
                             <p class="mt-5 text-slate-600 max-w-2xl mx-auto" data-i18n="certificate_body">for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of</p>
-                            <p class="mt-3 text-xl md:text-2xl font-black text-fuchsia-700" data-i18n="certificate_coder_title">STEAM Academy Certified Young Coder</p>
+                            <p class="mt-3 text-xl md:text-2xl font-black text-fuchsia-700" data-i18n="certificate_coder_title">STEAM Academy Certified Little Coder</p>
                             <p class="mt-3 text-sm text-slate-500 max-w-2xl mx-auto" data-i18n="certificate_excellence">Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.</p>
                             <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm font-bold text-slate-700">
                                 <span class="rounded-full bg-indigo-50 px-3 py-1.5" data-i18n="certificate_blockly">Blockly programming</span>
@@ -8206,7 +8206,7 @@ const htmlContent = `<!DOCTYPE html>
                 certificate_locked_title: 'Complete the core curriculum to unlock',
                 certificate_title: 'Certificate of Achievement', certificate_awarded: 'This is proudly presented to',
                 certificate_body: 'for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of',
-                certificate_coder_title: 'STEAM Academy Certified Young Coder',
+                certificate_coder_title: 'STEAM Academy Certified Little Coder',
                 certificate_excellence: 'Demonstrating excellence in Blockly programming, logical reasoning, and robotics automation.',
                 certificate_completed: 'Completed',
                 certificate_print: 'View / Print certificate', certificate_download: 'Download',
