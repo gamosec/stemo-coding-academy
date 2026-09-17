@@ -2164,6 +2164,7 @@ app.post('/api/chat', authMiddleware, bodyLimit({
             character: 'stemo',
             source: result.source,
             sourceReason: result.reason,
+            sourceDetail: result.detail,
             workSummary: {
                 drawing: tutorContext.drawing,
                 program: tutorContext.program,
@@ -2180,11 +2181,28 @@ app.post('/api/chat', authMiddleware, bodyLimit({
 })
 
 // Helper function for AI responses using Cloudflare Workers AI
-async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string; reason: string | null }> {
+function safeAIErrorDetail(error: unknown): string | null {
+    if (!error || typeof error !== 'object') return null
+    const candidate = error as { name?: unknown; code?: unknown; message?: unknown }
+    const detail = [
+        typeof candidate.name === 'string' ? candidate.name : '',
+        typeof candidate.code === 'string' || typeof candidate.code === 'number' ? `code=${candidate.code}` : '',
+        typeof candidate.message === 'string' ? candidate.message : '',
+    ].filter(Boolean).join(': ')
+    if (!detail) return null
+    return detail
+        .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+        .replace(/cfut_[A-Za-z0-9_-]+/g, '[redacted-token]')
+        .replace(/\b[a-f0-9]{32}\b/gi, '[redacted-account]')
+        .replace(/\b[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\b/gi, '[redacted-id]')
+        .slice(0, 300)
+}
+
+async function generateAIResponse(ai: any, message: string, context: any, eventType: string): Promise<{ response: string; source: string; reason: string | null; detail: string | null }> {
     const fallback = createFallbackTutorResponse(context, eventType, message)
     if (!ai) {
         console.warn('[STEMO AI] Workers AI binding is unavailable; using deterministic tutor feedback.')
-        return { response: fallback, source: 'fallback', reason: 'binding_unavailable' }
+        return { response: fallback, source: 'fallback', reason: 'binding_unavailable', detail: null }
     }
 
     try {
@@ -2203,26 +2221,27 @@ async function generateAIResponse(ai: any, message: string, context: any, eventT
 
         if (result && result.response) {
             const moderation = await moderateTutorResponse(ai, result.response)
-            if (moderation.response) return { response: moderation.response, source: 'ai', reason: null }
+            if (moderation.response) return { response: moderation.response, source: 'ai', reason: null, detail: null }
             console.error('[STEMO AI] Model response rejected by child-safety moderation')
-            return { response: fallback, source: 'fallback', reason: moderation.reason }
+            return { response: fallback, source: 'fallback', reason: moderation.reason, detail: moderation.detail }
         }
 
         console.error('[STEMO AI] Empty model response', result)
-        return { response: fallback, source: 'fallback', reason: 'empty_model_response' }
+        return { response: fallback, source: 'fallback', reason: 'empty_model_response', detail: null }
     } catch (e) {
         console.error('[STEMO AI] Workers AI request failed:', e)
         return {
             response: fallback,
             source: 'fallback',
             reason: e instanceof Error && e.message.includes('timed out') ? 'model_timeout' : 'model_request_failed',
+            detail: safeAIErrorDetail(e),
         }
     }
 }
 
-async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<{ response: string | null; reason: string | null }> {
+async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<{ response: string | null; reason: string | null; detail: string | null }> {
     const response = safeTutorResponse(rawResponse)
-    if (!response) return { response: null, reason: 'deterministic_safety_rejected' }
+    if (!response) return { response: null, reason: 'deterministic_safety_rejected', detail: null }
     try {
         const guardResult: any = await Promise.race([
             ai.run('@cf/meta/llama-guard-3-8b', {
@@ -2236,13 +2255,14 @@ async function moderateTutorResponse(ai: any, rawResponse: unknown): Promise<{ r
             ? guardResult.response.trim()
             : ''
         return /^safe(?:\s|$)/i.test(verdict)
-            ? { response, reason: null }
-            : { response: null, reason: 'guard_rejected' }
+            ? { response, reason: null, detail: null }
+            : { response: null, reason: 'guard_rejected', detail: verdict.slice(0, 120) || null }
     } catch (error) {
         console.error('[STEMO AI] Safety moderation failed; using deterministic fallback:', error)
         return {
             response: null,
             reason: error instanceof Error && error.message.includes('timed out') ? 'guard_timeout' : 'guard_request_failed',
+            detail: safeAIErrorDetail(error),
         }
     }
 }
@@ -9470,7 +9490,7 @@ const htmlContent = `<!DOCTYPE html>
                     return response.json();
                 })
                 .then(function(data) {
-                    console.info('[STEMO Tutor]', data.source || 'unknown', data.sourceReason || 'ok');
+                    console.info('[STEMO Tutor]', data.source || 'unknown', data.sourceReason || 'ok', data.sourceDetail || '');
                     addChatMessage('stemo', data.response || fallbackMessage);
                 })
                 .catch(function() {
