@@ -3059,7 +3059,7 @@ const htmlContent = `<!DOCTYPE html>
                         <div class="relative z-10">
                             <img src="/static/steam-logo.png" alt="STEAM Academy" class="certificate-logo">
                             <div class="mt-4 text-xs font-black tracking-[.32em] text-purple-700 uppercase">STEAM Academy</div>
-                            <h4 class="mt-3 text-3xl md:text-5xl font-black text-slate-800" data-i18n="certificate_title">Certificate of Achievement</h4>
+                            <h4 class="mt-3 text-3xl md:text-5xl font-black text-purple-800" data-i18n="certificate_title">Certificate of Achievement</h4>
                             <p class="mt-5 text-slate-500" data-i18n="certificate_awarded">This is proudly presented to</p>
                             <p id="certificateStudentName" class="mt-2 text-2xl md:text-3xl font-black text-purple-800"></p>
                             <p class="mt-5 text-slate-600 max-w-2xl mx-auto" data-i18n="certificate_body">for successfully completing the Basic, Intermediate, and Advanced curriculum and earning the title of</p>
@@ -3324,8 +3324,8 @@ const htmlContent = `<!DOCTYPE html>
 
     <!-- Footer -->
     <footer class="text-center py-8 mt-6 border-t border-purple-100 bg-white/60">
-        <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
-        <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
+        <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+        <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
     </footer>
 
     <script>
@@ -11203,8 +11203,8 @@ const loginPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <p class="text-purple-200 text-sm">© 2026 STEMO · Science Games</p>
-        <p class="text-purple-300 text-xs">أكاديمية ستيم لألعاب العلوم</p>
+        <p class="text-purple-200 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+        <p class="text-purple-300 text-xs">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
     </div>
 </body>
 </html>`
@@ -12436,8 +12436,8 @@ init();
 </div>
 
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
-    <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
 </footer>
 </body>
 </html>`
@@ -13175,8 +13175,8 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-7xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
-    <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
 </footer>
 </body>
 </html>`
@@ -13312,8 +13312,8 @@ async function logout() {
 init();
 </script>
 <footer class="max-w-4xl mx-auto px-6 py-6 mt-4 border-t border-gray-100 text-center">
-    <p class="text-gray-400 text-sm">© 2026 STEMO · Science Games</p>
-    <p class="text-gray-300 text-xs mt-1">أكاديمية ستيم لألعاب العلوم</p>
+    <p class="text-gray-400 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+    <p class="text-gray-300 text-xs mt-1">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
 </footer>
 </body>
 </html>`
@@ -13437,8 +13437,8 @@ const registerPage = `<!DOCTYPE html>
         });
     </script>
     <div class="text-center mt-6 pb-4">
-        <p class="text-purple-200 text-sm">© 2026 STEMO · Science Games</p>
-        <p class="text-purple-300 text-xs">أكاديمية ستيم لألعاب العلوم</p>
+        <p class="text-purple-200 text-sm">© 2026 STEMO Coding · Powered by STEAM Academy</p>
+        <p class="text-purple-300 text-xs">© ٢٠٢٦ ستيمو كودينغ · مدعوم من أكاديمية ستيم</p>
     </div>
 </body>
 </html>`
@@ -13950,8 +13950,8 @@ const landingPage = `<!DOCTYPE html>
                 <a href="/register" class="hover:text-white transition-colors">Register</a>
             </div>
             <div class="text-sm text-center">
-                <div>© 2026 STEMO Coding · Science Games</div>
-                <div class="text-xs mt-1" data-landing-i18n="STEM Science Games Academy">STEM Science Games Academy</div>
+                <div data-landing-i18n="© 2026 STEMO Coding">© 2026 STEMO Coding</div>
+                <div class="text-xs mt-1" data-landing-i18n="STEMO Coding is powered by STEAM Academy">STEMO Coding is powered by STEAM Academy</div>
             </div>
         </div>
     </div>
@@ -14028,7 +14028,8 @@ const landingPage = `<!DOCTYPE html>
             'Register for free and start your coding journey with STEMO today!': 'سجّل مجاناً وابدأ رحلة البرمجة مع ستيمو اليوم!',
             '🎉 Register as Student': '🎉 التسجيل كطالب',
             'AI-Powered Coding & Robotics for Kids': 'برمجة وروبوتات للأطفال بالذكاء الاصطناعي',
-            'STEM Science Games Academy': 'أكاديمية ستيم لألعاب العلوم',
+            '© 2026 STEMO Coding': '© ٢٠٢٦ ستيمو كودينغ',
+            'STEMO Coding is powered by STEAM Academy': 'ستيمو كودينغ مدعوم من أكاديمية ستيم',
             'Register': 'التسجيل'
         };
         var landingEnglish = {};
